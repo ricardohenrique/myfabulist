@@ -12,11 +12,15 @@ app/
 ├── Http/
 │   ├── Controllers/     # HTTP entry points; orchestrate requests and responses
 │   ├── Middleware/      # Request/response pipeline and cross-cutting concerns
-│   └── Requests/        # Form requests and input validation rules
+│   ├── Requests/        # Form requests and input validation rules
+│   └── Resources/       # API wire-format transformers (app/Http/Resources/Api/V1)
+├── Listeners/            # Event listeners (e.g. provisioning defaults on registration)
 ├── Mail/                # Email classes, templates, and notifications
 ├── Models/              # Eloquent models and domain entities
+├── Policies/             # Model-level authorization rules (auto-discovered)
 ├── Providers/           # Service container bindings and application bootstrapping
 ├── Repositories/        # Data access layer (database persistence and queries)
+│   └── Contracts/        # Repository interfaces the Eloquent implementations bind to
 └── Services/            # Business logic and application use cases
 
 database/
