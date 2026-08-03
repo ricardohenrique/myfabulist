@@ -1,0 +1,91 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Database;
+
+use App\Models\Folder;
+use App\Models\Task;
+use App\Models\TaskList;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class FactorySmokeTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_folder_factory_produces_a_valid_persisted_row(): void
+    {
+        $folder = Folder::factory()->create();
+
+        $this->assertDatabaseHas('folders', ['id' => $folder->id]);
+    }
+
+    public function test_task_list_factory_produces_a_valid_persisted_row(): void
+    {
+        $list = TaskList::factory()->create();
+
+        $this->assertDatabaseHas('task_lists', ['id' => $list->id]);
+    }
+
+    public function test_task_list_factory_in_folder_state(): void
+    {
+        $folder = Folder::factory()->create();
+        $list = TaskList::factory()->inFolder($folder)->create();
+
+        $this->assertDatabaseHas('task_lists', [
+            'id' => $list->id,
+            'folder_id' => $folder->id,
+            'user_id' => $folder->user_id,
+        ]);
+    }
+
+    public function test_task_list_factory_inbox_state(): void
+    {
+        $list = TaskList::factory()->inbox()->create();
+
+        $this->assertDatabaseHas('task_lists', [
+            'id' => $list->id,
+            'name' => 'Inbox',
+            'is_default' => true,
+            'folder_id' => null,
+        ]);
+    }
+
+    public function test_task_factory_produces_a_valid_persisted_row(): void
+    {
+        $task = Task::factory()->create();
+
+        $this->assertDatabaseHas('tasks', ['id' => $task->id]);
+        $this->assertSame($task->taskList->user_id, $task->user_id);
+    }
+
+    public function test_task_factory_for_task_list_state(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'task_list_id' => $list->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_task_factory_completed_state(): void
+    {
+        $task = Task::factory()->completed()->create();
+
+        $this->assertTrue($task->is_completed);
+        $this->assertNotNull($task->completed_at);
+    }
+
+    public function test_task_factory_starred_state(): void
+    {
+        $task = Task::factory()->starred()->create();
+
+        $this->assertTrue($task->is_starred);
+    }
+}

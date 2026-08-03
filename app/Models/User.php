@@ -7,7 +7,9 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -30,6 +32,9 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Collection<int, Folder> $folders
+ * @property-read Collection<int, TaskList> $taskLists
+ * @property-read Collection<int, Task> $tasks
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -75,5 +80,29 @@ class User extends Authenticatable implements PasskeyUser
                 ? Storage::disk('public')->url($this->profile_photo_path)
                 : null,
         );
+    }
+
+    /**
+     * @return HasMany<Folder, $this>
+     */
+    public function folders(): HasMany
+    {
+        return $this->hasMany(Folder::class);
+    }
+
+    /**
+     * @return HasMany<TaskList, $this>
+     */
+    public function taskLists(): HasMany
+    {
+        return $this->hasMany(TaskList::class);
+    }
+
+    /**
+     * @return HasMany<Task, $this>
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
     }
 }
