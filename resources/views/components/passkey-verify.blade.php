@@ -33,7 +33,7 @@
                         submit: '{{ route($submitRoute) }}',
                     },
                 });
-                Livewire.navigate(response.redirect || '/dashboard');
+                Livewire.navigate(response.redirect || '{{ config('fortify.home') }}');
             } catch (e) {
                 if (e.constructor?.name !== 'UserCancelledError') {
                     this.error = e.message;

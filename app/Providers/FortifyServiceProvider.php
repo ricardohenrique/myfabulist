@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -29,6 +30,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configureRedirects();
     }
 
     /**
@@ -52,6 +54,18 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::registerView(fn () => view('livewire.auth.register'));
         Fortify::resetPasswordView(fn () => view('livewire.auth.reset-password'));
         Fortify::requestPasswordResetLinkView(fn () => view('livewire.auth.forgot-password'));
+    }
+
+    /**
+     * Configure the redirect target used for already-authenticated guest-only routes.
+     *
+     * Pinned explicitly so it never depends on Laravel's `dashboard`/`home`
+     * route-name heuristic, which would otherwise resolve to `/` and cause
+     * a redirect loop once the `dashboard` route is renamed.
+     */
+    private function configureRedirects(): void
+    {
+        RedirectIfAuthenticated::redirectUsing(fn () => Fortify::redirects('login'));
     }
 
     /**

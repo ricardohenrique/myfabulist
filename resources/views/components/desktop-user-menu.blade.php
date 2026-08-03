@@ -1,7 +1,11 @@
+@php $user = auth()->user(); @endphp
+
 <flux:dropdown position="bottom" align="start">
     <flux:sidebar.profile
-        :name="auth()->user()->name"
-        :initials="auth()->user()->initials()"
+        :name="$user->name"
+        :initials="$user->initials()"
+        :avatar="$user->profilePhotoUrl"
+        circle
         icon:trailing="chevrons-up-down"
         data-test="sidebar-menu-button"
     />
@@ -9,12 +13,14 @@
     <flux:menu>
         <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
             <flux:avatar
-                :name="auth()->user()->name"
-                :initials="auth()->user()->initials()"
+                :name="$user->name"
+                :initials="$user->initials()"
+                :src="$user->profilePhotoUrl"
+                circle
             />
             <div class="grid flex-1 text-start text-sm leading-tight">
-                <flux:heading class="truncate">{{ auth()->user()->name }}</flux:heading>
-                <flux:text class="truncate">{{ auth()->user()->email }}</flux:text>
+                <flux:heading class="truncate">{{ $user->name }}</flux:heading>
+                <flux:text class="truncate">{{ $user->email }}</flux:text>
             </div>
         </div>
         <flux:menu.separator />

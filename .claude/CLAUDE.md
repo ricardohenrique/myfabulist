@@ -37,7 +37,7 @@ tests/
 ```
 User
   ↓
-/acc:plan
+/command-plan
   ↓
 tech-lead-architect
   ↓
@@ -45,7 +45,7 @@ Creates date-plan-title.md
   ↓
 User approval
   ↓
-/acc:implement
+/command-implement
   ↓
 code-executor
   ↓
@@ -53,7 +53,7 @@ Implements plan
   ↓
 Runs tests & static analysis
   ↓
-/acc:review
+/command-review
   ↓
 code-reviewer
   ↓
