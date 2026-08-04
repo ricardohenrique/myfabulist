@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Exceptions\InvalidTaskTitleException;
+use App\Exceptions\TaskListNotFoundException;
+use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\User;
+use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Data\ListedTasks;
+use App\Services\Data\TaskDetailsData;
+use Illuminate\Database\Eloquent\Collection;
 
 class TaskService
 {
     public function __construct(
         private readonly TaskRepositoryInterface $tasks,
+        private readonly TaskListRepositoryInterface $taskLists,
     ) {}
 
     /**
@@ -27,5 +35,108 @@ class TaskService
             completed: $completed,
             completedCount: $completed->count(),
         );
+    }
+
+    /**
+     * Quick-capture a task (M3). Title is the only required field; a
+     * blank/whitespace-only title is rejected here regardless of which
+     * delivery mechanism called in — this is the invariant, not just a
+     * Form Request / Livewire validation rule.
+     */
+    public function create(User $user, TaskList $taskList, string $title): Task
+    {
+        $title = $this->requireNonBlankTitle($title);
+
+        return $this->tasks->create($user, $taskList, $title, $this->tasks->nextPosition($taskList));
+    }
+
+    /**
+     * Replace a task's title/note/due date/star state in one call (D4).
+     */
+    public function update(Task $task, TaskDetailsData $data): Task
+    {
+        $title = $this->requireNonBlankTitle($data->title);
+
+        return $this->tasks->update($task, $title, $data->note, $data->dueDate, $data->isStarred);
+    }
+
+    public function rename(Task $task, string $title): Task
+    {
+        return $this->tasks->rename($task, $this->requireNonBlankTitle($title));
+    }
+
+    /**
+     * Idempotent: completing an already-completed task is a no-op (M5).
+     */
+    public function complete(Task $task): Task
+    {
+        return $this->tasks->markCompleted($task);
+    }
+
+    /**
+     * Idempotent: restoring an already-active task is a no-op (M5).
+     */
+    public function restore(Task $task): Task
+    {
+        return $this->tasks->markActive($task);
+    }
+
+    public function setStarred(Task $task, bool $isStarred): Task
+    {
+        return $this->tasks->setStarred($task, $isStarred);
+    }
+
+    /**
+     * Move a task to another of the user's lists (S6). The target list
+     * reference arrives as an id and is resolved here, scoped to the
+     * owner (D3) — a missing or foreign list id throws, preserving D7's
+     * "a task can only move between lists belonging to the same user"
+     * invariant regardless of caller.
+     */
+    public function move(Task $task, User $user, int $targetListId, ?int $position): Task
+    {
+        $targetList = $this->taskLists->findForUser($targetListId, $user)
+            ?? throw TaskListNotFoundException::forId($targetListId);
+
+        return $this->tasks->moveToList($task, $targetList, $position);
+    }
+
+    public function delete(Task $task): void
+    {
+        $this->tasks->delete($task);
+    }
+
+    /**
+     * Bulk reorder (S4). The repository validates the submitted id set
+     * against the list's current tasks and rewrites positions atomically,
+     * throwing TaskReorderMismatchException before writing anything on any
+     * mismatch (missing, extra, or foreign ids).
+     *
+     * @param  array<int, int>  $taskIds
+     */
+    public function reorder(TaskList $taskList, array $taskIds): void
+    {
+        $this->tasks->applyOrder($taskList, $taskIds);
+    }
+
+    /**
+     * Every starred task belonging to the user, across all lists (S2).
+     *
+     * @return Collection<int, Task>
+     */
+    public function starredFor(User $user): Collection
+    {
+        return $this->tasks->starredForUser($user);
+    }
+
+    private function requireNonBlankTitle(string $title): string
+    {
+        $title = trim($title);
+
+        if ($title === '') {
+            throw InvalidTaskTitleException::becauseBlank();
+        }
+
+        return $title;
     }
 }

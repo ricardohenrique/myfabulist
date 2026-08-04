@@ -1,10 +1,17 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CompleteTaskController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\FolderOrderController;
 use App\Http\Controllers\Api\V1\InboxController;
+use App\Http\Controllers\Api\V1\MoveTaskController;
+use App\Http\Controllers\Api\V1\RestoreTaskController;
+use App\Http\Controllers\Api\V1\StarredTaskController;
+use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TaskListController;
 use App\Http\Controllers\Api\V1\TaskListOrderController;
+use App\Http\Controllers\Api\V1\TaskListTaskController;
+use App\Http\Controllers\Api\V1\TaskOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -47,4 +54,23 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('v1')->name('api.v1.')->
     Route::apiResource('lists', TaskListController::class)
         ->parameters(['lists' => 'list'])
         ->where(['list' => '[0-9]+']);
+
+    Route::get('lists/{list}/tasks', [TaskListTaskController::class, 'index'])
+        ->name('lists.tasks.index')
+        ->whereNumber('list');
+    Route::post('lists/{list}/tasks', [TaskListTaskController::class, 'store'])
+        ->name('lists.tasks.store')
+        ->whereNumber('list');
+    Route::put('lists/{list}/task-order', TaskOrderController::class)
+        ->name('lists.task-order')
+        ->whereNumber('list');
+
+    Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
+    Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('tasks/{task}/complete', CompleteTaskController::class)->name('tasks.complete');
+    Route::post('tasks/{task}/restore', RestoreTaskController::class)->name('tasks.restore');
+    Route::post('tasks/{task}/move', MoveTaskController::class)->name('tasks.move');
+
+    Route::get('starred', StarredTaskController::class)->name('starred');
 });
