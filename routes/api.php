@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\FolderOrderController;
 use App\Http\Controllers\Api\V1\InboxController;
+use App\Http\Controllers\Api\V1\TaskListController;
+use App\Http\Controllers\Api\V1\TaskListOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -37,4 +39,12 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('v1')->name('api.v1.')->
     Route::apiResource('folders', FolderController::class)
         ->parameters(['folders' => 'folder'])
         ->where(['folder' => '[0-9]+']);
+
+    // "lists/order" must be registered before the "lists/{list}" resource
+    // routes below, or "order" is swallowed as a list id (R12).
+    Route::put('lists/order', TaskListOrderController::class)->name('lists.order');
+
+    Route::apiResource('lists', TaskListController::class)
+        ->parameters(['lists' => 'list'])
+        ->where(['list' => '[0-9]+']);
 });
