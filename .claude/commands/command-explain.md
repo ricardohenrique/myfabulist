@@ -101,7 +101,7 @@ Before path validation, detect input type from the parsed input:
 
 Execute the full explanation workflow directly using the following phases:
 
-1. **Resolve** — if route/command input, identify the handler file by reading `routes/web.php` or searching for the command class.
+1. **Resolve** — if route/command input, identify the handler file by reading `routes/web.php` (web routes), `routes/api.php` (`/api/v1` REST endpoints), or `routes/settings.php`, or by searching for the command class.
 2. **Navigate** — scan the file or directory structure, find entry points, identify patterns.
 3. **Analyze** — extract business logic, trace data flows. For `deep` and `onboarding` modes, trace across all relevant layers.
 4. **Visualize** — generate Mermaid diagrams for `deep`, `onboarding`, and `business` modes.

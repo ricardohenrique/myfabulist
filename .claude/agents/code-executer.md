@@ -47,9 +47,14 @@ If you encounter any of these, STOP and report to the user:
 
 1. Check existing structure before writing — look for the relevant existing patterns to follow.
 2. Write production code following all rules above.
-3. Write tests at the right layer: unit tests for pure domain logic; feature (integration) tests with `RefreshDatabase` and `Http::fake()` for HTTP and service flows.
-4. Register any new service in the DI configuration.
-5. Run the test suite inside Docker to confirm everything passes before reporting done.
+3. Write tests at the right layer: unit tests for pure domain logic; feature (integration)
+   tests with `RefreshDatabase`, `actingAs()`, and `getJson()`/`postJson()`/etc. against
+   `/api/v1/...` for API endpoints (this project makes no outbound HTTP calls, so
+   `Http::fake()` is not part of the stack — don't reach for it).
+4. Register any new service/repository binding in `RepositoryServiceProvider` (or
+   `AppServiceProvider`) — never resolve concrete Eloquent repositories directly.
+5. Run `composer test` (Pint + PHPStan + PHPUnit) locally to confirm everything passes
+   before reporting done — there is no Docker runtime in this project.
 
 ## Stop and report if you encounter
 
@@ -70,6 +75,6 @@ Recommendation: [choice + one-line rationale]
 ## Definition of done
 
 - ✅ Production code is complete and follows all architecture rules
-- ✅ Tests written and passing inside Docker
-- ✅ New services registered in DI configuration
+- ✅ Tests written and passing (`composer test`)
+- ✅ New services/repositories registered in DI configuration
 - ✅ No placeholders, TODOs, or commented-out code

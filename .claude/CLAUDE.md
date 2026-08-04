@@ -1,38 +1,50 @@
 # MyFabulist
 
-Laravel 12+/13+, PHP 8.4+, MySQL
-Folders -> Lists -> Tasks
+Laravel 13, PHP 8.3+, SQLite (default) / MySQL
+Folders -> Lists -> Tasks (Wunderlist-style task manager)
+
+Two delivery mechanisms sit on top of one shared application layer: a Livewire web UI
+and a versioned JSON REST API (`/api/v1`, Sanctum-authenticated). Neither delivery layer
+talks to the other — Livewire components never call the API over HTTP, and both call the
+same Services/Repositories directly. See `.claude/rules/architecture.md` for the enforced
+invariant (`tests/Feature/Architecture/LayeringTest.php`).
 
 ## Structure
 
 ```
 app/
-├── Exceptions/          # Custom domain and application exceptions
-├── Livewire/            # Reactive UI components (server-driven frontend)
+├── Actions/Fortify/     # Fortify user actions (create user, reset password)
+├── Concerns/            # Shared validation-rule traits
+├── Exceptions/          # Domain exceptions (extend App\Exceptions\DomainException)
 ├── Http/
-│   ├── Controllers/     # HTTP entry points; orchestrate requests and responses
-│   ├── Middleware/      # Request/response pipeline and cross-cutting concerns
-│   ├── Requests/        # Form requests and input validation rules
-│   └── Resources/       # API wire-format transformers (app/Http/Resources/Api/V1)
-├── Listeners/            # Event listeners (e.g. provisioning defaults on registration)
-├── Mail/                # Email classes, templates, and notifications
+│   ├── Controllers/     # Web controllers + Http/Controllers/Api/V1 (REST API)
+│   ├── Requests/        # Form requests; Http/Requests/Api/V1 for the API
+│   └── Resources/       # API wire-format transformers (Http/Resources/Api/V1)
+├── Listeners/           # Event listeners (e.g. provisioning defaults on registration)
+├── Livewire/            # Reactive UI components (server-driven frontend)
 ├── Models/              # Eloquent models and domain entities
-├── Policies/             # Model-level authorization rules (auto-discovered)
+├── Policies/            # Model-level authorization rules (auto-discovered)
 ├── Providers/           # Service container bindings and application bootstrapping
 ├── Repositories/        # Data access layer (database persistence and queries)
-│   └── Contracts/        # Repository interfaces the Eloquent implementations bind to
+│   └── Contracts/       # Repository interfaces the Eloquent implementations bind to
 └── Services/            # Business logic and application use cases
+    └── Data/            # Immutable DTOs passed between Services and callers
+
+routes/
+├── web.php              # Web routes (Livewire pages)
+├── api.php              # REST API routes, all under /api/v1, auth:sanctum + verified
+├── settings.php         # Livewire-routed settings pages
+└── console.php          # Artisan console routes
 
 database/
 ├── migrations/          # Database schema definitions and versioning
 ├── seeders/             # Development and test data population
 └── factories/           # Model factories for generating test data
 
-routes/
-└── web.php              # Web route definitions and endpoint mappings
-
 tests/
-├── Feature/             # End-to-end and integration tests (HTTP, database, services)
+├── Feature/             # HTTP, database, service, repository, and Livewire tests
+│   ├── Api/V1/          # REST API endpoint tests
+│   └── Architecture/    # Layering rules enforced by static test assertions
 └── Unit/                # Isolated tests for individual classes and methods
 ```
 
@@ -80,14 +92,23 @@ Models represent domain entities and database records.
 Livewire Components implement interactive UI behavior.
 
 ## Request Flow
-Request
-→ Middleware
-→ Request Validation
-→ Controller
-→ Service
-→ Repository
-→ Model / Database
-→ Response
+
+Two delivery paths, one application layer:
+
+```
+API request  → routes/api.php (auth:sanctum + verified)
+             → Form Request (Http/Requests/Api/V1)
+             → Controller (Http/Controllers/Api/V1)
+             → Service → Repository → Model / Database
+             → Http/Resources/Api/V1 → JSON response
+
+Web request  → routes/web.php or Livewire component
+             → Service → Repository → Model / Database
+             → Blade view
+```
+
+Both paths converge on the same Services and Repositories — business logic is never
+duplicated between the web and API surfaces.
 
 ## Layer Responsibilities
 Controllers should be thin and contain no business logic.
@@ -95,11 +116,17 @@ Services coordinate business rules and workflows.
 Repositories are the only layer that communicates directly with the database.
 Models should represent data and relationships, not application workflows.
 Business logic should live in Services, not Controllers, Models, or Repositories.
+API Resources are the only layer allowed to shape the JSON wire format — controllers
+never return raw models or arrays from `/api/v1` endpoints.
 
 See the app/ directory for the complete project structure.
 
 ## Tests
-Run the full test suite:
+Run the full quality gate (config clear, Pint, PHPStan, PHPUnit):
+```bash
+composer test
+```
+Run just the test suite:
 ```bash
 php artisan test
 ```

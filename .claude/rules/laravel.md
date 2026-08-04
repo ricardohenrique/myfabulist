@@ -45,6 +45,14 @@ Laravel-specific coding standards for the MyFabulist project.
 - Use named routes for all non-trivial routes.
 - Group related routes with `Route::prefix()` and `Route::middleware()`.
 - Use route model binding where it simplifies controller code.
+- Constrain numeric route-model-bound parameters (e.g. `->where(['folder' => '[0-9]+'])`
+  or `whereNumber()`) so they can't collide with literal path segments.
+- Register literal-path routes (e.g. `folders/order`) **before** the resource routes
+  that bind `{folder}` — otherwise the literal segment is swallowed as an id.
+- API routes must all sit inside the `auth:sanctum` + `verified` middleware group
+  in `routes/api.php`; this is asserted by `tests/Feature/Api/V1/ApiFoundationTest.php`.
+- API Form Requests scope any `Rule::exists(...)` lookups by the authenticated user's
+  `user_id` — never trust a foreign id to resolve just because it exists in the table.
 
 ---
 

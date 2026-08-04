@@ -30,9 +30,15 @@ You are an elite code review expert specializing in PHP 8.4+, Laravel, and clean
 
 3. **Assess Testing Coverage**: Verify:
     - Tests exist for new code
-    - Feature tests use `RefreshDatabase` and `Http::fake()` where appropriate
+    - Feature tests use `RefreshDatabase`; API tests use `actingAs()` +
+      `getJson()`/`postJson()`/etc. against `/api/v1/...` (this project makes no
+      outbound HTTP calls, so `Http::fake()` is not applicable here)
     - Proper test structure (Arrange, Act, Assert)
     - Happy path, edge cases, and failure scenarios are covered
+    - Changes to `app/Livewire` or `app/Services`/`app/Http/Controllers` don't violate
+      the layering rules asserted in `tests/Feature/Architecture/LayeringTest.php`
+      (no `Http` facade or `/api/v1` calls from Livewire; no `DB::`/query-building
+      outside Repositories)
 
 ## Your Review Process
 
