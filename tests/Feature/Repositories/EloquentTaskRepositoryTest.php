@@ -175,4 +175,153 @@ class EloquentTaskRepositoryTest extends TestCase
 
         $this->repository->applyOrder($list, [$a->id]);
     }
+
+    /**
+     * Plan 4/Step 2: soft-deleted tasks vanish from every read the global
+     * scope covers — verified individually so a future removal of the
+     * SoftDeletes trait fails loudly here, not just in Step 6's sweep.
+     */
+    public function test_a_deleted_task_is_invisible_to_active_for_list(): void
+    {
+        $list = TaskList::factory()->create();
+        $task = Task::factory()->forTaskList($list)->create();
+
+        $this->repository->delete($task);
+
+        $this->assertTrue($this->repository->activeForList($list)->isEmpty());
+    }
+
+    public function test_a_deleted_completed_task_is_invisible_to_completed_for_list(): void
+    {
+        $list = TaskList::factory()->create();
+        $task = Task::factory()->forTaskList($list)->completed()->create();
+
+        $this->repository->delete($task);
+
+        $this->assertTrue($this->repository->completedForList($list)->isEmpty());
+    }
+
+    public function test_a_deleted_task_is_invisible_to_starred_for_user(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create();
+
+        $this->repository->delete($task);
+
+        $this->assertTrue($this->repository->starredForUser($user)->isEmpty());
+    }
+
+    public function test_a_deleted_task_is_invisible_to_find_for_user(): void
+    {
+        $user = User::factory()->create();
+        $task = Task::factory()->create(['user_id' => $user->id]);
+
+        $this->repository->delete($task);
+
+        $this->assertNull($this->repository->findForUser($task->id, $user));
+    }
+
+    public function test_a_deleted_task_is_invisible_to_ids_for_list(): void
+    {
+        $list = TaskList::factory()->create();
+        $task = Task::factory()->forTaskList($list)->create();
+
+        $this->repository->delete($task);
+
+        $this->assertTrue($this->repository->idsForList($list)->isEmpty());
+    }
+
+    /**
+     * Plan 4/Step 3: findDeletedForUser() is the un-delete lookup — it must
+     * return the task only when it is both trashed and owned by the caller.
+     */
+    public function test_find_deleted_for_user_returns_a_trashed_owned_task(): void
+    {
+        $user = User::factory()->create();
+        $task = Task::factory()->create(['user_id' => $user->id]);
+        $this->repository->delete($task);
+
+        $found = $this->repository->findDeletedForUser($task->id, $user);
+
+        $this->assertNotNull($found);
+        $this->assertTrue($found->is($task));
+    }
+
+    public function test_find_deleted_for_user_returns_null_for_a_live_task(): void
+    {
+        $user = User::factory()->create();
+        $task = Task::factory()->create(['user_id' => $user->id]);
+
+        $this->assertNull($this->repository->findDeletedForUser($task->id, $user));
+    }
+
+    public function test_find_deleted_for_user_returns_null_for_a_trashed_foreign_task(): void
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+        $task = Task::factory()->create(['user_id' => $owner->id]);
+        $this->repository->delete($task);
+
+        $this->assertNull($this->repository->findDeletedForUser($task->id, $stranger));
+    }
+
+    public function test_find_deleted_for_user_returns_null_for_a_missing_id(): void
+    {
+        $user = User::factory()->create();
+
+        $this->assertNull($this->repository->findDeletedForUser(999999, $user));
+    }
+
+    /**
+     * Plan 4/Step 3: undelete() clears deleted_at and every task attribute
+     * survives the round trip; calling it twice is harmless.
+     */
+    public function test_undelete_clears_deleted_at_and_restores_the_task_to_its_list(): void
+    {
+        $list = TaskList::factory()->create();
+        $task = Task::factory()->forTaskList($list)->create([
+            'title' => 'Buy milk',
+            'note' => 'Whole milk',
+            'is_starred' => true,
+            'position' => 3,
+        ]);
+        $this->repository->delete($task);
+
+        $undeleted = $this->repository->undelete($task);
+
+        $this->assertNull($undeleted->deleted_at);
+        $this->assertSame('Buy milk', $undeleted->title);
+        $this->assertSame('Whole milk', $undeleted->note);
+        $this->assertTrue($undeleted->is_starred);
+        $this->assertSame(3, $undeleted->position);
+        $this->assertTrue($this->repository->activeForList($list)->contains(fn (Task $t): bool => $t->is($task)));
+    }
+
+    public function test_undeleting_an_already_live_task_is_harmless(): void
+    {
+        $task = Task::factory()->create();
+        $this->repository->delete($task);
+        $this->repository->undelete($task);
+
+        $this->repository->undelete($task);
+
+        $this->assertNull($task->fresh()->deleted_at);
+    }
+
+    public function test_apply_order_rejects_a_trashed_tasks_id_as_a_mismatch(): void
+    {
+        $list = TaskList::factory()->create();
+        $active = Task::factory()->forTaskList($list)->create(['position' => 0]);
+        $trashed = Task::factory()->forTaskList($list)->create(['position' => 1]);
+        $this->repository->delete($trashed);
+
+        $this->expectException(TaskReorderMismatchException::class);
+
+        try {
+            $this->repository->applyOrder($list, [$trashed->id, $active->id]);
+        } finally {
+            $this->assertSame(0, $active->fresh()->position);
+        }
+    }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\InvalidTaskTitleException;
+use App\Exceptions\TaskCannotBeUndeletedException;
 use App\Exceptions\TaskListNotFoundException;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -75,6 +76,10 @@ class TaskService
 
     /**
      * Idempotent: restoring an already-active task is a no-op (M5).
+     *
+     * Not to be confused with `undelete()` below, which un-deletes a
+     * soft-deleted task — this method only ever un-completes one (D3).
+     * A trashed task's `deleted_at` is untouched by this call.
      */
     public function restore(Task $task): Task
     {
@@ -104,6 +109,25 @@ class TaskService
     public function delete(Task $task): void
     {
         $this->tasks->delete($task);
+    }
+
+    /**
+     * Un-deletes a soft-deleted task. Not to be confused with `restore()`
+     * above, which un-completes a completed task (D3) — this method never
+     * touches `is_completed`/`completed_at`.
+     *
+     * The acting user is required (D6) to resolve the task's parent list
+     * through the already user-scoped, trashed-blind
+     * `TaskListRepositoryInterface::findForUser()` — a task whose list is
+     * itself deleted cannot be un-deleted, or "Undo" would report success
+     * while hiding the task somewhere the user can no longer reach it.
+     */
+    public function undelete(Task $task, User $user): Task
+    {
+        $this->taskLists->findForUser($task->task_list_id, $user)
+            ?? throw TaskCannotBeUndeletedException::becauseItsListIsDeleted($task);
+
+        return $this->tasks->undelete($task);
     }
 
     /**

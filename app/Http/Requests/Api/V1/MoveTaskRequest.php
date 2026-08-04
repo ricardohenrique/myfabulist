@@ -25,7 +25,12 @@ class MoveTaskRequest extends FormRequest
             'task_list_id' => [
                 'required',
                 'integer',
-                Rule::exists('task_lists', 'id')->where('user_id', $this->user()?->id),
+                // `exists` queries the table directly, bypassing TaskList's
+                // soft-delete global scope — whereNull keeps a trashed list
+                // id out of a valid move target (R4/Plan 4).
+                Rule::exists('task_lists', 'id')
+                    ->where('user_id', $this->user()?->id)
+                    ->whereNull('deleted_at'),
             ],
             'position' => ['nullable', 'integer', 'min:0'],
         ];

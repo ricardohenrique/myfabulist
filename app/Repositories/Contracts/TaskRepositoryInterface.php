@@ -41,6 +41,13 @@ interface TaskRepositoryInterface
      */
     public function findForUser(int $taskId, User $user): ?Task;
 
+    /**
+     * Find a *soft-deleted* task by id, scoped to the given user (D3/Plan 4).
+     * Returns null when the task does not exist, belongs to a different
+     * user, or is not currently trashed.
+     */
+    public function findDeletedForUser(int $taskId, User $user): ?Task;
+
     public function create(User $user, TaskList $taskList, string $title, int $position): Task;
 
     public function update(Task $task, string $title, ?string $note, ?Carbon $dueDate, bool $isStarred): Task;
@@ -65,6 +72,12 @@ interface TaskRepositoryInterface
     public function moveToList(Task $task, TaskList $taskList, ?int $position): Task;
 
     public function delete(Task $task): void;
+
+    /**
+     * Un-delete a soft-deleted task (D3/Plan 4). Not to be confused with
+     * `markActive()`, which un-completes a completed task.
+     */
+    public function undelete(Task $task): Task;
 
     public function nextPosition(TaskList $taskList): int;
 

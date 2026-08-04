@@ -104,6 +104,92 @@ This is enforced, not just conventional: `tests/Feature/Architecture/LayeringTes
 fails the build if Livewire calls the `Http` facade or `/api/v1`, or if a Service/Controller
 builds a query directly instead of going through a Repository.
 
+### Deletion semantics
+
+- **Tasks and lists are soft deleted and recoverable.** Both models use Eloquent's
+  `SoftDeletes` trait; deleting one sets `deleted_at` instead of destroying the row, and
+  it is un-deleted via `TaskService::undelete(Task $task, User $user)` /
+  `TaskListService::undelete(TaskList $taskList)`. Every existing read (list panel,
+  Starred, API) already goes through an Eloquent query, so the soft-delete global scope
+  hides trashed rows everywhere for free.
+- **A deleted list's tasks are untouched and invisible.** Deleting a list never modifies
+  its tasks; they become invisible only because reads reach them *through* the list.
+  The one cross-list read, `EloquentTaskRepository::starredForUser()`, has an explicit
+  `whereHas('taskList')` guard so a deleted list's starred tasks disappear from Starred
+  too. Un-deleting a list brings every task back exactly as it was — completion, star,
+  position — with zero extra bookkeeping.
+- **`restore()` means un-complete; `undelete()` means un-delete.** These are two
+  unrelated, deliberately differently-named operations — `TaskService::restore()`
+  un-completes a completed task (used by the `POST /tasks/{task}/restore` route);
+  `TaskService::undelete()` recovers a soft-deleted task. Never confuse the two.
+- **Folders are hard deleted and irreversible.** Folder deletion (`deleteWithLists()`,
+  `detachLists()`) is unchanged — `deleteWithLists()` explicitly `forceDelete()`s the
+  folder's lists so the FK cascade still destroys their tasks, rather than merely
+  soft-deleting lists into an unreachable state.
+- **No purge job.** There is no scheduled cleanup of soft-deleted rows — they persist
+  until the owning account is deleted (`users` → `tasks`/`task_lists` cascade deletes
+  physically purge everything, trashed or not). A `PurgeDeletedItemsCommand` is a natural
+  follow-up if storage growth ever matters, but is out of scope today.
+
+## Web Routes
+
+All web routes below sit behind the `auth` + `verified` middleware group (`routes/web.php`)
+and render a page that mounts one or more Livewire components. The Livewire web UI **never**
+calls `/api/v1` over HTTP — every page and component resolves its data by calling a Service
+in-process, exactly like the API controllers do (enforced by `LayeringTest`).
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/inbox` | The user's default Inbox list (auto-created if missing) — its own canonical URL. |
+| GET | `/starred` | The user's starred tasks across every list. |
+| GET | `/lists/{list}` | Any other list, by numeric id. Renders the same `TaskPanel` component as the Inbox. The Inbox's own id redirects here to `/inbox` instead of rendering a second URL for the same list. |
+
+The sidebar (`<livewire:navigation.sidebar />`, included by the app layout on every
+authenticated page) renders the folder → list tree and links each list to `/lists/{list}`
+with `wire:navigate`. Folder and list create/rename/move/delete are owned by two sibling
+components, `Navigation\FolderDialog` and `Navigation\ListDialog`, which the sidebar opens
+via browser events (`folder-dialog-open` / `list-dialog-open`) and which announce successful
+mutations back to it via a `navigation-changed` event.
+
+### Reordering (tasks, lists, folders)
+
+Every reorderable list in the web UI — active tasks in `Tasks\TaskPanel`, lists within a
+folder or the ungrouped group, and folders themselves in `Navigation\Sidebar` — supports
+two equivalent ways to reorder, both calling the same `TaskService::reorder()` /
+`TaskListService::reorder()` / `FolderService::reorder()` methods the API's
+`/task-order`, `/lists/order` and `/folders/order` endpoints use:
+
+- **Drag and drop**, via Livewire 4's built-in `wire:sort` (no extra JS dependency). A drag
+  updates the DOM immediately (`.renderless`) and saves in the background; a rejected write
+  (a stale id set, most often from two open tabs) refreshes the list from the database and
+  shows a toast instead of leaving the UI showing an order that was never persisted.
+- **Move up / move down** menu items on every reorderable row — the accessible, pointer-free
+  path, disabled at the first/last position.
+
+Cross-folder list dragging and cross-list task dragging are both **out of scope**: moving a
+list into a different folder, or a task into a different list, stays the explicit "Move"
+action (`ListDialog`, or a task row's "Move to…" menu) — both are a single atomic write,
+whereas a cross-container drag would be two.
+
+### Undo
+
+Completing a task, moving it to another list, and starring/unstarring it each show a brief,
+dismissible undo bar (`<x-tasks.undo-bar>`, not a toast — `Flux::toast()` has no slot for an
+action button) with a single "Undo" action, auto-dismissed client-side after ~8 seconds. Undo
+re-resolves and re-authorizes the task and calls the same idempotent service method a second
+time (`restore()`, `move()` back to the original list, or `setStarred()` back), so a double
+click cannot corrupt anything. It holds exactly one action — undoing is a safety net for the
+last thing you did, not a history stack.
+
+**Deleting a task or a list still keeps its `wire:confirm` / confirmation dialog and does
+not yet wire up an undo bar**, even though deletion is now a soft delete under the hood
+(see "Deletion semantics" above) and `TaskService::undelete()` /
+`TaskListService::undelete()` exist and are fully tested. Wiring the undo bar to deletion
+is tracked as a follow-up to
+`docs/04-08-2026-frontend-reordering-undo-and-polish-3.md` (its C4 decision) — see that
+plan's amendment note for the precise remaining steps (trashed-aware re-resolution,
+`TaskCannotBeUndeletedException` handling, and a home for list-deletion undo).
+
 ## API Reference
 
 Base URL: `/api/v1`. Every route requires **Laravel Sanctum** authentication
@@ -141,7 +227,7 @@ JSON `401`; unverified users get a `403`.
 | POST | `/lists` | Create a list, optionally inside a folder (`folder_id`). |
 | GET | `/lists/{list}` | Show a list. |
 | PUT/PATCH | `/lists/{list}` | Rename a list and/or move it between folders. |
-| DELETE | `/lists/{list}` | Delete a list. The default Inbox cannot be deleted (`default_task_list_cannot_be_deleted`, 422). |
+| DELETE | `/lists/{list}` | Soft-delete a list (its tasks are untouched but hidden). The default Inbox cannot be deleted (`default_task_list_cannot_be_deleted`, 422). The response contract is unchanged: `204`, then `404` on a later read — there is deliberately no V1 un-delete endpoint. |
 | GET | `/lists/{list}/tasks` | Tasks in the list, split into `active` and `completed` (plus `completed_count`). |
 | POST | `/lists/{list}/tasks` | Create a task in the list. |
 | PUT | `/lists/{list}/task-order` | Reorder tasks within the list. Body: `{"task_ids": [int, ...]}`. Fails as `task_reorder_mismatch` (422) if the submitted ids don't match the list's current tasks. |
@@ -153,7 +239,7 @@ JSON `401`; unverified users get a `403`.
 |---|---|---|
 | GET | `/tasks/{task}` | Show a task. |
 | PUT | `/tasks/{task}` | Update a task's title, note, due date, or starred flag. |
-| DELETE | `/tasks/{task}` | Delete a task. |
+| DELETE | `/tasks/{task}` | Soft-delete a task. The response contract is unchanged: `204`, then `404` on a later read — there is deliberately no V1 un-delete endpoint. |
 | POST | `/tasks/{task}/complete` | Mark a task complete (idempotent). |
 | POST | `/tasks/{task}/restore` | Mark a completed task active again (idempotent). |
 | POST | `/tasks/{task}/move` | Move a task to another of the user's lists. Body: `{"task_list_id": int, "position": int|null}`. |
@@ -175,6 +261,7 @@ JSON `401`; unverified users get a `403`.
 | `invalid_task_title` | 422 | Task title is blank/whitespace-only. |
 | `default_task_list_cannot_be_deleted` | 422 | Attempting to delete the Inbox. |
 | `task_reorder_mismatch` | 422 | Submitted task order doesn't match the list's current tasks. |
+| `task_cannot_be_undeleted` | 422 | Un-deleting a task whose list is itself deleted (not reachable from `/api/v1` today — thrown by `TaskService::undelete()`, which currently only the Livewire web layer will call). |
 
 ## Testing
 

@@ -54,7 +54,7 @@
                 <flux:sidebar.collapse class="in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2" />
             </flux:sidebar.header>
 
-            <x-app-sidebar-nav />
+            <livewire:navigation.sidebar />
 
             <flux:spacer />
 

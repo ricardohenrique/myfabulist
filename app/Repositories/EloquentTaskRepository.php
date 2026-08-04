@@ -50,6 +50,14 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return Task::query()
             ->where('user_id', $user->id)
             ->where('is_starred', true)
+            // The only cross-list task query in the codebase (D2/Plan 4):
+            // every other task read is reached *through* a TaskList that is
+            // already resolved via a trashed-blind repository lookup, so a
+            // deleted list's tasks are naturally invisible there. This one
+            // queries tasks directly, so it needs its own guard — whereHas
+            // applies TaskList's soft-delete global scope inside the
+            // subquery, dropping any starred task whose list is trashed.
+            ->whereHas('taskList')
             ->with('taskList.folder')
             ->orderByDesc('created_at')
             ->get();
@@ -58,6 +66,13 @@ class EloquentTaskRepository implements TaskRepositoryInterface
     public function findForUser(int $taskId, User $user): ?Task
     {
         return Task::query()
+            ->where('user_id', $user->id)
+            ->find($taskId);
+    }
+
+    public function findDeletedForUser(int $taskId, User $user): ?Task
+    {
+        return Task::onlyTrashed()
             ->where('user_id', $user->id)
             ->find($taskId);
     }
@@ -139,6 +154,19 @@ class EloquentTaskRepository implements TaskRepositoryInterface
     public function delete(Task $task): void
     {
         $task->delete();
+    }
+
+    /**
+     * Un-delete a soft-deleted task (D3). This calls the Eloquent
+     * `restore()` method on the model — unambiguous here, inside the
+     * repository — never confuse it with `markActive()` above, which
+     * un-completes a completed task.
+     */
+    public function undelete(Task $task): Task
+    {
+        $task->restore();
+
+        return $task;
     }
 
     public function nextPosition(TaskList $taskList): int

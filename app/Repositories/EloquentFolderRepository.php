@@ -60,7 +60,14 @@ class EloquentFolderRepository implements FolderRepositoryInterface
     public function deleteWithLists(Folder $folder): void
     {
         DB::transaction(function () use ($folder) {
-            $folder->taskLists()->delete();
+            // Folder deletion is deliberately irreversible (D5/Plan 4) — a
+            // plain ->delete() would now be a mass *soft* delete once
+            // TaskList uses SoftDeletes, silently skipping the FK cascade
+            // and leaving the lists' tasks alive but permanently
+            // unreachable (no Trash UI exists). forceDelete() preserves
+            // today's exact semantics: a real DELETE that lets the FK
+            // cascade destroy the tasks too.
+            $folder->taskLists()->forceDelete();
             $folder->delete();
         });
     }

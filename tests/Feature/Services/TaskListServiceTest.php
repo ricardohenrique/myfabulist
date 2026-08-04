@@ -7,9 +7,11 @@ namespace Tests\Feature\Services;
 use App\Exceptions\DefaultTaskListCannotBeDeletedException;
 use App\Exceptions\FolderNotFoundException;
 use App\Models\Folder;
+use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
 use App\Services\TaskListService;
+use App\Services\TaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -62,5 +64,30 @@ class TaskListServiceTest extends TestCase
 
         $this->assertNull($updated->folder_id);
         $this->assertSame('Inbox renamed', $updated->name);
+    }
+
+    /**
+     * Plan 4/Step 5: undeleting a list holding a completed task and a
+     * starred task returns both to the right sections and back to Starred —
+     * the list-level delete/undelete is orthogonal to per-task state (D2).
+     */
+    public function test_undelete_returns_the_list_and_all_of_its_tasks_including_completed_and_starred_state(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $active = Task::factory()->forTaskList($list)->create();
+        $completed = Task::factory()->forTaskList($list)->completed()->create();
+        $starred = Task::factory()->forTaskList($list)->starred()->create();
+        $listService = app(TaskListService::class);
+        $taskService = app(TaskService::class);
+
+        $listService->delete($list);
+        $undeleted = $listService->undelete($list);
+
+        $this->assertNull($undeleted->deleted_at);
+        $tasks = $taskService->tasksFor($undeleted);
+        $this->assertTrue($tasks->active->contains(fn (Task $t): bool => $t->is($active)));
+        $this->assertTrue($tasks->completed->contains(fn (Task $t): bool => $t->is($completed)));
+        $this->assertTrue($taskService->starredFor($user)->contains(fn (Task $t): bool => $t->is($starred)));
     }
 }

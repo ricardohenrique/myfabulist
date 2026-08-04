@@ -83,6 +83,18 @@ class TaskListService
     }
 
     /**
+     * Un-deletes a soft-deleted list, bringing back every task it contained
+     * exactly as it was (D2 — the tasks were never touched by the delete).
+     * No `is_default` guard is needed here: the Inbox can never be deleted
+     * in the first place (see `delete()` above), so it can never reach this
+     * method in a trashed state.
+     */
+    public function undelete(TaskList $taskList): TaskList
+    {
+        return $this->taskLists->undelete($taskList);
+    }
+
+    /**
      * @param  array<int, int>  $taskListIds
      */
     public function reorder(User $user, ?int $folderId, array $taskListIds): void

@@ -104,17 +104,28 @@ class TaskListTest extends TestCase
         $this->assertSame(2, $list->tasks()->count());
     }
 
-    public function test_deleting_a_normal_list_cascades_its_tasks(): void
+    public function test_deleting_a_list_soft_deletes_it_and_hides_it_and_its_tasks_everywhere(): void
     {
         $user = User::factory()->create();
         $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $starredTask = Task::factory()->forTaskList($list)->starred()->create();
         $task = Task::factory()->forTaskList($list)->create();
 
         $response = $this->actingAs($user)->deleteJson("/api/v1/lists/{$list->id}");
 
         $response->assertNoContent();
-        $this->assertDatabaseMissing('task_lists', ['id' => $list->id]);
-        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
+        $this->assertSoftDeleted('task_lists', ['id' => $list->id]);
+
+        // Deleting a list does not touch its tasks (D2) — the rows survive
+        // physically but become invisible everywhere the list is deleted.
+        $this->assertDatabaseHas('tasks', ['id' => $task->id]);
+        $this->assertDatabaseHas('tasks', ['id' => $starredTask->id]);
+
+        $this->actingAs($user)->getJson("/api/v1/lists/{$list->id}")->assertNotFound();
+        $this->actingAs($user)->getJson('/api/v1/lists')
+            ->assertJsonMissing(['id' => $list->id]);
+        $this->actingAs($user)->getJson('/api/v1/starred')
+            ->assertJsonMissing(['id' => $starredTask->id]);
     }
 
     public function test_deleting_the_inbox_is_rejected(): void
@@ -142,6 +153,27 @@ class TaskListTest extends TestCase
         $this->actingAs($stranger)->getJson("/api/v1/lists/{$list->id}")->assertForbidden();
         $this->actingAs($stranger)->putJson("/api/v1/lists/{$list->id}", ['name' => 'x'])->assertForbidden();
         $this->actingAs($stranger)->deleteJson("/api/v1/lists/{$list->id}")->assertForbidden();
+    }
+
+    /**
+     * R4/D2 defence in depth: a trashed list id in the reorder payload is
+     * rejected by validation rather than silently writing nothing.
+     */
+    public function test_put_lists_order_rejects_a_deleted_list_id(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
+        $deleted = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $deleted->delete();
+
+        $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
+            'folder_id' => $folder->id,
+            'task_list_ids' => [$deleted->id, $a->id],
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertSame(0, $a->fresh()->position);
     }
 
     public function test_put_lists_order_reorders_lists_within_a_folder(): void

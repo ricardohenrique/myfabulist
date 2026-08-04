@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -22,15 +23,20 @@ use Illuminate\Support\Carbon;
  * @property int $position
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property-read User $user
  * @property-read Folder|null $folder
  * @property-read Collection<int, Task> $tasks
+ * @property-read int|null $tasks_count
+ * @property-read int|null $active_tasks_count
  */
 #[Fillable(['name', 'folder_id', 'is_default', 'position'])]
 class TaskList extends Model
 {
     /** @use HasFactory<TaskListFactory> */
     use HasFactory;
+
+    use SoftDeletes;
 
     /**
      * Get the attributes that should be cast.

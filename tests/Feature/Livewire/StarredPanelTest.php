@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Livewire;
 
 use App\Livewire\Tasks\StarredPanel;
+use App\Livewire\Tasks\TaskDetails;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -95,6 +96,63 @@ class StarredPanelTest extends TestCase
         $this->assertNull($task->completed_at);
     }
 
+    public function test_a_starred_completed_task_still_shows_its_star(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->completed()->create();
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->assertSeeHtml("wire:click=\"toggleStar({$task->id})\"");
+    }
+
+    public function test_starred_rows_show_the_due_date_badge_and_the_note_indicator(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create([
+            'note' => 'Bring the printed tickets',
+            'due_date' => today(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->assertSeeHtml('data-due-status="today"')
+            ->assertSeeHtml("data-test=\"note-indicator-{$task->id}\"");
+    }
+
+    public function test_opening_details_from_starred_works(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create(['title' => 'Confirm the venue']);
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->call('openDetails', $task->id)
+            ->assertDispatched('task-details-open', taskId: $task->id);
+    }
+
+    public function test_unstarring_from_the_details_panel_removes_the_row_on_the_next_render(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create(['title' => 'Confirm the venue']);
+
+        $starredPanel = Livewire::actingAs($user)->test(StarredPanel::class);
+        $starredPanel->assertSee('Confirm the venue');
+
+        Livewire::actingAs($user)
+            ->test(TaskDetails::class)
+            ->call('open', $task->id)
+            ->set('isStarred', false)
+            ->call('save');
+
+        $starredPanel->dispatch('tasks-changed');
+        $starredPanel->assertDontSee('Confirm the venue');
+    }
+
     public function test_the_empty_state_renders_for_a_user_with_no_starred_tasks(): void
     {
         $user = User::factory()->create();
@@ -102,6 +160,24 @@ class StarredPanelTest extends TestCase
         Livewire::actingAs($user)
             ->test(StarredPanel::class)
             ->assertSee('No starred tasks yet.');
+    }
+
+    /**
+     * D2's tripwire, at the Livewire layer: a deleted list's starred task
+     * must not surface on the Starred page (it would also null-crash the
+     * `taskList` relation the row renders without the whereHas guard).
+     */
+    public function test_a_starred_task_in_a_deleted_list_does_not_appear(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create(['title' => 'Ghost task']);
+
+        $list->delete();
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->assertDontSee('Ghost task');
     }
 
     public function test_it_does_not_incur_n_plus_one_queries(): void
@@ -115,5 +191,64 @@ class StarredPanelTest extends TestCase
         // Model::preventLazyLoading() (Step 1) turns any N+1 regression into
         // an exception, so a successful render here is itself the guarantee.
         Livewire::actingAs($user)->test(StarredPanel::class)->assertOk();
+    }
+
+    public function test_completing_sets_the_last_action_and_renders_the_undo_bar(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create();
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->call('completeTask', $task->id)
+            ->assertSet('lastAction.type', 'complete')
+            ->assertSeeHtml('data-test="undo-bar"');
+    }
+
+    public function test_undo_after_unstarring_restores_the_star(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create();
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->call('unstarTask', $task->id)
+            ->assertSet('lastAction.type', 'star')
+            ->call('undo');
+
+        $this->assertTrue($task->fresh()->is_starred);
+    }
+
+    public function test_undo_after_moving_returns_the_task_to_its_original_list(): void
+    {
+        $user = User::factory()->create();
+        $origin = TaskList::factory()->create(['user_id' => $user->id]);
+        $destination = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($origin)->starred()->create();
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->call('moveTask', $task->id, $destination->id)
+            ->call('undo');
+
+        $this->assertSame($origin->id, $task->fresh()->task_list_id);
+    }
+
+    public function test_dismiss_undo_clears_the_state(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create();
+
+        Livewire::actingAs($user)
+            ->test(StarredPanel::class)
+            ->call('completeTask', $task->id)
+            ->call('dismissUndo')
+            ->assertSet('lastAction', null)
+            ->assertDontSeeHtml('data-test="undo-bar"');
+
+        $this->assertTrue($task->fresh()->is_completed);
     }
 }

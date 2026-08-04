@@ -150,7 +150,11 @@ class TaskTest extends TestCase
         $response = $this->actingAs($user)->deleteJson("/api/v1/tasks/{$task->id}");
 
         $response->assertNoContent();
-        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
+        $this->assertSoftDeleted('tasks', ['id' => $task->id]);
+
+        // API contract stability: a soft-deleted task is indistinguishable
+        // from a destroyed one across the V1 surface (Plan 4 NFR).
+        $this->actingAs($user)->getJson("/api/v1/tasks/{$task->id}")->assertNotFound();
     }
 
     public function test_move_to_another_of_the_users_lists_succeeds_and_keeps_user_id(): void
@@ -168,6 +172,26 @@ class TaskTest extends TestCase
         $task->refresh();
         $this->assertSame($targetList->id, $task->task_list_id);
         $this->assertSame($user->id, $task->user_id);
+    }
+
+    /**
+     * R4/D2 defence in depth: a trashed list id must be rejected by
+     * validation before the request ever reaches the service.
+     */
+    public function test_move_to_a_deleted_list_fails_validation(): void
+    {
+        $user = User::factory()->create();
+        $sourceList = TaskList::factory()->create(['user_id' => $user->id]);
+        $deletedList = TaskList::factory()->create(['user_id' => $user->id]);
+        $deletedList->delete();
+        $task = Task::factory()->forTaskList($sourceList)->create();
+
+        $response = $this->actingAs($user)->postJson("/api/v1/tasks/{$task->id}/move", [
+            'task_list_id' => $deletedList->id,
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertSame($sourceList->id, $task->fresh()->task_list_id);
     }
 
     public function test_move_to_a_foreign_list_fails_and_does_not_mutate(): void

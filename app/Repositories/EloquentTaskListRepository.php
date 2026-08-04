@@ -8,6 +8,7 @@ use App\Models\Folder;
 use App\Models\TaskList;
 use App\Models\User;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +23,7 @@ class EloquentTaskListRepository implements TaskListRepositoryInterface
             ->where('user_id', $user->id)
             ->with('folder')
             ->withCount('tasks')
+            ->withCount(['tasks as active_tasks_count' => fn (Builder $query) => $query->where('is_completed', false)])
             ->orderBy('position')
             ->orderBy('id')
             ->get();
@@ -30,6 +32,13 @@ class EloquentTaskListRepository implements TaskListRepositoryInterface
     public function findForUser(int $taskListId, User $user): ?TaskList
     {
         return TaskList::query()
+            ->where('user_id', $user->id)
+            ->find($taskListId);
+    }
+
+    public function findDeletedForUser(int $taskListId, User $user): ?TaskList
+    {
+        return TaskList::onlyTrashed()
             ->where('user_id', $user->id)
             ->find($taskListId);
     }
@@ -86,6 +95,17 @@ class EloquentTaskListRepository implements TaskListRepositoryInterface
     public function delete(TaskList $taskList): void
     {
         $taskList->delete();
+    }
+
+    /**
+     * Un-delete a soft-deleted list (D3). Calls the Eloquent `restore()`
+     * method on the model — unambiguous here, inside the repository.
+     */
+    public function undelete(TaskList $taskList): TaskList
+    {
+        $taskList->restore();
+
+        return $taskList;
     }
 
     public function nextPosition(User $user, ?int $folderId): int

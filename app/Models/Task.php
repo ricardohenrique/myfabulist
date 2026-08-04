@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -25,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property int $position
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property-read User $user
  * @property-read TaskList $taskList
  */
@@ -33,6 +35,8 @@ class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
     use HasFactory;
+
+    use SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -64,5 +68,32 @@ class Task extends Model
     public function taskList(): BelongsTo
     {
         return $this->belongsTo(TaskList::class);
+    }
+
+    /**
+     * Overdue/today/upcoming derived purely from `due_date` (D3), a pure
+     * read accessor with no queries — the `User::profilePhotoUrl` precedent.
+     * Comparisons use today() (start of day, app timezone) rather than
+     * now(), so "due today" cannot flicker to "overdue" as the clock moves
+     * through the day (R3). `due_date` is a date-only column; per-user
+     * timezones are out of scope for this accessor.
+     *
+     * A completed task never reports "overdue" — the row is already muted,
+     * so it should not additionally scream red (D3).
+     */
+    public function dueDateStatus(): ?string
+    {
+        if ($this->due_date === null) {
+            return null;
+        }
+
+        $today = today();
+
+        return match (true) {
+            $this->due_date->isSameDay($today) => 'today',
+            $this->due_date->greaterThan($today) => 'upcoming',
+            $this->is_completed => null,
+            default => 'overdue',
+        };
     }
 }

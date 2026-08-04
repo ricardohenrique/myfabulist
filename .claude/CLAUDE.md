@@ -22,6 +22,7 @@ app/
 │   └── Resources/       # API wire-format transformers (Http/Resources/Api/V1)
 ├── Listeners/           # Event listeners (e.g. provisioning defaults on registration)
 ├── Livewire/            # Reactive UI components (server-driven frontend)
+│   └── Navigation/      # Sidebar tree + folder/list create-rename-move-delete dialogs
 ├── Models/              # Eloquent models and domain entities
 ├── Policies/            # Model-level authorization rules (auto-discovered)
 ├── Providers/           # Service container bindings and application bootstrapping

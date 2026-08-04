@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Repositories;
 
 use App\Models\Folder;
+use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
@@ -102,6 +103,97 @@ class EloquentTaskListRepositoryTest extends TestCase
 
         $this->assertSame('Renamed', $list->fresh()->name);
         $this->assertSame($folder->id, $list->fresh()->folder_id);
+    }
+
+    public function test_all_for_user_carries_both_the_total_and_active_task_counts(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        Task::factory()->forTaskList($list)->create();
+        Task::factory()->forTaskList($list)->completed()->create();
+        Task::factory()->forTaskList($list)->completed()->create();
+
+        $found = $this->repository->allForUser($user)->firstOrFail();
+
+        $this->assertSame(3, $found->tasks_count);
+        $this->assertSame(1, $found->active_tasks_count);
+    }
+
+    /**
+     * Plan 4/Step 2: a deleted task must not inflate either count on the
+     * list read used by the sidebar/list index.
+     */
+    public function test_all_for_user_task_counts_exclude_deleted_tasks(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $kept = Task::factory()->forTaskList($list)->create();
+        $deleted = Task::factory()->forTaskList($list)->create();
+        $deleted->delete();
+
+        $found = $this->repository->allForUser($user)->firstOrFail();
+
+        $this->assertSame(1, $found->tasks_count);
+        $this->assertSame(1, $found->active_tasks_count);
+        $this->assertSame($kept->id, $list->fresh()->tasks()->firstOrFail()->id);
+    }
+
+    /**
+     * Plan 4/Step 5: findDeletedForUser() is the un-delete lookup — it must
+     * return the list only when it is both trashed and owned by the caller.
+     */
+    public function test_find_deleted_for_user_returns_a_trashed_owned_list(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $this->repository->delete($list);
+
+        $found = $this->repository->findDeletedForUser($list->id, $user);
+
+        $this->assertNotNull($found);
+        $this->assertTrue($found->is($list));
+    }
+
+    public function test_find_deleted_for_user_returns_null_for_a_live_list(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+
+        $this->assertNull($this->repository->findDeletedForUser($list->id, $user));
+    }
+
+    public function test_find_deleted_for_user_returns_null_for_a_trashed_foreign_list(): void
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        $this->repository->delete($list);
+
+        $this->assertNull($this->repository->findDeletedForUser($list->id, $stranger));
+    }
+
+    /**
+     * Plan 4/Step 5: undelete() clears deleted_at and brings back every task
+     * the list contained, with its own completion/star/position state
+     * intact — the list soft delete never touched them (D2).
+     */
+    public function test_undelete_restores_the_list_and_every_task_it_held(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id, 'name' => 'Groceries']);
+        $active = Task::factory()->forTaskList($list)->create(['position' => 0]);
+        $completed = Task::factory()->forTaskList($list)->completed()->create();
+        $starred = Task::factory()->forTaskList($list)->starred()->create();
+        $this->repository->delete($list);
+
+        $undeleted = $this->repository->undelete($list);
+
+        $this->assertNull($undeleted->deleted_at);
+        $this->assertSame('Groceries', $undeleted->name);
+        $this->assertNull($active->fresh()->deleted_at);
+        $this->assertTrue($completed->fresh()->is_completed);
+        $this->assertTrue($starred->fresh()->is_starred);
+        $this->assertSame(0, $active->fresh()->position);
     }
 
     public function test_apply_order_rewrites_positions_within_a_folder_scope(): void

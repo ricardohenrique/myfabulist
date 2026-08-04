@@ -29,7 +29,12 @@ class UpdateTaskListOrderRequest extends FormRequest
             'task_list_ids.*' => [
                 'required',
                 'integer',
-                Rule::exists('task_lists', 'id')->where('user_id', $this->user()?->id),
+                // `exists` queries the table directly, bypassing TaskList's
+                // soft-delete global scope — whereNull keeps a trashed list
+                // id out of a valid reorder payload (R4/Plan 4).
+                Rule::exists('task_lists', 'id')
+                    ->where('user_id', $this->user()?->id)
+                    ->whereNull('deleted_at'),
             ],
         ];
     }
