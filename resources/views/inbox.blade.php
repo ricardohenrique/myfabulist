@@ -1,9 +1,5 @@
 <x-layouts::app :title="__('Inbox')">
-    <div class="flex h-full w-full flex-1 flex-col gap-4">
-        <flux:heading size="xl">{{ __('Inbox') }}</flux:heading>
-
-        <div class="flex flex-1 items-center justify-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
-            <flux:text>{{ __('No tasks yet.') }}</flux:text>
-        </div>
+    <div class="flex h-full w-full flex-1 flex-col">
+        <livewire:tasks.task-panel :task-list-id="$taskListId" />
     </div>
 </x-layouts::app>
