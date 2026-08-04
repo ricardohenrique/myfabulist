@@ -27,4 +27,14 @@ class InboxTest extends TestCase
         $response->assertOk();
         $response->assertSee('Inbox');
     }
+
+    public function test_the_controller_resolves_a_real_inbox_for_the_user(): void
+    {
+        $user = User::factory()->create();
+        $this->assertSame(0, $user->taskLists()->where('is_default', true)->count());
+
+        $this->actingAs($user)->get(route('inbox'))->assertOk();
+
+        $this->assertSame(1, $user->taskLists()->where('is_default', true)->count());
+    }
 }
