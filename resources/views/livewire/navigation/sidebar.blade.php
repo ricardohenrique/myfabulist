@@ -230,16 +230,6 @@
         @endif
     </nav>
 
-    <button
-        type="button"
-        class="wunder-sidebar-create"
-        wire:click="$dispatch('list-dialog-open', { mode: 'create', listId: null, folderId: null })"
-        data-test="sidebar-create-list-button"
-    >
-        <flux:icon.plus class="size-4" />
-        <span>{{ __('Create list') }}</span>
-    </button>
-
     <livewire:navigation.folder-dialog :current-task-list-id="$currentTaskListId" />
     <livewire:navigation.list-dialog :current-task-list-id="$currentTaskListId" />
 </div>

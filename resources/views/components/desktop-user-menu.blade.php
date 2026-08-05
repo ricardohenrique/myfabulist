@@ -11,8 +11,8 @@
             data-test="sidebar-menu-button"
         />
 
-        <flux:menu>
-            <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
+        <flux:menu class="wunder-profile-menu">
+            <div class="wunder-profile-menu-user flex items-center gap-2 px-1 py-1.5 text-start text-sm">
                 <flux:avatar
                     :name="$user->name"
                     :initials="$user->initials()"
