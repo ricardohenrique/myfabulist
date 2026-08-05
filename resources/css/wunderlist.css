@@ -478,6 +478,10 @@
     margin-top: 0;
 }
 
+.wunder-completed-section {
+    margin-top: 22px;
+}
+
 /* 8. Task rows */
 .wunder-task-list {
     display: flex;
@@ -510,13 +514,34 @@
     touch-action: none;
 }
 
-.wunder-task-checkbox [data-flux-checkbox],
-.wunder-task-checkbox input[type="checkbox"] {
-    width: 25px !important;
-    height: 25px !important;
-    border-radius: 4px !important;
-    border-color: #b8bec7 !important;
-    background: #fff !important;
+.wunder-task-checkbox {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #8d98a6;
+    border-radius: 4px;
+    background: #fff;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.wunder-task-checkbox:hover {
+    border-color: var(--w-active-blue);
+    box-shadow: 0 0 0 2px rgba(47, 147, 223, 0.12);
+}
+
+.wunder-task-checkbox:focus-visible {
+    outline: none;
+    box-shadow: var(--w-focus);
+}
+
+.wunder-task-checkbox.is-checked {
+    border-color: var(--w-success);
+    background: var(--w-success);
 }
 
 .wunder-task-body {

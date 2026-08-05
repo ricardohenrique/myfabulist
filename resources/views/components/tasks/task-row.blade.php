@@ -43,46 +43,40 @@
     x-transition:leave.opacity.duration.200ms
     x-transition:enter.opacity.duration.200ms
 >
-    {{-- Dedicated drag handle (S4/Step 2, R5) — without it, SortableJS
-         hijacks pointer/touch events on the checkbox, the inline title
-         input and the row menu. Decorative only (aria-hidden): the
-         keyboard-reachable path is the row menu's Move up/down items
-         (Step 1), which every reorderable row already renders. --}}
-    @if ($reorderable)
-        <span
-            wire:sort:handle
-            aria-hidden="true"
-            title="{{ __('Drag to reorder') }}"
-            class="wunder-task-drag"
+    @if ($completed)
+        <button
+            type="button"
+            class="wunder-task-checkbox is-checked"
+            role="checkbox"
+            aria-checked="true"
+            @if ($reorderable) wire:sort:handle @endif
+            wire:click="restoreTask({{ $task->id }})"
+            wire:loading.attr="disabled"
+            wire:loading.delay
+            wire:target="restoreTask({{ $task->id }})"
             x-on:click.stop
             x-on:keydown.stop
+            aria-label="{{ __('Restore :title', ['title' => $task->title]) }}"
         >
-            <flux:icon.bars-2 variant="mini" class="size-4" />
-        </span>
-    @endif
-
-    @if ($completed)
-        <span class="wunder-task-checkbox" x-on:click.stop x-on:keydown.stop>
-            <flux:checkbox
-                wire:click="restoreTask({{ $task->id }})"
-                wire:loading.attr="disabled"
-                wire:loading.delay
-                wire:target="restoreTask({{ $task->id }})"
-                :checked="true"
-                :aria-label="__('Restore :title', ['title' => $task->title])"
-            />
-        </span>
+            <flux:icon.check class="size-4" />
+        </button>
     @else
-        <span class="wunder-task-checkbox" x-on:click.stop x-on:keydown.stop>
-            <flux:checkbox
-                wire:click="completeTask({{ $task->id }})"
-                wire:loading.attr="disabled"
-                wire:loading.delay
-                wire:target="completeTask({{ $task->id }})"
-                :checked="false"
-                :aria-label="__('Mark :title complete', ['title' => $task->title])"
-            />
-        </span>
+        <button
+            type="button"
+            class="wunder-task-checkbox"
+            role="checkbox"
+            aria-checked="false"
+            @if ($reorderable) wire:sort:handle @endif
+            wire:click="completeTask({{ $task->id }})"
+            wire:loading.attr="disabled"
+            wire:loading.delay
+            wire:target="completeTask({{ $task->id }})"
+            x-on:click.stop
+            x-on:keydown.stop
+            aria-label="{{ __('Mark :title complete', ['title' => $task->title]) }}"
+        >
+            <span class="sr-only">{{ __('Complete') }}</span>
+        </button>
     @endif
 
     <div class="wunder-task-body">

@@ -70,7 +70,7 @@
 
             {{-- Completed section (M6) --}}
             @if ($this->tasks->completedCount > 0)
-                <div x-data="{ open: $persist(true).as('task-panel-completed-open-{{ $this->taskListId }}') }">
+                <div x-data="{ open: $persist(true).as('task-panel-completed-open-{{ $this->taskListId }}') }" class="wunder-completed-section">
                     <button
                         type="button"
                         x-on:click="open = !open"

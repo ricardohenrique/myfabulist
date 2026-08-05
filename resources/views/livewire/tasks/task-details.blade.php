@@ -6,8 +6,7 @@
 <div>
     <flux:modal name="task-details" variant="flyout" class="wunder-task-detail">
         <div class="wunder-detail-header">
-            <span class="wunder-task-checkbox">
-                <flux:checkbox :checked="false" disabled :aria-label="__('Task completion is edited from the task list')" />
+            <span class="wunder-task-checkbox" aria-hidden="true">
             </span>
             <div class="wunder-detail-title">
                 <flux:input wire:model="title" :label="__('Title')" autofocus />
