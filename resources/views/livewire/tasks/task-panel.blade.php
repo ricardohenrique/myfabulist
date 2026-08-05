@@ -21,7 +21,7 @@
                 autofocus
                 autocomplete="off"
             />
-            <button type="submit" class="wunder-composer-submit" wire:loading.attr="disabled" wire:loading.delay wire:target="addTask">
+            <button type="submit" class="wunder-composer-submit" wire:loading.delay.attr="disabled" wire:target="addTask">
                 <span class="sr-only">{{ __('Add') }}</span>
                 <flux:icon.arrow-turn-down-left class="size-5" />
             </button>

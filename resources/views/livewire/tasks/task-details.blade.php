@@ -89,7 +89,7 @@
                     <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
                 </flux:modal.close>
 
-                <flux:button wire:click="save" variant="primary" wire:loading.attr="disabled" wire:loading.delay>
+                <flux:button wire:click="save" variant="primary" wire:loading.delay.attr="disabled">
                     {{ __('Save') }}
                 </flux:button>
             </div>

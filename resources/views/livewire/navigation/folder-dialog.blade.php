@@ -20,7 +20,7 @@
                     </flux:modal.close>
 
                     @if ($folderHasLists)
-                        <flux:button wire:click="moveListsOut" wire:loading.attr="disabled" wire:loading.delay>
+                        <flux:button wire:click="moveListsOut" wire:loading.delay.attr="disabled">
                             {{ __('Move lists out') }}
                         </flux:button>
 
@@ -28,8 +28,7 @@
                             variant="danger"
                             wire:click="deleteFolderAndLists"
                             wire:confirm="{{ __('Delete this folder and everything inside it? This cannot be undone.') }}"
-                            wire:loading.attr="disabled"
-                            wire:loading.delay
+                            wire:loading.delay.attr="disabled"
                         >
                             {{ __('Delete folder and its lists') }}
                         </flux:button>
@@ -37,8 +36,7 @@
                         <flux:button
                             variant="danger"
                             wire:click="deleteEmptyFolder"
-                            wire:loading.attr="disabled"
-                            wire:loading.delay
+                            wire:loading.delay.attr="disabled"
                         >
                             {{ __('Delete') }}
                         </flux:button>
@@ -58,7 +56,7 @@
                         <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
                     </flux:modal.close>
 
-                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:loading.delay>
+                    <flux:button type="submit" variant="primary" wire:loading.delay.attr="disabled">
                         {{ __('Save') }}
                     </flux:button>
                 </div>

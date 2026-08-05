@@ -51,8 +51,7 @@
             aria-checked="true"
             @if ($reorderable) wire:sort:handle @endif
             wire:click="restoreTask({{ $task->id }})"
-            wire:loading.attr="disabled"
-            wire:loading.delay
+            wire:loading.delay.attr="disabled"
             wire:target="restoreTask({{ $task->id }})"
             x-on:click.stop
             x-on:keydown.stop
@@ -68,8 +67,7 @@
             aria-checked="false"
             @if ($reorderable) wire:sort:handle @endif
             wire:click="completeTask({{ $task->id }})"
-            wire:loading.attr="disabled"
-            wire:loading.delay
+            wire:loading.delay.attr="disabled"
             wire:target="completeTask({{ $task->id }})"
             x-on:click.stop
             x-on:keydown.stop
@@ -123,8 +121,7 @@
     <span x-on:click.stop x-on:keydown.stop>
         <flux:button
             wire:click="toggleStar({{ $task->id }})"
-            wire:loading.attr="disabled"
-            wire:loading.delay
+            wire:loading.delay.attr="disabled"
             wire:target="toggleStar({{ $task->id }})"
             icon="star"
             icon:variant="{{ $task->is_starred ? 'solid' : 'outline' }}"
@@ -210,8 +207,7 @@
                 variant="danger"
                 wire:click="deleteTask({{ $task->id }})"
                 wire:confirm="{{ __('Delete this task?') }}"
-                wire:loading.attr="disabled"
-                wire:loading.delay
+                wire:loading.delay.attr="disabled"
                 wire:target="deleteTask({{ $task->id }})"
             >
                 {{ __('Delete') }}
