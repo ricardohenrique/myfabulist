@@ -1,42 +1,39 @@
 {{--
-    A single list row: drag handle (S4/Step 3, R5) + link + (except the
-    Inbox, A9) a Move up/down/Rename/Move/Delete dropdown. $canMoveUp and
-    $canMoveDown default true so an include site that does not care about
-    reordering (none today — every caller passes them) still renders
-    sensibly. wire:sort:item is set here rather than by the caller: every
-    include site wants it, and it is a plain HTML attribute, not a prop this
-    partial otherwise consumes.
+    A single list row: link + (except the Inbox, A9) a Move up/down/Rename/
+    Move/Delete dropdown. $canMoveUp and $canMoveDown default true so an
+    include site that does not care about reordering (none today — every
+    caller passes them) still renders sensibly. wire:sort:item is set here
+    rather than by the caller: every include site wants it, and it is a
+    plain HTML attribute, not a prop this partial otherwise consumes.
+
+    No dedicated drag handle here (unlike the folder row): a list is a leaf
+    node with no nested sortable group beneath it, so the whole row can
+    safely be the drag surface — this also keeps its icon flush with every
+    other row's icon column (Inbox/Starred/folders all start at the same
+    x), which a leading handle element would otherwise offset.
 --}}
 @php
     $canMoveUp ??= true;
     $canMoveDown ??= true;
 @endphp
 
-<div wire:key="list-{{ $list->id }}" wire:sort:item="{{ $list->id }}" class="group/list relative flex items-center gap-1">
-    @if (! $list->is_default)
-        <span
-            wire:sort:handle
-            aria-hidden="true"
-            title="{{ __('Drag to reorder') }}"
-            class="shrink-0 cursor-grab touch-none text-zinc-300 active:cursor-grabbing dark:text-zinc-600"
-        >
-            <flux:icon.bars-2 variant="mini" class="size-4" />
-        </span>
-    @endif
-
+<div wire:key="list-{{ $list->id }}" wire:sort:item="{{ $list->id }}" class="group/list relative">
     <flux:sidebar.item
         icon="list-bullet"
         :href="route('lists.show', $list)"
         :current="$currentTaskListId === $list->id"
         :badge="$list->active_tasks_count ?: null"
         wire:navigate
-        class="flex-1"
+        :class="! $list->is_default ? 'group-hover/list:[&_[data-flux-navlist-badge]]:invisible' : ''"
     >
         {{ Str::limit($list->name, 40) }}
     </flux:sidebar.item>
 
     @if (! $list->is_default)
-        <flux:dropdown class="absolute end-1 opacity-0 group-hover/list:opacity-100">
+        {{-- Swaps into the exact slot the active-task badge occupies above,
+             rather than floating on top of it — the two never fight for the
+             same pixels (previously the source of a broken-looking hover). --}}
+        <flux:dropdown class="absolute inset-y-0 end-1.5 flex items-center opacity-0 group-hover/list:opacity-100">
             <flux:button
                 icon="ellipsis-horizontal"
                 variant="ghost"
