@@ -27,6 +27,12 @@
         'wunder-task group',
         'is-completed' => $completed,
     ]) }}
+    role="button"
+    tabindex="0"
+    aria-label="{{ __('Open details for :title', ['title' => $task->title]) }}"
+    wire:click="openDetails({{ $task->id }})"
+    wire:keydown.enter="openDetails({{ $task->id }})"
+    wire:keydown.space="openDetails({{ $task->id }})"
     @if ($dueStatus)
         data-due-status="{{ $dueStatus }}"
     @endif
@@ -48,13 +54,15 @@
             aria-hidden="true"
             title="{{ __('Drag to reorder') }}"
             class="wunder-task-drag"
+            x-on:click.stop
+            x-on:keydown.stop
         >
             <flux:icon.bars-2 variant="mini" class="size-4" />
         </span>
     @endif
 
     @if ($completed)
-        <span class="wunder-task-checkbox">
+        <span class="wunder-task-checkbox" x-on:click.stop x-on:keydown.stop>
             <flux:checkbox
                 wire:click="restoreTask({{ $task->id }})"
                 wire:loading.attr="disabled"
@@ -65,7 +73,7 @@
             />
         </span>
     @else
-        <span class="wunder-task-checkbox">
+        <span class="wunder-task-checkbox" x-on:click.stop x-on:keydown.stop>
             <flux:checkbox
                 wire:click="completeTask({{ $task->id }})"
                 wire:loading.attr="disabled"
@@ -87,7 +95,6 @@
                 type="text"
                 value="{{ $task->title }}"
                 wire:change="renameTask({{ $task->id }}, $event.target.value)"
-                wire:dblclick="openDetails({{ $task->id }})"
                 class="wunder-task-title-input"
             />
         @endif
@@ -119,20 +126,22 @@
         @endif
     </div>
 
-    <flux:button
-        wire:click="toggleStar({{ $task->id }})"
-        wire:loading.attr="disabled"
-        wire:loading.delay
-        wire:target="toggleStar({{ $task->id }})"
-        icon="star"
-        icon:variant="{{ $task->is_starred ? 'solid' : 'outline' }}"
-        variant="ghost"
-        size="sm"
-        @class(['wunder-task-star', 'is-starred' => $task->is_starred])
-        :aria-label="__('Toggle star')"
-    />
+    <span x-on:click.stop x-on:keydown.stop>
+        <flux:button
+            wire:click="toggleStar({{ $task->id }})"
+            wire:loading.attr="disabled"
+            wire:loading.delay
+            wire:target="toggleStar({{ $task->id }})"
+            icon="star"
+            icon:variant="{{ $task->is_starred ? 'solid' : 'outline' }}"
+            variant="ghost"
+            size="sm"
+            @class(['wunder-task-star', 'is-starred' => $task->is_starred])
+            :aria-label="__('Toggle star')"
+        />
+    </span>
 
-    <flux:dropdown>
+    <flux:dropdown x-on:click.stop x-on:keydown.stop>
         <flux:button
             icon="ellipsis-horizontal"
             variant="ghost"
