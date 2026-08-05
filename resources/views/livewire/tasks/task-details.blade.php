@@ -4,16 +4,28 @@
     has replace semantics (D4), so this form always submits every field.
 --}}
 <div>
-    <flux:modal name="task-details" variant="flyout" class="space-y-6">
-        <div>
-            <flux:heading size="lg">{{ __('Task details') }}</flux:heading>
+    <flux:modal name="task-details" variant="flyout" class="wunder-task-detail">
+        <div class="wunder-detail-header">
+            <span class="wunder-task-checkbox">
+                <flux:checkbox :checked="false" disabled :aria-label="__('Task completion is edited from the task list')" />
+            </span>
+            <div class="wunder-detail-title">
+                <flux:input wire:model="title" :label="__('Title')" autofocus />
+            </div>
+            <button
+                type="button"
+                wire:click="$toggle('isStarred')"
+                class="wunder-task-star {{ $isStarred ? 'is-starred' : '' }}"
+                aria-label="{{ __('Toggle star') }}"
+            >
+                <flux:icon.star variant="{{ $isStarred ? 'solid' : 'outline' }}" class="size-5" />
+            </button>
         </div>
-
-        <flux:input wire:model="title" :label="__('Title')" autofocus />
 
         {{-- No Flux date-picker in the free tier (Architecture Review) — the
              native control is keyboard accessible and mobile-friendly. --}}
-        <div class="flex items-end gap-2">
+        <div class="wunder-detail-section">
+            <flux:icon.calendar-days class="wunder-detail-icon size-5" />
             <div class="flex-1">
                 <flux:input type="date" wire:model="dueDate" :label="__('Due date')" />
             </div>
@@ -25,23 +37,45 @@
             @endif
         </div>
 
+        <div class="wunder-detail-section">
+            <flux:icon.bell-alert class="wunder-detail-icon size-5" />
+            <div>
+                <div class="text-sm text-zinc-500">{{ __('Reminder') }}</div>
+                <div class="text-sm text-zinc-400">{{ __('No reminder') }}</div>
+            </div>
+        </div>
+
+        <div class="wunder-detail-section">
+            <flux:icon.plus class="wunder-detail-icon size-5" />
+            <div class="text-zinc-500">{{ __('Add a subtask') }}</div>
+        </div>
+
         {{-- R2: notes are the first multi-line free-text field in the product —
              plain {{ }} inside a <textarea> preserves line breaks safely,
              with no raw-echo of user input anywhere. --}}
-        <flux:textarea wire:model="note" :label="__('Notes')" rows="4">{{ $note }}</flux:textarea>
-
-        <flux:switch wire:model="isStarred" :label="__('Starred')" />
+        <div class="wunder-detail-section">
+            <flux:icon.pencil-square class="wunder-detail-icon size-5" />
+            <flux:textarea wire:model="note" :label="__('Notes')" rows="5">{{ $note }}</flux:textarea>
+        </div>
 
         {{-- Move-to-list (S6/Step 4) "deliberate path" — the row menu's
              submenu is the fast path; both call TaskService::move() with
              position: null (D5). --}}
-        <flux:select wire:model="taskListId" :label="__('List')">
-            @foreach ($this->lists as $list)
-                <flux:select.option value="{{ $list->id }}">{{ $list->name }}</flux:select.option>
-            @endforeach
-        </flux:select>
+        <div class="wunder-detail-section">
+            <flux:icon.list-bullet class="wunder-detail-icon size-5" />
+            <flux:select wire:model="taskListId" :label="__('List')">
+                @foreach ($this->lists as $list)
+                    <flux:select.option value="{{ $list->id }}">{{ $list->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+        </div>
 
-        <div class="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-700">
+        <div class="wunder-detail-section">
+            <flux:icon.paper-clip class="wunder-detail-icon size-5" />
+            <div class="text-zinc-500">{{ __('Add a file') }}</div>
+        </div>
+
+        <div class="wunder-detail-footer">
             <flux:button
                 wire:click="delete"
                 wire:confirm="{{ __('Delete this task?') }}"
@@ -53,7 +87,7 @@
 
             <div class="flex gap-2">
                 <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
+                    <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
                 </flux:modal.close>
 
                 <flux:button wire:click="save" variant="primary" wire:loading.attr="disabled" wire:loading.delay>

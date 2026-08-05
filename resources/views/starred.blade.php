@@ -1,5 +1,5 @@
 <x-layouts::app :title="__('Starred')">
-    <div class="flex h-full w-full flex-1 flex-col">
+    <div class="wunder-page">
         <livewire:tasks.starred-panel />
     </div>
 

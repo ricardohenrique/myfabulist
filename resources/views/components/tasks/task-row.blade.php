@@ -20,18 +20,12 @@
 
 @php
     $dueStatus = $task->due_date ? $task->dueDateStatus() : null;
-
-    $dueDateColor = match ($dueStatus) {
-        'overdue' => 'red',
-        'today' => 'amber',
-        default => 'zinc',
-    };
 @endphp
 
 <div
     {{ $attributes->class([
-        'group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800',
-        'opacity-50 hover:opacity-100' => $completed,
+        'wunder-task group',
+        'is-completed' => $completed,
     ]) }}
     @if ($dueStatus)
         data-due-status="{{ $dueStatus }}"
@@ -53,35 +47,39 @@
             wire:sort:handle
             aria-hidden="true"
             title="{{ __('Drag to reorder') }}"
-            class="shrink-0 cursor-grab touch-none text-zinc-300 active:cursor-grabbing dark:text-zinc-600"
+            class="wunder-task-drag"
         >
             <flux:icon.bars-2 variant="mini" class="size-4" />
         </span>
     @endif
 
     @if ($completed)
-        <flux:checkbox
-            wire:click="restoreTask({{ $task->id }})"
-            wire:loading.attr="disabled"
-            wire:loading.delay
-            wire:target="restoreTask({{ $task->id }})"
-            :checked="true"
-            :aria-label="__('Restore :title', ['title' => $task->title])"
-        />
+        <span class="wunder-task-checkbox">
+            <flux:checkbox
+                wire:click="restoreTask({{ $task->id }})"
+                wire:loading.attr="disabled"
+                wire:loading.delay
+                wire:target="restoreTask({{ $task->id }})"
+                :checked="true"
+                :aria-label="__('Restore :title', ['title' => $task->title])"
+            />
+        </span>
     @else
-        <flux:checkbox
-            wire:click="completeTask({{ $task->id }})"
-            wire:loading.attr="disabled"
-            wire:loading.delay
-            wire:target="completeTask({{ $task->id }})"
-            :checked="false"
-            :aria-label="__('Mark :title complete', ['title' => $task->title])"
-        />
+        <span class="wunder-task-checkbox">
+            <flux:checkbox
+                wire:click="completeTask({{ $task->id }})"
+                wire:loading.attr="disabled"
+                wire:loading.delay
+                wire:target="completeTask({{ $task->id }})"
+                :checked="false"
+                :aria-label="__('Mark :title complete', ['title' => $task->title])"
+            />
+        </span>
     @endif
 
-    <div class="min-w-0 flex-1">
+    <div class="wunder-task-body">
         @if ($completed)
-            <span class="block truncate text-sm text-zinc-500 line-through dark:text-zinc-400">
+            <span class="wunder-task-title">
                 {{ $task->title }}
             </span>
         @else
@@ -89,33 +87,37 @@
                 type="text"
                 value="{{ $task->title }}"
                 wire:change="renameTask({{ $task->id }}, $event.target.value)"
-                class="w-full min-w-0 truncate border-none bg-transparent p-0 text-sm text-zinc-900 focus:ring-0 dark:text-white"
+                wire:dblclick="openDetails({{ $task->id }})"
+                class="wunder-task-title-input"
             />
-        @endif
-
-        @if ($showListName && $task->taskList)
-            <flux:text size="sm" class="text-zinc-400">
-                @if ($task->taskList->folder)
-                    {{ $task->taskList->folder->name }} / {{ $task->taskList->name }}
-                @else
-                    {{ $task->taskList->name }}
-                @endif
-            </flux:text>
         @endif
     </div>
 
-    @if ($task->note)
-        <span title="{{ __('Has a note') }}" data-test="note-indicator-{{ $task->id }}" class="shrink-0">
-            <flux:icon.document-text variant="outline" class="size-4 text-zinc-400" />
-            <span class="sr-only">{{ __('Has a note') }}</span>
-        </span>
-    @endif
+    <div class="wunder-task-meta">
+        @if ($showListName && $task->taskList)
+            <span class="wunder-task-list-name">
+                    @if ($task->taskList->folder)
+                        {{ $task->taskList->folder->name }} / {{ $task->taskList->name }}
+                    @else
+                        {{ $task->taskList->name }}
+                    @endif
+                </span>
+        @endif
 
-    @if ($task->due_date)
-        <flux:badge size="sm" color="{{ $dueDateColor }}" :title="$task->due_date->toFormattedDateString()">
-            {{ $task->due_date->format('M j') }}
-        </flux:badge>
-    @endif
+        @if ($task->note)
+            <span title="{{ __('Has a note') }}" data-test="note-indicator-{{ $task->id }}" class="wunder-task-note">
+                <flux:icon.document-text variant="outline" class="size-4" />
+                <span class="sr-only">{{ __('Has a note') }}</span>
+            </span>
+        @endif
+
+        @if ($task->due_date)
+            <span class="wunder-task-due" title="{{ $task->due_date->toFormattedDateString() }}">
+                <flux:icon.calendar-days class="size-4" />
+                <span>{{ $task->due_date->format('M j') }}</span>
+            </span>
+        @endif
+    </div>
 
     <flux:button
         wire:click="toggleStar({{ $task->id }})"
@@ -126,6 +128,7 @@
         icon:variant="{{ $task->is_starred ? 'solid' : 'outline' }}"
         variant="ghost"
         size="sm"
+        @class(['wunder-task-star', 'is-starred' => $task->is_starred])
         :aria-label="__('Toggle star')"
     />
 
@@ -134,6 +137,7 @@
             icon="ellipsis-horizontal"
             variant="ghost"
             size="sm"
+            class="wunder-task-menu"
             :aria-label="__('Task options')"
         />
 

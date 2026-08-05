@@ -1,4 +1,4 @@
-<div class="flex h-full w-full flex-1 flex-col gap-6">
+<div>
     {{-- Quick capture (M3): add immediately, keep the input focused, clear
          it. addTask() already clears newTaskTitle server-side; the
          x-ref/$nextTick pair below is the explicit guarantee that focus
@@ -8,33 +8,37 @@
         wire:submit="addTask"
         x-data
         x-on:submit="$nextTick(() => $refs.quickAddInput.focus())"
-        class="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-2"
+        class="wunder-task-composer"
     >
-        <div class="flex-1">
-            <flux:input
+        <div class="wunder-composer-row">
+            <flux:icon.plus class="size-5 shrink-0" />
+            <input
+                type="text"
                 x-ref="quickAddInput"
                 wire:model="newTaskTitle"
-                :placeholder="__('Add a task and press Enter…')"
+                class="wunder-composer-input"
+                placeholder="{{ __('Add a to-do in \':list\'...', ['list' => $this->list->name]) }}"
                 autofocus
                 autocomplete="off"
             />
-            @error('newTaskTitle')
-                <flux:text size="sm" class="mt-1 text-red-600 dark:text-red-400">{{ $message }}</flux:text>
-            @enderror
+            <button type="submit" class="wunder-composer-submit" wire:loading.attr="disabled" wire:loading.delay wire:target="addTask">
+                <span class="sr-only">{{ __('Add') }}</span>
+                <flux:icon.arrow-turn-down-left class="size-5" />
+            </button>
         </div>
-        <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:loading.delay wire:target="addTask">
-            {{ __('Add') }}
-        </flux:button>
+        @error('newTaskTitle')
+            <div class="wunder-composer-error">{{ $message }}</div>
+        @enderror
     </form>
 
-    <div class="flex flex-1 flex-col gap-6">
+    <div>
         @if ($this->tasks->active->isEmpty() && $this->tasks->completed->isEmpty())
             {{-- Empty state (M10) — the Inbox gets its own copy, distinct
                  from a regular empty list (frontend.md). --}}
-            <div class="flex flex-1 items-center justify-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
-                <flux:text>
+            <div class="wunder-empty-state">
+                <span>
                     {{ $this->list->is_default ? __('Your Inbox is clear.') : __('Nothing here yet. Add your first task.') }}
-                </flux:text>
+                </span>
             </div>
         @else
             {{-- Active tasks (M4). Drag-and-drop reordering (S4/Step 2): the
@@ -44,7 +48,7 @@
                  refresh itself on a caught DomainException so a failed drag
                  still snaps back to the persisted order. Completed rows are
                  never inside this container — they are not sortable. --}}
-            <div wire:sort.renderless="reorderTask($item, $position)" class="flex flex-col gap-2">
+            <div wire:sort.renderless="reorderTask($item, $position)" class="wunder-task-list">
                 @forelse ($this->tasks->active as $task)
                     <x-tasks.task-row
                         :task="$task"
@@ -58,25 +62,26 @@
                     />
                 @empty
                     {{-- All-done state (M10), copy matched to frontend.md --}}
-                    <div class="flex items-center justify-center rounded-xl border border-dashed border-zinc-200 py-8 dark:border-zinc-700">
-                        <flux:text>{{ __('Everything is done.') }}</flux:text>
+                    <div class="wunder-empty-state">
+                        <span>{{ __('Everything is done.') }}</span>
                     </div>
                 @endforelse
             </div>
 
             {{-- Completed section (M6) --}}
             @if ($this->tasks->completedCount > 0)
-                <div x-data="{ open: $persist(true).as('task-panel-completed-open-{{ $this->taskListId }}') }" class="flex flex-col gap-1">
+                <div x-data="{ open: $persist(true).as('task-panel-completed-open-{{ $this->taskListId }}') }">
                     <button
                         type="button"
                         x-on:click="open = !open"
-                        class="flex items-center gap-2 self-start text-sm font-medium text-zinc-500 dark:text-zinc-400"
+                        class="wunder-group-label"
+                        x-bind:aria-expanded="open.toString()"
                     >
                         <flux:icon.chevron-down x-bind:class="open ? 'rotate-0' : '-rotate-90'" class="size-4 transition-transform" />
                         {{ __('Completed') }} ({{ $this->tasks->completedCount }})
                     </button>
 
-                    <div x-show="open" x-collapse class="flex flex-col gap-2">
+                    <div x-show="open" x-collapse class="wunder-task-list">
                         @foreach ($this->tasks->completed as $task)
                             <x-tasks.task-row
                                 :task="$task"

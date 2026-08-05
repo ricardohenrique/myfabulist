@@ -17,23 +17,28 @@
     $canMoveDown ??= true;
 @endphp
 
-<div wire:key="list-{{ $list->id }}" wire:sort:item="{{ $list->id }}" class="group/list relative">
-    <flux:sidebar.item
-        icon="list-bullet"
-        :href="route('lists.show', $list)"
-        :current="$currentTaskListId === $list->id"
-        :badge="$list->active_tasks_count ?: null"
+<div wire:key="list-{{ $list->id }}" wire:sort:item="{{ $list->id }}" class="wunder-list-wrap group/list relative">
+    <a
+        href="{{ route('lists.show', $list) }}"
+        @class(['wunder-list-row', 'is-active' => $currentTaskListId === $list->id])
         wire:navigate
-        :class="! $list->is_default ? 'group-hover/list:[&_[data-flux-navlist-badge]]:invisible' : ''"
+        @if ($currentTaskListId === $list->id) aria-current="page" @endif
+        @if ($currentTaskListId === $list->id) data-current="data-current" @endif
     >
+        <flux:icon.list-bullet class="wunder-icon wunder-icon-list" />
+        <span class="wunder-list-name">
         {{ Str::limit($list->name, 40) }}
-    </flux:sidebar.item>
+        </span>
+        @if ($list->active_tasks_count)
+            <span class="wunder-list-count">{{ $list->active_tasks_count }}</span>
+        @endif
+    </a>
 
     @if (! $list->is_default)
         {{-- Swaps into the exact slot the active-task badge occupies above,
              rather than floating on top of it — the two never fight for the
              same pixels (previously the source of a broken-looking hover). --}}
-        <flux:dropdown class="absolute inset-y-0 end-1.5 flex items-center opacity-0 group-hover/list:opacity-100">
+        <flux:dropdown class="wunder-row-tools absolute inset-y-0 end-1.5 flex items-center">
             <flux:button
                 icon="ellipsis-horizontal"
                 variant="ghost"

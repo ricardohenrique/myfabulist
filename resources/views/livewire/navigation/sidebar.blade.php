@@ -1,25 +1,34 @@
-<div wire:loading.class="opacity-50" wire:target="refreshTree">
-    <flux:sidebar.nav>
-        <div data-nav="primary">
-            <flux:sidebar.item
-                icon="inbox"
-                :href="route('inbox')"
-                :current="$currentRouteName === 'inbox'"
-                :badge="$this->tree->inbox->active_tasks_count ?: null"
+<div class="wunder-nav" wire:loading.class="opacity-50" wire:target="refreshTree">
+    <nav aria-label="{{ __('Sidebar') }}">
+        <div class="wunder-primary-nav" data-nav="primary">
+            <a
+                href="{{ route('inbox') }}"
+                @class(['wunder-nav-item', 'is-active' => $currentRouteName === 'inbox'])
                 wire:navigate
+                @if ($currentRouteName === 'inbox') aria-current="page" @endif
+                @if ($currentRouteName === 'inbox') data-current="data-current" @endif
             >
-                {{ __('Inbox') }}
-            </flux:sidebar.item>
+                <flux:icon.inbox class="wunder-icon wunder-icon-inbox" />
+                <span class="wunder-nav-label">{{ __('Inbox') }}</span>
+                @if ($this->tree->inbox->active_tasks_count)
+                    <span class="wunder-nav-count">{{ $this->tree->inbox->active_tasks_count }}</span>
+                @endif
+            </a>
 
-            <flux:sidebar.item icon="star" :href="route('starred')" :current="$currentRouteName === 'starred'" wire:navigate>
-                {{ __('Starred') }}
-            </flux:sidebar.item>
+            <a
+                href="{{ route('starred') }}"
+                @class(['wunder-nav-item', 'is-active' => $currentRouteName === 'starred'])
+                wire:navigate
+                @if ($currentRouteName === 'starred') aria-current="page" @endif
+                @if ($currentRouteName === 'starred') data-current="data-current" @endif
+            >
+                <flux:icon.star class="wunder-icon wunder-icon-starred" />
+                <span class="wunder-nav-label">{{ __('Starred') }}</span>
+            </a>
         </div>
 
-        <div class="mt-4 flex items-center justify-between px-3" data-nav="tree-actions">
-            <flux:text size="sm" class="font-medium text-zinc-500 dark:text-zinc-400">{{ __('Folders and lists') }}</flux:text>
-
-            <div class="flex items-center gap-1">
+        <div class="wunder-tree-actions" data-nav="tree-actions">
+            <div class="flex items-center gap-1" aria-label="{{ __('Create navigation items') }}">
                 <flux:button
                     wire:click="$dispatch('list-dialog-open', { mode: 'create', listId: null, folderId: null })"
                     icon="plus"
@@ -42,7 +51,7 @@
 
         @if ($this->tree->folders === [] && $this->tree->ungroupedLists->isEmpty())
             {{-- Empty state (M10) --}}
-            <div class="mt-2 flex flex-col items-center gap-3 rounded-xl border border-dashed border-zinc-200 px-4 py-8 text-center dark:border-zinc-700" data-test="navigation-empty-state">
+            <div class="mx-3 mt-3 flex flex-col items-center gap-3 border border-dashed border-zinc-300 px-4 py-8 text-center" data-test="navigation-empty-state">
                 <flux:text>{{ __('Organize your work with folders and lists.') }}</flux:text>
 
                 <div class="flex flex-col gap-2 sm:flex-row">
@@ -63,7 +72,7 @@
                 </div>
             </div>
         @else
-        <div class="mt-2 flex flex-col gap-0.5" data-nav="folders">
+        <div class="wunder-folder-tree" data-nav="folders">
             {{-- Folder reordering (S4/Step 3): buttons + drag, both drag and
                  button entry points funnel into reorderFolder()/moveFolderUp/
                  Down(). Not .renderless — a folder row carries a nested list
@@ -71,32 +80,23 @@
                  than the flicker-avoidance trade-off .renderless makes for a
                  single task row (C3 is about that trade-off, not a blanket
                  rule). --}}
-            <div wire:sort="reorderFolder($item, $position)" class="flex flex-col gap-0.5">
+            <div wire:sort="reorderFolder($item, $position)" class="wunder-list-group">
                 @foreach ($this->tree->folders as $navigationFolder)
                     @php $folder = $navigationFolder->folder; @endphp
                     <div wire:key="folder-{{ $folder->id }}" wire:sort:item="{{ $folder->id }}" x-data="{ open: $persist(true).as('folder-open-{{ $folder->id }}') }">
-                        {{-- h-8/gap-3/px-3 mirror flux:sidebar.item exactly (see
-                             vendor/livewire/flux/.../sidebar/item.blade.php) so a
-                             folder's icon lands in the same column as Inbox,
-                             Starred and every list row — no drag handle sits in
-                             front of it to shift it over. The row itself carries
-                             the hover background so highlighting covers its full
-                             width, not just the toggle button's. --}}
-                        <div class="group flex h-8 items-center gap-3 rounded-lg px-3 text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 dark:text-white/80 dark:hover:bg-white/[7%] dark:hover:text-white">
+                        <div class="wunder-folder-row group">
                             <button
                                 type="button"
                                 x-on:click="open = !open"
-                                class="flex min-w-0 flex-1 items-center gap-3 text-start"
+                                class="wunder-folder-toggle"
                                 :aria-label="open ? '{{ __('Collapse :folder', ['folder' => $folder->name]) }}' : '{{ __('Expand :folder', ['folder' => $folder->name]) }}'"
+                                x-bind:aria-expanded="open.toString()"
                             >
-                                {{-- A folder icon, distinct from a list's
-                                     list-bullet icon, so the two are
-                                     recognisable at a glance. --}}
-                                <flux:icon.folder class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                <span class="flex-1 truncate text-sm font-medium">{{ $folder->name }}</span>
+                                <flux:icon.folder class="wunder-icon wunder-icon-folder" />
+                                <span class="wunder-folder-name">{{ $folder->name }}</span>
                             </button>
 
-                            <div class="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                            <div class="wunder-row-tools">
                                 {{-- Dedicated drag handle (R5), relocated into
                                      this hover cluster rather than leading the
                                      row: a folder has a nested sortable list
@@ -110,7 +110,7 @@
                                     wire:sort:handle
                                     aria-hidden="true"
                                     title="{{ __('Drag to reorder') }}"
-                                    class="flex size-6 shrink-0 cursor-grab items-center justify-center touch-none text-zinc-300 active:cursor-grabbing dark:text-zinc-600"
+                                    class="flex size-6 shrink-0 cursor-grab items-center justify-center touch-none text-zinc-400 active:cursor-grabbing"
                                 >
                                     <flux:icon.bars-2 variant="mini" class="size-4" />
                                 </span>
@@ -175,7 +175,7 @@
                             <button
                                 type="button"
                                 x-on:click="open = !open"
-                                class="shrink-0 text-zinc-400 dark:text-zinc-500"
+                                class="shrink-0 text-zinc-400"
                                 aria-hidden="true"
                                 tabindex="-1"
                             >
@@ -194,7 +194,7 @@
                             x-collapse
                             wire:sort.renderless="reorderList($item, $position, {{ $folder->id }})"
                             wire:sort:group="lists-{{ $folder->id }}"
-                            class="flex flex-col gap-0.5 ps-4"
+                            class="wunder-child-lists"
                         >
                             @foreach ($navigationFolder->lists as $list)
                                 @include('livewire.navigation._list-item', [
@@ -216,7 +216,7 @@
             <div
                 wire:sort.renderless="reorderList($item, $position, null)"
                 wire:sort:group="lists-root"
-                class="flex flex-col gap-0.5"
+                class="wunder-list-group"
             >
                 @foreach ($this->tree->ungroupedLists as $list)
                     @include('livewire.navigation._list-item', [
@@ -228,7 +228,17 @@
             </div>
         </div>
         @endif
-    </flux:sidebar.nav>
+    </nav>
+
+    <button
+        type="button"
+        class="wunder-sidebar-create"
+        wire:click="$dispatch('list-dialog-open', { mode: 'create', listId: null, folderId: null })"
+        data-test="sidebar-create-list-button"
+    >
+        <flux:icon.plus class="size-4" />
+        <span>{{ __('Create list') }}</span>
+    </button>
 
     <livewire:navigation.folder-dialog :current-task-list-id="$currentTaskListId" />
     <livewire:navigation.list-dialog :current-task-list-id="$currentTaskListId" />

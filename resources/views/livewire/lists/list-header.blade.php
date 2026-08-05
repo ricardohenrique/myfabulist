@@ -1,10 +1,10 @@
 {{-- The list page header (M2/D6): name, quiet active/completed counts, and
      (for a non-default list) rename/move/delete via Phase A's ListDialog. --}}
-<div class="flex items-center justify-between gap-2">
+<div class="wunder-panel-head">
     <div>
-        <flux:heading size="xl">{{ $this->list->name }}</flux:heading>
+        <h2 class="sr-only">{{ $this->list->name }}</h2>
 
-        <flux:text size="sm" class="text-zinc-400">
+        <flux:text size="sm" class="wunder-list-meta">
             {{ __(':count active', ['count' => $this->tasks->active->count()]) }}
             @if ($this->tasks->completedCount > 0)
                 &middot; {{ __(':count completed', ['count' => $this->tasks->completedCount]) }}
@@ -15,11 +15,12 @@
     @unless ($this->list->is_default)
         <flux:dropdown>
             <flux:button
-                icon="ellipsis-horizontal"
-                variant="ghost"
-                size="sm"
-                :aria-label="__('List options')"
-            />
+            icon="ellipsis-horizontal"
+            variant="ghost"
+            size="sm"
+            class="text-white/80 hover:text-white"
+            :aria-label="__('List options')"
+        />
 
             <flux:menu>
                 <flux:menu.item
