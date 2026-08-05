@@ -3,14 +3,12 @@
     <head>
         @include('partials.head')
     </head>
-    {{-- frontend.md "Visual style": a light neutral page background behind
-         white content surfaces (the card in layouts/app.blade.php). --}}
-    <body class="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-        <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-            <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('inbox') }}" wire:navigate />
-                <flux:sidebar.collapse class="lg:hidden" />
-            </flux:sidebar.header>
+    <body class="app-shell min-h-screen">
+        <flux:sidebar sticky collapsible="mobile" class="app-sidebar border-e border-zinc-200 dark:border-zinc-800">
+{{--            <flux:sidebar.header>--}}
+{{--                <x-app-logo :sidebar="true" href="{{ route('inbox') }}" wire:navigate />--}}
+{{--                <flux:sidebar.collapse class="lg:hidden" />--}}
+{{--            </flux:sidebar.header>--}}
 
             <x-desktop-user-menu class="hidden lg:block" />
 
