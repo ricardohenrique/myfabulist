@@ -24,6 +24,9 @@
             >
                 <flux:icon.star class="wunder-icon wunder-icon-starred" />
                 <span class="wunder-nav-label">{{ __('Starred') }}</span>
+                @if ($this->tree->starredCount)
+                    <span class="wunder-nav-count">{{ $this->tree->starredCount }}</span>
+                @endif
             </a>
         </div>
 

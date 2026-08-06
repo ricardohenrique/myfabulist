@@ -63,6 +63,15 @@ class EloquentTaskRepository implements TaskRepositoryInterface
             ->get();
     }
 
+    public function starredCountForUser(User $user): int
+    {
+        return Task::query()
+            ->where('user_id', $user->id)
+            ->where('is_starred', true)
+            ->whereHas('taskList')
+            ->count();
+    }
+
     public function findForUser(int $taskId, User $user): ?Task
     {
         return Task::query()

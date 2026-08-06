@@ -76,6 +76,33 @@ class EloquentTaskRepositoryTest extends TestCase
         );
     }
 
+    public function test_starred_count_for_user_spans_lists_and_excludes_other_users(): void
+    {
+        $user = User::factory()->create();
+        $listA = TaskList::factory()->create(['user_id' => $user->id]);
+        $listB = TaskList::factory()->create(['user_id' => $user->id]);
+        Task::factory()->forTaskList($listA)->starred()->create();
+        Task::factory()->forTaskList($listB)->starred()->create();
+        Task::factory()->forTaskList($listA)->create();
+
+        $other = User::factory()->create();
+        $otherList = TaskList::factory()->create(['user_id' => $other->id]);
+        Task::factory()->forTaskList($otherList)->starred()->create();
+
+        $this->assertSame(2, $this->repository->starredCountForUser($user));
+    }
+
+    public function test_a_deleted_tasks_list_excludes_it_from_starred_count_for_user(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred()->create();
+
+        $this->repository->delete($task);
+
+        $this->assertSame(0, $this->repository->starredCountForUser($user));
+    }
+
     public function test_find_for_user_returns_null_for_another_users_task(): void
     {
         $owner = User::factory()->create();

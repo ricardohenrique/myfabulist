@@ -97,6 +97,23 @@ class NavigationServiceTest extends TestCase
         $this->assertSame(1, $tree->inbox->active_tasks_count);
     }
 
+    public function test_starred_count_reflects_only_this_users_starred_tasks(): void
+    {
+        $user = User::factory()->create();
+        $inbox = TaskList::factory()->inbox()->create(['user_id' => $user->id]);
+        Task::factory()->forTaskList($inbox)->starred()->create();
+        Task::factory()->forTaskList($inbox)->starred()->create();
+        Task::factory()->forTaskList($inbox)->create();
+
+        $other = User::factory()->create();
+        $otherInbox = TaskList::factory()->inbox()->create(['user_id' => $other->id]);
+        Task::factory()->forTaskList($otherInbox)->starred()->create();
+
+        $tree = app(NavigationService::class)->treeFor($user);
+
+        $this->assertSame(2, $tree->starredCount);
+    }
+
     public function test_a_user_with_no_folders_and_no_extra_lists_still_gets_a_valid_tree(): void
     {
         $user = User::factory()->create();
@@ -124,12 +141,13 @@ class NavigationServiceTest extends TestCase
         $queryCount = count(DB::getQueryLog());
         DB::disableQueryLog();
 
-        // 5 queries regardless of folder/list count: inbox lookup, folders,
-        // folders' eager-loaded taskLists, lists, lists' eager-loaded folder.
-        // The two eager loads are unused by this read model but come from
-        // the existing repository contracts (allForUser()) shared with other
-        // callers, so they are not removed here — the assertion still pins
-        // the count and would fail if a change ever made it grow with N.
-        $this->assertLessThanOrEqual(5, $queryCount);
+        // 6 queries regardless of folder/list count: inbox lookup, folders,
+        // folders' eager-loaded taskLists, lists, lists' eager-loaded folder,
+        // starred count. The two eager loads are unused by this read model
+        // but come from the existing repository contracts (allForUser())
+        // shared with other callers, so they are not removed here — the
+        // assertion still pins the count and would fail if a change ever
+        // made it grow with N.
+        $this->assertLessThanOrEqual(6, $queryCount);
     }
 }

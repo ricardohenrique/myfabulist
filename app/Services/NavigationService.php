@@ -9,6 +9,7 @@ use App\Models\TaskList;
 use App\Models\User;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
+use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Data\NavigationFolder;
 use App\Services\Data\NavigationTree;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -27,6 +28,7 @@ class NavigationService
         private readonly FolderRepositoryInterface $folders,
         private readonly TaskListRepositoryInterface $taskLists,
         private readonly TaskListService $taskListService,
+        private readonly TaskRepositoryInterface $tasks,
     ) {}
 
     public function treeFor(User $user): NavigationTree
@@ -60,6 +62,7 @@ class NavigationService
 
         return new NavigationTree(
             inbox: $inbox,
+            starredCount: $this->tasks->starredCountForUser($user),
             folders: $navigationFolders,
             ungroupedLists: $this->listsGroupedUnder($listsByFolder, null),
         );

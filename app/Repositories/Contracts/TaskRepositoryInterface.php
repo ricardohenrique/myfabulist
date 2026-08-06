@@ -36,6 +36,13 @@ interface TaskRepositoryInterface
     public function starredForUser(User $user): Collection;
 
     /**
+     * The count backing the sidebar's Starred badge — same scoping as
+     * starredForUser() (trashed-list tasks excluded) without loading the
+     * rows themselves.
+     */
+    public function starredCountForUser(User $user): int;
+
+    /**
      * Find a task by id, scoped to the given user. Returns null when the
      * task does not exist or belongs to a different user.
      */

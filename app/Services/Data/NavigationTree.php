@@ -21,6 +21,7 @@ final readonly class NavigationTree
      */
     public function __construct(
         public TaskList $inbox,
+        public int $starredCount,
         public array $folders,
         public Collection $ungroupedLists,
     ) {}
