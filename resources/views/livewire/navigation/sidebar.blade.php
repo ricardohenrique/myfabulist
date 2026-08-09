@@ -82,8 +82,19 @@
                  sub-tree, so a full re-render here is cheap insurance rather
                  than the flicker-avoidance trade-off .renderless makes for a
                  single task row (C3 is about that trade-off, not a blanket
-                 rule). --}}
-            <div wire:sort="reorderFolder($item, $position)" class="wunder-list-group">
+                 rule).
+
+                 The handler is a bare method name, not
+                 "reorderFolder($item, $position)": Livewire's expression
+                 rewriter (contextualizeExpression) prefixes every bare
+                 identifier in a call expression with "$wire." — including
+                 the injected $item/$position magics — which don't exist as
+                 component properties and evaluate to null, silently sending
+                 reorderFolder(null, null) on every real drag (same bug
+                 TaskPanel's reorderTask already works around, see there for
+                 the fuller explanation). The bare form sidesteps this:
+                 Livewire calls it positionally with ($id, $position). --}}
+            <div wire:sort="reorderFolder" class="wunder-list-group">
                 @foreach ($this->tree->folders as $navigationFolder)
                     @php $folder = $navigationFolder->folder; @endphp
                     <div wire:key="folder-{{ $folder->id }}" wire:sort:item="{{ $folder->id }}" x-data="{ open: $persist(true).as('folder-open-{{ $folder->id }}') }">
@@ -191,11 +202,20 @@
                              drop client-side. A distinct wire:sort:group per
                              folder (C6) means Sortable refuses a cross-folder
                              drop; moving a list between folders stays Phase
-                             A's ListDialog "Move" action. --}}
+                             A's ListDialog "Move" action.
+
+                             Bare method name, same reason as reorderFolder()
+                             above — an explicit "reorderList($item, $position,
+                             ...)" call expression gets its $item/$position
+                             magics mangled to null by Livewire's expression
+                             rewriter. $folderId rides along as the 3rd
+                             positional arg via wire:sort:group-id, Livewire's
+                             built-in mechanism for exactly this. --}}
                         <div
                             x-show="open"
                             x-collapse
-                            wire:sort.renderless="reorderList($item, $position, {{ $folder->id }})"
+                            wire:sort.renderless="reorderList"
+                            wire:sort:group-id="{{ $folder->id }}"
                             wire:sort:group="lists-{{ $folder->id }}"
                             class="wunder-child-lists"
                         >
@@ -215,9 +235,15 @@
                  list can never be dragged out of the folders container above
                  and be mistaken for a folder (C6); the Inbox is never
                  rendered through this partial, so it can never enter this
-                 container (M2/A9). --}}
+                 container (M2/A9).
+
+                 Bare method name (see the folder-scoped list container
+                 above) — wire:sort:group-id is deliberately omitted here
+                 rather than passed as "null": reorderList()'s $folderId
+                 parameter defaults to null, which is exactly what an
+                 ungrouped list needs. --}}
             <div
-                wire:sort.renderless="reorderList($item, $position, null)"
+                wire:sort.renderless="reorderList"
                 wire:sort:group="lists-root"
                 class="wunder-list-group"
             >

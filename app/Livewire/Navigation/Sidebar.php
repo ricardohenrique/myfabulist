@@ -110,16 +110,30 @@ class Sidebar extends Component
 
     /**
      * The list drag entry point (S4/Step 3). $folderId is the *container*
-     * the drop happened in (root/ungrouped when null) — distinct
+     * the drop happened in (root/ungrouped when null, via the parameter's
+     * default rather than an explicit null argument — see
+     * sidebar.blade.php's wire:sort:group-id usage) — distinct
      * `wire:sort:group` names per container already stop Sortable from
      * accepting a cross-folder drop client-side (C6), but a stale or
      * hand-crafted request could still name a list that does not actually
      * belong to $folderId. TaskListService::reorder() writes positions
      * scoped to $folderId regardless (R6/C6): a mismatch here is refused
      * before any write, exactly like a cross-folder drag would be.
+     *
+     * $listId/$position are nullable defensively, not just $folderId: a
+     * drag that ends outside any valid drop target (or is cancelled) can
+     * still reach here without a resolved key/position. Typing them as
+     * plain int would let that surface as a TypeError instead of the same
+     * graceful "stale — refreshing" toast a bad drop already gets.
      */
-    public function reorderList(int $listId, int $position, ?int $folderId, TaskListRepositoryInterface $taskLists, TaskListService $taskListService): void
+    public function reorderList(?int $listId, ?int $position, TaskListRepositoryInterface $taskLists, TaskListService $taskListService, ?int $folderId = null): void
     {
+        if ($listId === null || $position === null) {
+            $this->refuseStaleReorder();
+
+            return;
+        }
+
         $list = $this->authorizedList($listId, $taskLists);
 
         if ($list->folder_id !== $folderId) {
@@ -166,10 +180,19 @@ class Sidebar extends Component
     }
 
     /**
-     * The folder drag entry point (S4/Step 3).
+     * The folder drag entry point (S4/Step 3). Nullable for the same reason
+     * as reorderList() above: a `wire:sort` drag can call this with an
+     * unresolved (null) key/position on the client side, and that must
+     * degrade to the same stale-reorder toast rather than a TypeError.
      */
-    public function reorderFolder(int $folderId, int $position, FolderRepositoryInterface $folders, FolderService $folderService): void
+    public function reorderFolder(?int $folderId, ?int $position, FolderRepositoryInterface $folders, FolderService $folderService): void
     {
+        if ($folderId === null || $position === null) {
+            $this->refuseStaleReorder();
+
+            return;
+        }
+
         $this->authorizedFolder($folderId, $folders);
 
         $this->applyFolderReorder($folderService, $this->folderIds(), $folderId, $position);

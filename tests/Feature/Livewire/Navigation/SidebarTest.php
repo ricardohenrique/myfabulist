@@ -249,6 +249,28 @@ class SidebarTest extends TestCase
         $this->assertSame($otherFolder->id, $foreignList->fresh()->folder_id);
     }
 
+    public function test_dragging_a_list_with_an_unresolved_drag_key_is_refused_instead_of_erroring(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $first = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $second = TaskList::factory()->inFolder($folder)->create(['position' => 2]);
+
+        // Livewire's bundled wire:sort handler can call the drag entry point
+        // with a null id/position when it fails to resolve the dragged
+        // element's key client-side — this must degrade to the same
+        // stale-reorder toast a bad drop already gets, not a TypeError.
+        Livewire::actingAs($user)
+            ->test(Sidebar::class)
+            ->call('reorderList', null, null, $folder->id)
+            ->assertOk();
+
+        $this->assertSame(
+            [$first->id, $second->id],
+            TaskList::query()->where('folder_id', $folder->id)->orderBy('position')->pluck('id')->all(),
+        );
+    }
+
     public function test_folder_reordering_persists(): void
     {
         $user = User::factory()->create();
@@ -278,6 +300,25 @@ class SidebarTest extends TestCase
             ->test(Sidebar::class)
             ->call('moveFolderUp', $strangerFolder->id)
             ->assertNotFound();
+
+        $this->assertSame(
+            [$first->id, $second->id],
+            Folder::query()->where('user_id', $user->id)->orderBy('position')->pluck('id')->all(),
+        );
+    }
+
+    public function test_dragging_a_folder_with_an_unresolved_drag_key_is_refused_instead_of_erroring(): void
+    {
+        $user = User::factory()->create();
+        $first = Folder::factory()->for($user)->create(['position' => 1]);
+        $second = Folder::factory()->for($user)->create(['position' => 2]);
+
+        // Same client-side failure mode as the list drag entry point: a
+        // null id/position from wire:sort must not surface as a TypeError.
+        Livewire::actingAs($user)
+            ->test(Sidebar::class)
+            ->call('reorderFolder', null, null)
+            ->assertOk();
 
         $this->assertSame(
             [$first->id, $second->id],
