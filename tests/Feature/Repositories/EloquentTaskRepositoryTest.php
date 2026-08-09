@@ -204,6 +204,26 @@ class EloquentTaskRepositoryTest extends TestCase
     }
 
     /**
+     * Regression: the sortable UI only ever submits active-task ids
+     * (completed tasks render in a separate, non-sortable section), so
+     * idsForList() must be scoped to is_completed = false. Previously it
+     * pulled every task in the list, which meant applyOrder() rejected the
+     * submitted set as a mismatch on any list that had a completed task.
+     */
+    public function test_apply_order_succeeds_on_a_list_that_also_has_completed_tasks(): void
+    {
+        $list = TaskList::factory()->create();
+        $a = Task::factory()->forTaskList($list)->create(['position' => 0]);
+        $b = Task::factory()->forTaskList($list)->create(['position' => 1]);
+        Task::factory()->forTaskList($list)->completed()->create(['position' => 2]);
+
+        $this->repository->applyOrder($list, [$b->id, $a->id]);
+
+        $this->assertSame(0, $b->fresh()->position);
+        $this->assertSame(1, $a->fresh()->position);
+    }
+
+    /**
      * Plan 4/Step 2: soft-deleted tasks vanish from every read the global
      * scope covers — verified individually so a future removal of the
      * SoftDeletes trait fails loudly here, not just in Step 6's sweep.

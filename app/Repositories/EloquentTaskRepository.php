@@ -231,6 +231,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
     {
         return Task::query()
             ->where('task_list_id', $taskList->id)
+            ->where('is_completed', false)
             ->pluck('id');
     }
 }

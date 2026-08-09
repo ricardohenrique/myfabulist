@@ -97,7 +97,9 @@ interface TaskRepositoryInterface
     public function applyOrder(TaskList $taskList, array $taskIds): void;
 
     /**
-     * Every task id currently in the list, for reorder-set validation.
+     * Every active (non-completed) task id currently in the list, for
+     * reorder-set validation — completed tasks are excluded because the
+     * sortable UI never submits their ids (D1).
      *
      * @return SupportCollection<int, int>
      */
