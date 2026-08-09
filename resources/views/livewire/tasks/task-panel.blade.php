@@ -47,8 +47,23 @@
                  cause a flicker on the happy path; reorderTask() forces a
                  refresh itself on a caught DomainException so a failed drag
                  still snaps back to the persisted order. Completed rows are
-                 never inside this container — they are not sortable. --}}
-            <div wire:sort.renderless="reorderTask($item, $position)" class="wunder-task-list">
+                 never inside this container — they are not sortable.
+
+                 The handler is a bare method name, not
+                 "reorderTask($item, $position)": Livewire's own expression
+                 rewriter (contextualizeExpression) prefixes every bare
+                 identifier it finds — including the injected $item/$position
+                 magics themselves — with "$wire.", which don't exist as
+                 component properties and evaluate to null, silently sending
+                 reorderTask(null, null) on every real drag. The bare form
+                 sidesteps this: Livewire calls it positionally with
+                 ($id, $position) itself (matching reorderTask's signature),
+                 which is also the form the current wire:sort docs use. --}}
+            <div
+                wire:sort.renderless="reorderTask"
+                wire:sort:config="{ distance: 6 }"
+                class="wunder-task-list"
+            >
                 @forelse ($this->tasks->active as $task)
                     <x-tasks.task-row
                         :task="$task"

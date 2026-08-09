@@ -439,7 +439,13 @@ class TaskPanelTest extends TestCase
             ->assertDontSee('Foreign');
     }
 
-    public function test_the_active_section_is_a_renderless_sort_container_with_a_handle_and_item_key_on_every_row(): void
+    /**
+     * The whole row is the drag surface (no dedicated handle) — Livewire's
+     * sort plugin makes an item fully draggable precisely when nothing
+     * inside its container carries wire:sort:handle, so its absence here is
+     * the contract, not an oversight.
+     */
+    public function test_the_active_section_is_a_renderless_sort_container_with_no_handle_and_an_item_key_on_every_row(): void
     {
         $user = User::factory()->create();
         $list = TaskList::factory()->create(['user_id' => $user->id]);
@@ -447,9 +453,28 @@ class TaskPanelTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(TaskPanel::class, ['taskListId' => $list->id])
-            ->assertSeeHtml('wire:sort.renderless="reorderTask($item, $position)"')
+            ->assertSeeHtml('wire:sort.renderless="reorderTask"')
             ->assertSeeHtml("wire:sort:item=\"{$task->id}\"")
-            ->assertSeeHtml('wire:sort:handle');
+            ->assertDontSeeHtml('wire:sort:handle');
+    }
+
+    /**
+     * The controls a row still needs plain clicks/typing on (checkbox, star,
+     * row menu, rename input) are marked wire:sort:ignore so they keep
+     * working without starting a drag, now that the whole row is draggable.
+     */
+    public function test_the_task_rows_interactive_controls_are_marked_sort_ignore(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        Task::factory()->forTaskList($list)->create();
+
+        $html = Livewire::actingAs($user)
+            ->test(TaskPanel::class, ['taskListId' => $list->id])
+            ->html();
+
+        // Checkbox, rename input, star wrapper, row menu — four controls.
+        $this->assertSame(4, substr_count($html, 'wire:sort:ignore'));
     }
 
     public function test_completed_rows_are_not_inside_the_sortable_container_or_reorderable(): void

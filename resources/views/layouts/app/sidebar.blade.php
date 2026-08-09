@@ -8,8 +8,6 @@
             <x-desktop-user-menu />
 
             <livewire:navigation.sidebar />
-
-            <flux:spacer />
         </flux:sidebar>
 
         {{ $slot }}

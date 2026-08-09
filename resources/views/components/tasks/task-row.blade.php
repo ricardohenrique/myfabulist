@@ -49,10 +49,10 @@
             class="wunder-task-checkbox is-checked"
             role="checkbox"
             aria-checked="true"
-            @if ($reorderable) wire:sort:handle @endif
             wire:click="restoreTask({{ $task->id }})"
             wire:loading.delay.attr="disabled"
             wire:target="restoreTask({{ $task->id }})"
+            wire:sort:ignore
             x-on:click.stop
             x-on:keydown.stop
             aria-label="{{ __('Restore :title', ['title' => $task->title]) }}"
@@ -65,10 +65,10 @@
             class="wunder-task-checkbox"
             role="checkbox"
             aria-checked="false"
-            @if ($reorderable) wire:sort:handle @endif
             wire:click="completeTask({{ $task->id }})"
             wire:loading.delay.attr="disabled"
             wire:target="completeTask({{ $task->id }})"
+            wire:sort:ignore
             x-on:click.stop
             x-on:keydown.stop
             aria-label="{{ __('Mark :title complete', ['title' => $task->title]) }}"
@@ -88,6 +88,7 @@
                 value="{{ $task->title }}"
                 wire:change="renameTask({{ $task->id }}, $event.target.value)"
                 class="wunder-task-title-input"
+                wire:sort:ignore
             />
         @endif
     </div>
@@ -118,7 +119,7 @@
         @endif
     </div>
 
-    <span x-on:click.stop x-on:keydown.stop>
+    <span x-on:click.stop x-on:keydown.stop wire:sort:ignore>
         <flux:button
             wire:click="toggleStar({{ $task->id }})"
             wire:loading.delay.attr="disabled"
@@ -132,7 +133,7 @@
         />
     </span>
 
-    <flux:dropdown x-on:click.stop x-on:keydown.stop>
+    <flux:dropdown x-on:click.stop x-on:keydown.stop wire:sort:ignore>
         <flux:button
             icon="ellipsis-horizontal"
             variant="ghost"

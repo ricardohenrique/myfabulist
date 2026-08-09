@@ -511,12 +511,6 @@
     border-color: #c5cad2;
 }
 
-.wunder-task-drag {
-    color: #b8bec7;
-    cursor: grab;
-    touch-action: none;
-}
-
 .wunder-task-checkbox {
     width: 22px;
     height: 22px;
