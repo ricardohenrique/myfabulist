@@ -34,10 +34,11 @@ Livewire web UI and a versioned JSON REST API (`/api/v1`).
    touch database/database.sqlite   # skip if using MySQL
    php artisan migrate
    php artisan db:seed              # optional: creates a demo user + sample data
+   php artisan db:fresh-seed        # optional: wipe + reseed with 20 demo users of realistic data (local only)
    ```
    The seeder creates `test@example.com` with an Inbox, a "Work" folder containing a
    "Website launch" list (with a completed and a starred task), and an ungrouped
-   "Groceries" list.
+   "Groceries" list. See "Resetting your local database" below for `db:fresh-seed`.
 
 4. **Storage link** (required for profile photo uploads)
    ```bash
@@ -57,6 +58,37 @@ Livewire web UI and a versioned JSON REST API (`/api/v1`).
    ```
 
 Steps 1–4 are also available as a single command: `composer setup`.
+
+### Resetting your local database
+
+`php artisan db:fresh-seed` wipes the database (every table — including sessions and
+Sanctum personal access tokens, so you will be logged out) and rebuilds it from scratch
+with a realistic, multi-user dataset for exercising the sidebar tree, drag-and-drop
+reordering across folders, Starred, and due-date badges:
+
+```bash
+php artisan db:fresh-seed
+```
+
+- **Credentials:** `demo1@example.com` … `demo20@example.com`, password `password`,
+  all email-verified.
+- **Approximate volume per user:** 1 Inbox, 3–5 folders, 5–10 lists inside those
+  folders, 2–4 standalone lists, and 10–20 tasks in *every* list (Inbox included) —
+  roughly 3,500 tasks across all 20 users, with a realistic mix of completed, starred,
+  noted, and overdue/today/upcoming-due tasks. Every user is guaranteed at least one
+  starred, one overdue, and one due-today task, so no demo account opens to an empty
+  Starred page.
+- **Local development only.** The command refuses to run outside the `local` and
+  `testing` environments and asks for confirmation unless you pass `--force`
+  (mirroring `migrate:fresh`/`db:wipe`); it prints the connection and database it is
+  about to destroy before doing anything.
+
+**Why two seeders exist:** `php artisan db:seed` runs `DatabaseSeeder` — the small,
+stable `test@example.com` fixture described in Setup step 3, used by the acceptance
+walkthrough. `php artisan db:fresh-seed` runs a separate `DemoSeeder`
+(`database/seeders/DemoSeeder.php`) for bulk demo data. They are intentionally
+independent (`test@example.com` is never reused as a `demoN@example.com`), so running
+either one never collides with or depends on the other.
 
 ### Quality gates
 

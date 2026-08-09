@@ -6,6 +6,7 @@ namespace Database\Factories;
 
 use App\Models\Task;
 use App\Models\TaskList;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -61,6 +62,62 @@ class TaskFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_starred' => true,
+        ]);
+    }
+
+    /**
+     * Attach a note. Accepts an explicit note (e.g. from `DemoContent`) so
+     * callers outside the test suite are not forced into `fake()->sentence()`.
+     */
+    public function withNote(?string $note = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'note' => $note ?? fake()->sentence(),
+        ]);
+    }
+
+    /**
+     * Due today — the `dueDateStatus()` "today" branch.
+     */
+    public function dueToday(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'due_date' => today(),
+        ]);
+    }
+
+    /**
+     * Due 1–14 days in the past — the `dueDateStatus()` "overdue" branch
+     * (unless the task is also completed, which suppresses it).
+     */
+    public function overdue(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'due_date' => today()->subDays(fake()->numberBetween(1, 14)),
+        ]);
+    }
+
+    /**
+     * Due 1–21 days in the future — the `dueDateStatus()` "upcoming" branch.
+     */
+    public function dueUpcoming(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'due_date' => today()->addDays(fake()->numberBetween(1, 21)),
+        ]);
+    }
+
+    /**
+     * Mark the task completed at a specific point in time, unlike
+     * `completed()` which always stamps `now()`. Demo data needs *spread*
+     * completion timestamps so `completedForList()`'s `completed_at DESC`
+     * ordering is meaningful instead of collapsing to id order.
+     */
+    public function completedAt(CarbonInterface $at): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_completed' => true,
+            'completed_at' => $at,
         ]);
     }
 

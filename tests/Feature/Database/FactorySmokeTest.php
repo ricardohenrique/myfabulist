@@ -88,4 +88,49 @@ class FactorySmokeTest extends TestCase
 
         $this->assertTrue($task->is_starred);
     }
+
+    public function test_task_factory_with_note_state(): void
+    {
+        $task = Task::factory()->withNote()->create();
+
+        $this->assertNotEmpty($task->note);
+    }
+
+    public function test_task_factory_due_today_state(): void
+    {
+        $task = Task::factory()->dueToday()->create();
+
+        $this->assertSame('today', $task->dueDateStatus());
+    }
+
+    public function test_task_factory_overdue_state(): void
+    {
+        $task = Task::factory()->overdue()->create();
+
+        $this->assertSame('overdue', $task->dueDateStatus());
+    }
+
+    public function test_task_factory_due_upcoming_state(): void
+    {
+        $task = Task::factory()->dueUpcoming()->create();
+
+        $this->assertSame('upcoming', $task->dueDateStatus());
+    }
+
+    public function test_task_factory_overdue_completed_suppresses_overdue_status(): void
+    {
+        $task = Task::factory()->overdue()->completed()->create();
+
+        $this->assertNull($task->dueDateStatus());
+    }
+
+    public function test_task_factory_completed_at_state(): void
+    {
+        $completedAt = now()->subDays(3);
+        $task = Task::factory()->completedAt($completedAt)->create();
+
+        $this->assertTrue($task->is_completed);
+        $this->assertNotNull($task->completed_at);
+        $this->assertSame($completedAt->format('Y-m-d H:i:s'), $task->completed_at->format('Y-m-d H:i:s'));
+    }
 }
