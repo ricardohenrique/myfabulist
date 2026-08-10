@@ -29,9 +29,11 @@
     --w-focus: 0 0 0 2px rgba(47, 147, 223, 0.42);
 
     min-height: 100vh;
+    height: 100vh;
     background: var(--w-sidebar-bg);
     color: var(--w-task-text);
     font-family: var(--w-font);
+    overflow: hidden;
 }
 
 .wunderlist-theme *,
@@ -43,12 +45,13 @@
 /* 2. App shell */
 .wunder-shell {
     min-height: 100vh;
+    height: 100vh;
     overflow: hidden;
 }
 
 .wunder-main {
     min-height: 0;
-    height: 100%;
+    height: calc(100vh - 78px);
     background: var(--w-main-bg);
     color: var(--w-task-text);
     display: flex;
@@ -70,7 +73,9 @@
 
 .wunder-content-scroll {
     height: 100%;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 22px 26px 32px;
 }
 
