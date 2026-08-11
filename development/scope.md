@@ -124,11 +124,9 @@ field. Lists may also remain ungrouped.
 
 - The target browser application uses Inertia.js 3, React 19, TypeScript,
   Tailwind CSS 4, Vite 8, and Laravel Wayfinder.
-- The previous Livewire/Blade resources are archived under `old-resources` as a
-  migration reference, and the obsolete Livewire product classes have been
-  retired. Phase 1's fixture-backed interface remains available locally under
-  `/prototype`; production pages use service-backed Inertia props and web
-  mutations, with scoped drag-and-drop refinement completed in Phase 3.
+- The browser runtime is exclusively Inertia and React. Production pages use
+  service-backed Inertia props and web mutations, with scoped drag-and-drop
+  refinement completed in Phase 3.
 - Browser authentication uses Laravel's stateful `web` guard, session cookies,
   and CSRF protection. Product routes do not require email verification in the
   current release.

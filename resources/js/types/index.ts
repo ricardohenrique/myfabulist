@@ -1,4 +1,4 @@
-export type WorkspaceView = 'inbox' | 'list' | 'starred' | 'empty' | 'complete';
+export type WorkspaceView = 'inbox' | 'list' | 'starred';
 
 export type UserSummary = {
     id: number;
@@ -48,10 +48,6 @@ export type WorkspaceData = {
     canAddTask: boolean;
     tasks: TaskSummary[];
     completedCount: number;
-};
-
-export type WorkspaceFixture = WorkspaceData & {
-    user: UserSummary;
 };
 
 export type SharedPageProps = {

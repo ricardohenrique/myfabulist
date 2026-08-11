@@ -3,7 +3,6 @@
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InboxController;
 use App\Http\Controllers\StarredController;
-use App\Http\Controllers\StaticPrototypeController;
 use App\Http\Controllers\TaskListController;
 use App\Http\Controllers\Web\CompleteTaskController;
 use App\Http\Controllers\Web\FolderController;
@@ -31,12 +30,6 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::get('/', HomeController::class)->name('home');
-
-if (app()->environment(['local', 'testing'])) {
-    Route::get('prototype/{view?}', StaticPrototypeController::class)
-        ->where('view', 'inbox|list|starred|empty|complete')
-        ->name('prototype.show');
-}
 
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');

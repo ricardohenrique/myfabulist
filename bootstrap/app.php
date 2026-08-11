@@ -25,7 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Domain (business-rule) exceptions render as a stable JSON envelope
         // for API/JSON callers: {"message": "...", "error_code": "..."}.
-        // Web/Livewire callers catch the concrete exception themselves (Step 8).
+        // Inertia requests receive a validation-style error bag so the browser
+        // can reconcile optimistic state with the canonical response.
         $exceptions->render(function (DomainException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([

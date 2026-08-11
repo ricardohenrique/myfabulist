@@ -42,7 +42,7 @@ class TaskService
      * Quick-capture a task (M3). Title is the only required field; a
      * blank/whitespace-only title is rejected here regardless of which
      * delivery mechanism called in — this is the invariant, not just a
-     * Form Request / Livewire validation rule.
+     * transport-level validation rule.
      */
     public function create(User $user, TaskList $taskList, string $title): Task
     {

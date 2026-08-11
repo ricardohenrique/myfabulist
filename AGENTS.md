@@ -22,8 +22,7 @@ Read the relevant source before changing behaviour:
 4. `app/Services`, `app/Repositories`, `app/Policies`, and `app/Models` define
    the domain and persistence boundaries.
 5. `resources/js`, `resources/css`, and `resources/views/app.blade.php` define
-   the new Inertia browser experience. `old-resources` preserves the previous
-   Livewire/Blade interface as a migration reference.
+   the Inertia browser experience.
 6. `README.md` and the focused files under `docs/` document setup, implemented
    behaviour, and historical decisions.
 7. `.env.example` documents safe environment configuration.
@@ -96,11 +95,8 @@ that materially expand the boilerplate's stack or maintenance burden.
   `resources/js/pages`, shared product components in
   `resources/js/components`, and focused client logic in `resources/js/lib` or
   hooks as appropriate.
-- The previous Livewire product classes have been retired after their workflows
-  were replaced by service-backed Inertia coverage. Livewire dependencies
-  remain temporarily, while the Blade/UI resources are archived under
-  `old-resources` for visual reference. Do not add new product architecture
-  that deepens dependence on Livewire.
+- The browser runtime is exclusively Inertia and React. Do not introduce a
+  second server-rendered component runtime or duplicate product workflows.
 - Native screens use NativePHP 4 native components and NativePHP Mobile UI.
   Keep platform-independent domain logic outside native components so it can
   be tested without an emulator.
@@ -232,7 +228,7 @@ that materially expand the boilerplate's stack or maintenance burden.
 ## Testing and quality gates
 
 Add focused coverage for every behavioural change. Prefer feature tests for
-HTTP/API behaviour, Livewire or Inertia flows, authentication, authorization,
+HTTP/API behaviour, Inertia flows, authentication, authorization,
 validation, transactions, and database invariants. Use unit tests for isolated
 domain transformations and services.
 

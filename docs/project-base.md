@@ -81,7 +81,7 @@ Folders, lists, tasks, ordering, and completion states must persist after:
 Refreshing the page.
 Closing and reopening the application.
 Signing out and returning, when accounts are included.
-For a prototype, local browser storage is acceptable. For a real multi-device MVP, server-side persistence is required.
+For a temporary proof of concept, local browser storage is acceptable. For a real multi-device MVP, server-side persistence is required.
 
 M9. Basic responsive web interface
 The primary workflow must work on:
@@ -374,5 +374,4 @@ Task
 /api/v1/tasks/{task}/restore
 /api/v1/tasks/{task}/move
 /api/v1/lists/{list}/task-order
-
 

@@ -1594,45 +1594,6 @@ button:disabled {
     accent-color: var(--brand);
 }
 
-.prototype-switcher {
-    position: fixed;
-    z-index: 70;
-    right: 13px;
-    bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    padding: 5px;
-    border: 1px solid rgba(255,255,255,0.33);
-    border-radius: 8px;
-    color: #fff;
-    background: rgba(39,49,60,0.76);
-    box-shadow: 0 7px 20px rgba(28,37,44,0.18);
-    backdrop-filter: blur(8px);
-}
-
-.prototype-switcher > span {
-    padding: 0 6px;
-    color: rgba(255,255,255,0.65);
-    font-size: 0.62rem;
-    text-transform: uppercase;
-}
-
-.prototype-switcher a {
-    padding: 6px 8px;
-    border-radius: 5px;
-    color: rgba(255,255,255,0.8);
-    font-size: 0.67rem;
-    text-decoration: none;
-    text-transform: capitalize;
-}
-
-.prototype-switcher a:hover,
-.prototype-switcher a.is-active {
-    color: #fff;
-    background: rgba(255,255,255,0.15);
-}
-
 .sidebar-scrim {
     display: none;
 }
@@ -1802,10 +1763,6 @@ button:disabled {
 
     .details-footer {
         flex-wrap: wrap;
-    }
-
-    .prototype-switcher {
-        display: none;
     }
 
     .undo-bar {

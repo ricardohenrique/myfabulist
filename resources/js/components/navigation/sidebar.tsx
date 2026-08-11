@@ -8,7 +8,6 @@ import { Logo } from '@/components/ui/logo';
 import { moveItem, orderByIds } from '@/lib/sortable';
 import { inbox as inboxRoute, logout, starred } from '@/routes';
 import { show as showList } from '@/routes/lists';
-import { show as prototypeRoute } from '@/routes/prototype';
 import type { NavigationFolder, NavigationList, UserSummary, WorkspaceView } from '@/types';
 
 type SidebarProps = {
@@ -21,7 +20,6 @@ type SidebarProps = {
     currentListId: number | null;
     mobileOpen: boolean;
     reorderPending?: boolean;
-    prototype?: boolean;
     onCloseMobile: () => void;
     onOpenCreate: (kind: 'folder' | 'list') => void;
     onEditFolder: (folder: NavigationFolder) => void;
@@ -38,7 +36,6 @@ type SortableListRowProps = {
     itemCount: number;
     nested: boolean;
     active: boolean;
-    prototype: boolean;
     reorderPending: boolean;
     menuOpen: boolean;
     onCloseMobile: () => void;
@@ -57,7 +54,6 @@ function SortableListRow({
     itemCount,
     nested,
     active,
-    prototype,
     reorderPending,
     menuOpen,
     onCloseMobile,
@@ -90,7 +86,7 @@ function SortableListRow({
             </button>
             <Link
                 className={`nav-row ${nested ? 'nav-row--nested' : ''} ${active ? 'is-active' : ''}`}
-                href={prototype ? prototypeRoute(nested ? 'list' : 'empty') : showList(list.id)}
+                href={showList(list.id)}
                 onClick={onCloseMobile}
             >
                 <Icon className="nav-icon" name="list" size={16} />
@@ -121,7 +117,6 @@ type SortableListCollectionProps = {
     nested?: boolean;
     activeView: WorkspaceView;
     currentListId: number | null;
-    prototype: boolean;
     reorderPending: boolean;
     openMenu: string | null;
     onCloseMobile: () => void;
@@ -137,7 +132,6 @@ function SortableListCollection({
     nested = false,
     activeView,
     currentListId,
-    prototype,
     reorderPending,
     openMenu,
     onCloseMobile,
@@ -179,7 +173,6 @@ function SortableListCollection({
                         onDelete={onDelete}
                         onEdit={onEdit}
                         onToggleMenu={() => onToggleMenu(menuKey)}
-                        prototype={prototype}
                         reorderPending={reorderPending}
                     />
                 );
@@ -195,7 +188,6 @@ type SortableFolderProps = {
     expanded: boolean;
     activeView: WorkspaceView;
     currentListId: number | null;
-    prototype: boolean;
     reorderPending: boolean;
     openMenu: string | null;
     onCloseMobile: () => void;
@@ -216,7 +208,6 @@ function SortableFolder({
     expanded,
     activeView,
     currentListId,
-    prototype,
     reorderPending,
     openMenu,
     onCloseMobile,
@@ -288,7 +279,6 @@ function SortableFolder({
                         onReorder={(taskListIds) => onReorderLists(folder.id, taskListIds)}
                         onToggleMenu={onToggleMenu}
                         openMenu={openMenu}
-                        prototype={prototype}
                         reorderPending={reorderPending}
                     />
                 </div>
@@ -307,7 +297,6 @@ export function Sidebar({
     currentListId,
     mobileOpen,
     reorderPending = false,
-    prototype = false,
     onCloseMobile,
     onOpenCreate,
     onEditFolder,
@@ -423,22 +412,20 @@ export function Sidebar({
                     </div>
                     {profileOpen && (
                         <div className="account-menu">
-                            <p>{prototype ? 'Static account preview' : 'Account'}</p>
-                            {prototype
-                                ? <button onClick={() => setProfileOpen(false)} type="button">Close preview</button>
-                                : <Link as="button" href={logout()} method="post">Sign out</Link>}
+                            <p>Account</p>
+                            <Link as="button" href={logout()} method="post">Sign out</Link>
                         </div>
                     )}
                 </div>
 
                 <nav className="sidebar-nav">
                     <div className="smart-list-group">
-                        <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={prototype ? prototypeRoute('inbox') : inboxRoute()} onClick={onCloseMobile}>
+                        <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={inboxRoute()} onClick={onCloseMobile}>
                             <Icon className="nav-icon nav-icon--inbox" name="inbox" size={18} />
                             <span>Inbox</span>
                             <Count value={inbox.activeTaskCount} />
                         </Link>
-                        <Link className={`nav-row ${activeView === 'starred' ? 'is-active' : ''}`} href={prototype ? prototypeRoute('starred') : starred()} onClick={onCloseMobile}>
+                        <Link className={`nav-row ${activeView === 'starred' ? 'is-active' : ''}`} href={starred()} onClick={onCloseMobile}>
                             <Icon className="nav-icon nav-icon--star" fill name="star" size={18} />
                             <span>Starred</span>
                             <Count value={starredCount} />
@@ -467,7 +454,6 @@ export function Sidebar({
                                     onToggle={() => toggleFolder(folder.id)}
                                     onToggleMenu={toggleMenu}
                                     openMenu={openMenu}
-                                    prototype={prototype}
                                     reorderPending={reorderPending}
                                 />
                             ))}
@@ -484,7 +470,6 @@ export function Sidebar({
                             onReorder={(taskListIds) => reorderLists(null, taskListIds)}
                             onToggleMenu={toggleMenu}
                             openMenu={openMenu}
-                            prototype={prototype}
                             reorderPending={reorderPending}
                         />
                     </div>

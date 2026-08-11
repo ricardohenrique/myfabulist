@@ -1,6 +1,6 @@
 import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Sidebar } from '@/components/navigation/sidebar';
 import { TaskDetails } from '@/components/tasks/task-details';
@@ -12,7 +12,6 @@ import { moveItem, orderByIds } from '@/lib/sortable';
 import * as folderRoutes from '@/routes/folders';
 import * as listRoutes from '@/routes/lists';
 import { store as storeTask } from '@/routes/lists/tasks';
-import { show as prototypeRoute } from '@/routes/prototype';
 import * as taskRoutes from '@/routes/tasks';
 import type {
     NavigationFolder,
@@ -21,7 +20,6 @@ import type {
     TaskSummary,
     UserSummary,
     WorkspaceData,
-    WorkspaceView,
 } from '@/types';
 
 type EntityDialog =
@@ -41,12 +39,10 @@ type UndoState = {
 type AppShellProps = {
     workspace: WorkspaceData;
     user: UserSummary;
-    prototype?: boolean;
 };
 
-export function AppShell({ workspace, user, prototype = false }: AppShellProps) {
+export function AppShell({ workspace, user }: AppShellProps) {
     const page = usePage<SharedPageProps>();
-    const [previewTasks, setPreviewTasks] = useState(workspace.tasks);
     const [selectedTaskId, setSelectedTaskId] = useState<number | null>(() =>
         window.matchMedia('(min-width: 981px)').matches ? (workspace.tasks[0]?.id ?? null) : null,
     );
@@ -70,7 +66,7 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
     const inputRef = useRef<HTMLInputElement>(null);
     const quickAdd = useForm({ title: '' });
 
-    const tasks = prototype ? previewTasks : workspace.tasks;
+    const tasks = workspace.tasks;
     const activeTasks = orderByIds(tasks.filter((task) => !task.completedAt), taskOrder);
     const completedTasks = tasks.filter((task) => task.completedAt);
     const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
@@ -78,12 +74,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
         () => [workspace.inbox, ...workspace.folders.flatMap((folder) => folder.lists), ...workspace.ungroupedLists],
         [workspace],
     );
-
-    useEffect(() => {
-        if (prototype) {
-            setPreviewTasks(workspace.tasks);
-        }
-    }, [prototype, workspace]);
 
     useEffect(() => {
         setTaskOrder(tasks.filter((task) => !task.completedAt).map((task) => task.id));
@@ -129,26 +119,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
             return;
         }
 
-        if (prototype) {
-            setPreviewTasks((current) => [...current, {
-                id: Date.now(),
-                title,
-                note: null,
-                dueDate: null,
-                dueDateLabel: null,
-                dueDateStatus: null,
-                isStarred: false,
-                completedAt: null,
-                taskListId: workspace.currentList?.id ?? workspace.inbox.id,
-                taskListName: workspace.currentList?.name ?? workspace.inbox.name,
-            }]);
-            quickAdd.reset('title');
-            quickAdd.clearErrors();
-            setNotice('Task added to this static preview.');
-            inputRef.current?.focus();
-            return;
-        }
-
         if (!workspace.currentList) return;
 
         quickAdd.transform(() => ({ title }));
@@ -167,14 +137,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
         const task = tasks.find((item) => item.id === taskId);
         if (!task) return;
 
-        if (prototype) {
-            setPreviewTasks((current) => current.map((item) => item.id === taskId
-                ? { ...item, completedAt: item.completedAt ? null : new Date().toISOString() }
-                : item));
-            setNotice('Task status changed in this static preview.');
-            return;
-        }
-
         setTaskPending(taskId, true);
         const completing = task.completedAt === null;
         const route = completing ? taskRoutes.complete(taskId) : taskRoutes.restore(taskId);
@@ -192,12 +154,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
         const task = tasks.find((item) => item.id === taskId);
         if (!task) return;
 
-        if (prototype) {
-            setPreviewTasks((current) => current.map((item) => item.id === taskId ? { ...item, isStarred: !item.isStarred } : item));
-            setNotice('Importance updated in this static preview.');
-            return;
-        }
-
         const nextStarred = !task.isStarred;
         setTaskPending(taskId, true);
         router.put(taskRoutes.star(taskId), { is_starred: nextStarred }, {
@@ -210,13 +166,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
     };
 
     const saveTask = (draft: TaskSummary) => {
-        if (prototype) {
-            setPreviewTasks((current) => current.map((task) => task.id === draft.id ? draft : task));
-            setSelectedTaskId(null);
-            setNotice('Task details saved to this static preview.');
-            return;
-        }
-
         const original = tasks.find((task) => task.id === draft.id);
         setTaskErrors({});
         setTaskPending(draft.id, true);
@@ -244,16 +193,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
 
     const confirmDelete = () => {
         if (!deleteDialog) return;
-
-        if (prototype) {
-            if (deleteDialog.kind === 'task') {
-                setPreviewTasks((current) => current.filter((task) => task.id !== deleteDialog.item.id));
-                setSelectedTaskId(null);
-            }
-            setNotice(`${deleteDialog.kind} removed from this static preview.`);
-            setDeleteDialog(null);
-            return;
-        }
 
         setEntityProcessing(true);
         const options = {
@@ -303,12 +242,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
         event.preventDefault();
         if (!entityDialog || !entityName.trim()) return;
 
-        if (prototype) {
-            setNotice(`${entityDialog.kind === 'folder' ? 'Folder' : 'List'} “${entityName.trim()}” saved to this static preview.`);
-            setEntityDialog(null);
-            return;
-        }
-
         setEntityProcessing(true);
         setEntityError('');
         const data = entityDialog.kind === 'folder'
@@ -335,15 +268,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
         const canonicalIds = tasks.filter((task) => !task.completedAt).map((task) => task.id);
 
         setTaskOrder(taskIds);
-
-        if (prototype) {
-            setPreviewTasks((current) => [
-                ...orderByIds(current.filter((task) => !task.completedAt), taskIds),
-                ...current.filter((task) => task.completedAt),
-            ]);
-            setNotice('Task order changed in this static preview.');
-            return;
-        }
 
         if (!workspace.currentList) return;
 
@@ -373,11 +297,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
     };
 
     const reorderFolder = (folderIds: number[]) => {
-        if (prototype) {
-            setNotice('Folder order changed in this static preview.');
-            return;
-        }
-
         setReorderPending(true);
         router.put(folderRoutes.order(), { folder_ids: folderIds }, {
             preserveScroll: true,
@@ -387,11 +306,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
     };
 
     const reorderList = (folderId: number | null, taskListIds: number[]) => {
-        if (prototype) {
-            setNotice('List order changed in this static preview.');
-            return;
-        }
-
         setReorderPending(true);
         router.put(listRoutes.order(), { folder_id: folderId, task_list_ids: taskListIds }, {
             preserveScroll: true,
@@ -417,7 +331,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
                 onOpenCreate={openCreate}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
-                prototype={prototype}
                 reorderPending={reorderPending}
                 starredCount={workspace.starredCount}
                 ungroupedLists={workspace.ungroupedLists}
@@ -582,14 +495,6 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
                 </div>
             </Dialog>
 
-            {prototype && (
-                <nav aria-label="Prototype states" className="prototype-switcher">
-                    <span>Preview</span>
-                    {(['inbox', 'list', 'starred', 'empty', 'complete'] as WorkspaceView[]).map((state) => (
-                        <Link className={workspace.view === state ? 'is-active' : ''} href={prototypeRoute(state)} key={state}>{state}</Link>
-                    ))}
-                </nav>
-            )}
         </div>
     );
 }

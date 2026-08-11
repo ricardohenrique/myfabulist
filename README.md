@@ -19,30 +19,81 @@ Sanctum API under `/api/v1`.
 - Pest 5, Larastan/PHPStan, and Pint
 - SQLite by default; other Laravel-supported databases remain configurable
 
-Livewire packages remain installed temporarily for framework compatibility,
-but the product web runtime is Inertia/React. The former interface is retained
-under `old-resources` as a visual reference and is not imported at runtime.
+## Requirements
+
+- PHP 8.4 with PDO SQLite (or the driver for your chosen database)
+- Composer 2
+- Node.js 22 or newer with npm
 
 ## Setup
 
-```bash
-composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-npm run build
-php artisan serve
-```
+### Automated setup
 
-`composer setup` performs dependency installation, environment creation, key
-generation, migrations, and a production frontend build.
-
-For active development, run:
+From the project root:
 
 ```bash
-composer dev
+composer setup
 ```
+
+This installs PHP and JavaScript dependencies, creates `.env`, generates the
+application key, creates the SQLite file when needed, runs migrations, and
+builds production frontend assets.
+
+### Manual setup
+
+1. Install PHP dependencies.
+
+   ```bash
+   composer install
+   ```
+
+2. Install JavaScript dependencies.
+
+   ```bash
+   npm install
+   ```
+
+3. Create and configure the environment file.
+
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+   The example configuration uses SQLite. To use another database, update the
+   `DB_*` values before migrating.
+
+4. Create the default SQLite database file and run migrations.
+
+   ```bash
+   php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+   php artisan migrate
+   ```
+
+5. Optionally load the small development fixture.
+
+   ```bash
+   php artisan db:seed
+   ```
+
+6. Build frontend assets.
+
+   ```bash
+   npm run build
+   ```
+
+7. Start the application.
+
+   ```bash
+   php artisan serve
+   ```
+
+   For active development with the repository's combined Laravel and Vite
+   processes, use:
+
+   ```bash
+   composer dev
+   ```
 
 ### Demo data
 
@@ -72,8 +123,7 @@ reminders, sharing, and NativePHP screens are intentionally outside the current
 web release.
 
 Production pages are rendered by Inertia from `resources/js/pages`; the shared
-shell lives in `resources/js/layouts/app-shell.tsx`. A fixture-backed design
-prototype remains available at `/prototype` in local and testing environments.
+shell lives in `resources/js/layouts/app-shell.tsx`.
 
 ### Reordering
 

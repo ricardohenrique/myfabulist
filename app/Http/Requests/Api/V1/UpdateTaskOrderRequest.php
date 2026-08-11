@@ -31,8 +31,7 @@ class UpdateTaskOrderRequest extends FormRequest
      * requests: task reordering's id-set invariant (missing/extra/foreign
      * ids) is enforced by TaskRepository::applyOrder() as a domain
      * exception (TaskReorderMismatchException, D12/D13), not by validation,
-     * so the same guarantee holds for any future caller that skips this
-     * Form Request (e.g. Livewire).
+     * so the same guarantee holds for any caller that skips this Form Request.
      *
      * @return array<int, int>
      */

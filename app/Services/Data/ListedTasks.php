@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * The M4/M6 task read model for a single list: active tasks (ordered by
  * position), completed tasks (most recently completed first), and a
- * completed count. Consumed identically by TaskPanel (Livewire) and the
- * API's list-tasks endpoints (D4).
+ * completed count. Shared by the Inertia presenter and API list-task
+ * endpoints so both transports use the same ordering rules.
  */
 final readonly class ListedTasks
 {
