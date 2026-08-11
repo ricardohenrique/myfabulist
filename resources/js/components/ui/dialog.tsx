@@ -22,6 +22,15 @@ export function Dialog({ open, title, description, children, onClose }: DialogPr
 
         const previouslyFocused = document.activeElement as HTMLElement | null;
         panelRef.current?.focus();
+        return () => {
+            previouslyFocused?.focus();
+        };
+    }, [open]);
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
@@ -30,10 +39,7 @@ export function Dialog({ open, title, description, children, onClose }: DialogPr
         };
 
         document.addEventListener('keydown', handleKeyDown);
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            previouslyFocused?.focus();
-        };
+        return () => document.removeEventListener('keydown', handleKeyDown);
     }, [onClose, open]);
 
     if (!open) {
