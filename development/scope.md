@@ -107,9 +107,10 @@ field. Lists may also remain ungrouped.
   focused after success. Failed saves retain enough context to recover.
 - Reordering should feel immediate. If persistence rejects stale state, the UI
   refreshes from canonical data and explains the failure.
-- Drag handles must support pointer, touch, and keyboard operation. Dedicated
-  move-up/move-down menu actions are intentionally excluded; keyboard users
-  reorder through the same handles.
+- The full task, list, and folder item surfaces must support pointer, touch, and
+  keyboard dragging without separate grip icons. Ordinary clicks on their
+  nested controls remain unchanged. Dedicated move-up/move-down menu actions
+  are intentionally excluded; keyboard users reorder from the focused item.
 - Completing, starring, and moving a task may offer a short single-action Undo
   period. Undo is a safety net for the most recent action, not a history stack.
 - Destructive actions require explicit confirmation until a complete and

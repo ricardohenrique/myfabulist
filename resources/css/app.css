@@ -676,7 +676,7 @@ button:disabled {
 }
 
 .nav-row--nested {
-    padding-left: 57px;
+    padding-left: 39px;
 }
 
 .nav-icon {
@@ -708,55 +708,11 @@ button:disabled {
 }
 
 .nav-item-wrap .nav-row {
-    padding-left: 37px;
     padding-right: 39px;
 }
 
 .nav-item-wrap .nav-row--nested {
-    padding-left: 57px;
-}
-
-.nav-drag-handle,
-.folder-drag-handle {
-    width: 24px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: 4px;
-    color: #aeb8be;
-    background: transparent;
-    cursor: grab;
-    touch-action: none;
-}
-
-.nav-drag-handle {
-    position: absolute;
-    z-index: 2;
-    top: 6px;
-    left: 5px;
-}
-
-.nav-drag-handle.is-nested {
-    left: 25px;
-}
-
-.nav-drag-handle:hover:not(:disabled),
-.folder-drag-handle:hover:not(:disabled) {
-    color: #738089;
-    background: rgba(255, 255, 255, 0.72);
-}
-
-.nav-drag-handle:active:not(:disabled),
-.folder-drag-handle:active:not(:disabled) {
-    cursor: grabbing;
-}
-
-.nav-drag-handle:disabled,
-.folder-drag-handle:disabled {
-    cursor: default;
-    opacity: 0.3;
+    padding-left: 39px;
 }
 
 .nav-item-more {
@@ -810,7 +766,7 @@ button:disabled {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 4px 0 0;
+    padding: 0 4px 0 11px;
     border: 0;
     background: transparent;
     text-align: left;
@@ -818,14 +774,16 @@ button:disabled {
     font-weight: 640;
 }
 
-.folder-drag-handle {
-    flex: 0 0 auto;
-    margin-left: 5px;
-}
-
 .folder-group,
 .nav-item-wrap {
     transition: box-shadow 130ms ease, opacity 130ms ease, background-color 130ms ease;
+}
+
+.folder-group.is-sortable,
+.nav-item-wrap.is-sortable,
+.task-row.is-sortable {
+    cursor: grab;
+    touch-action: none;
 }
 
 .folder-group.is-dragging,
@@ -834,6 +792,7 @@ button:disabled {
     opacity: 0.9;
     background: #fff;
     box-shadow: 0 9px 24px rgba(39, 49, 60, 0.18);
+    cursor: grabbing;
 }
 
 .folder-group.is-drop-target > .folder-row,
@@ -1075,39 +1034,12 @@ button:disabled {
     opacity: 0.62;
 }
 
-.task-grip {
-    width: 18px;
-    height: 36px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    color: #b8c0c6;
-    background: transparent;
-    opacity: 0.46;
-    cursor: grab;
-    touch-action: none;
-}
-
-.task-row:hover .task-grip,
-.task-grip:focus-visible {
-    opacity: 1;
-}
-
-.task-grip:active:not(:disabled) {
-    cursor: grabbing;
-}
-
-.task-grip:disabled {
-    cursor: default;
-    opacity: 0.25;
-}
-
 .task-row.is-dragging {
     z-index: 60;
     opacity: 0.92;
     border-color: rgba(71, 142, 178, 0.5);
     box-shadow: 0 12px 30px rgba(39, 49, 60, 0.24);
+    cursor: grabbing;
 }
 
 .task-row.is-drop-target {
@@ -1738,11 +1670,6 @@ button:disabled {
         min-height: 57px;
         gap: 8px;
         padding-left: 10px;
-    }
-
-    .task-grip {
-        display: grid;
-        opacity: 0.68;
     }
 
     .task-title {

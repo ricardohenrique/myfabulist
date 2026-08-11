@@ -1,4 +1,4 @@
-import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
+import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -8,7 +8,7 @@ import { TaskRow } from '@/components/tasks/task-row';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
-import { moveItem, orderByIds } from '@/lib/sortable';
+import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
 import * as folderRoutes from '@/routes/folders';
 import * as listRoutes from '@/routes/lists';
 import { store as storeTask } from '@/routes/lists/tasks';
@@ -373,7 +373,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
                         <section aria-label="Active tasks" className="task-list-section">
                             {activeTasks.length > 0 ? (
-                                <DragDropProvider onDragEnd={handleTaskDragEnd}>
+                                <DragDropProvider
+                                    onDragEnd={handleTaskDragEnd}
+                                    sensors={(defaults) => [
+                                        ...defaults.filter((sensor) => sensor !== PointerSensor),
+                                        wholeItemPointerSensor,
+                                    ]}
+                                >
                                     <div className="task-list">
                                         {activeTasks.map((task, index) => (
                                             <TaskRow

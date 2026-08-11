@@ -203,11 +203,12 @@ When the user adds a task:
 
 When the user moves or reorders something, update the interface immediately and save the new order in the background.
 
-Reordering uses dedicated handles for active tasks, lists, and folders. Handles
-work with mouse, trackpad, touch, and keyboard; a keyboard user starts the drag
-with Space or Enter, changes position with the arrow keys, and drops with Space
-or Enter. Dedicated move-up/move-down menu items are intentionally not part of
-the final interface.
+Reordering uses the full item surface for active tasks, lists, and folders,
+without separate grip icons. Ordinary clicks on nested controls keep their
+existing actions. Pointer, trackpad, touch, and keyboard are supported; a
+keyboard user focuses the item, starts the drag with Space or Enter, changes
+position with the arrow keys, and drops with Space or Enter. Dedicated
+move-up/move-down menu items are intentionally not part of the final interface.
 
 Task and list drops are constrained to their current container. Moving a task
 to another list or a list to another folder remains an explicit details/dialog

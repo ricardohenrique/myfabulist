@@ -127,10 +127,10 @@ shell lives in `resources/js/layouts/app-shell.tsx`.
 
 ### Reordering
 
-Active tasks, folders, and non-Inbox lists have dedicated drag handles. A handle
-supports mouse, trackpad, touch, and keyboard operation. For keyboard sorting,
-focus the handle, press Space or Enter, use the arrow keys, then press Space or
-Enter again to drop.
+The full surface of every active task, folder, and non-Inbox list is draggable;
+no separate grip icon is required. Existing controls still respond to ordinary
+clicks. For keyboard sorting, focus the sortable item, press Space or Enter, use
+the arrow keys, then press Space or Enter again to drop.
 
 Reordering is same-container only:
 
@@ -145,7 +145,7 @@ stale, incomplete, duplicate, foreign, or cross-container input before writing.
 The next Inertia response reconciles the interface with canonical server state.
 
 Dedicated move-up/move-down menu options were intentionally removed in Phase 3;
-keyboard reordering is provided by the same drag handles.
+keyboard reordering is provided by the same sortable item surface.
 
 ## Architecture
 

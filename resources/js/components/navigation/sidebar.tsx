@@ -1,11 +1,11 @@
-import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
+import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/react';
 import { isSortable, useSortable } from '@dnd-kit/react/sortable';
 import { Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Logo } from '@/components/ui/logo';
-import { moveItem, orderByIds } from '@/lib/sortable';
+import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
 import { inbox as inboxRoute, logout, starred } from '@/routes';
 import { show as showList } from '@/routes/lists';
 import type { NavigationFolder, NavigationList, UserSummary, WorkspaceView } from '@/types';
@@ -68,22 +68,17 @@ function SortableListRow({
         type: 'list',
         disabled: reorderPending || itemCount < 2,
     });
+    const sortableEnabled = !reorderPending && itemCount > 1;
 
     return (
         <div
-            className={`nav-item-wrap is-sortable ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
+            aria-label={sortableEnabled ? `Reorder list ${list.name}` : undefined}
+            aria-roledescription={sortableEnabled ? 'sortable list' : undefined}
+            className={`nav-item-wrap ${sortableEnabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
             ref={sortable.ref}
+            role={sortableEnabled ? 'group' : undefined}
+            tabIndex={sortableEnabled ? 0 : undefined}
         >
-            <button
-                aria-label={`Reorder list ${list.name}`}
-                className={`nav-drag-handle ${nested ? 'is-nested' : ''}`}
-                disabled={reorderPending || itemCount < 2}
-                ref={sortable.handleRef}
-                title="Drag to reorder. With a keyboard, press Space, use the arrow keys, then press Space again."
-                type="button"
-            >
-                <Icon name="grip" size={15} />
-            </button>
             <Link
                 className={`nav-row ${nested ? 'nav-row--nested' : ''} ${active ? 'is-active' : ''}`}
                 href={showList(list.id)}
@@ -156,7 +151,14 @@ function SortableListCollection({
     };
 
     return (
-        <DragDropProvider onDragEnd={handleDragEnd} onDragStart={onCloseMenu}>
+        <DragDropProvider
+            onDragEnd={handleDragEnd}
+            onDragStart={onCloseMenu}
+            sensors={(defaults) => [
+                ...defaults.filter((sensor) => sensor !== PointerSensor),
+                wholeItemPointerSensor,
+            ]}
+        >
             {lists.map((list, index) => {
                 const menuKey = `list-${list.id}`;
 
@@ -227,23 +229,18 @@ function SortableFolder({
         disabled: reorderPending || itemCount < 2,
     });
     const menuKey = `folder-${folder.id}`;
+    const sortableEnabled = !reorderPending && itemCount > 1;
 
     return (
         <div
-            className={`folder-group is-sortable ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
+            aria-label={sortableEnabled ? `Reorder folder ${folder.name}` : undefined}
+            aria-roledescription={sortableEnabled ? 'sortable folder' : undefined}
+            className={`folder-group ${sortableEnabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
             ref={sortable.ref}
+            role={sortableEnabled ? 'group' : undefined}
+            tabIndex={sortableEnabled ? 0 : undefined}
         >
             <div className="folder-row">
-                <button
-                    aria-label={`Reorder folder ${folder.name}`}
-                    className="folder-drag-handle"
-                    disabled={reorderPending || itemCount < 2}
-                    ref={sortable.handleRef}
-                    title="Drag to reorder. With a keyboard, press Space, use the arrow keys, then press Space again."
-                    type="button"
-                >
-                    <Icon name="grip" size={15} />
-                </button>
                 <button aria-expanded={expanded} className="folder-toggle" onClick={onToggle} type="button">
                     <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={15} />
                     <Icon className="folder-icon" name="folder" size={17} />
@@ -434,7 +431,14 @@ export function Sidebar({
 
                     <div className="navigation-scroll">
                         <div className="section-label"><span>Folders & lists</span></div>
-                        <DragDropProvider onDragEnd={handleFolderDragEnd} onDragStart={() => setOpenMenu(null)}>
+                        <DragDropProvider
+                            onDragEnd={handleFolderDragEnd}
+                            onDragStart={() => setOpenMenu(null)}
+                            sensors={(defaults) => [
+                                ...defaults.filter((sensor) => sensor !== PointerSensor),
+                                wholeItemPointerSensor,
+                            ]}
+                        >
                             {orderedFolders.map((folder, index) => (
                                 <SortableFolder
                                     activeView={activeView}

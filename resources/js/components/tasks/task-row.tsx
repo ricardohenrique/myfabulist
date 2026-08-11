@@ -36,21 +36,13 @@ export function TaskRow({
 
     return (
         <article
-            className={`task-row ${completed ? 'is-completed' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
+            aria-label={!completed && !sortableDisabled ? `Reorder task ${task.title}` : undefined}
+            aria-roledescription={!completed && !sortableDisabled ? 'sortable task' : undefined}
+            className={`task-row ${completed ? 'is-completed' : ''} ${!completed && !sortableDisabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
             ref={completed ? undefined : sortable.ref}
+            role={!completed && !sortableDisabled ? 'group' : undefined}
+            tabIndex={!completed && !sortableDisabled ? 0 : undefined}
         >
-            {!completed && (
-                <button
-                    aria-label={`Reorder ${task.title}`}
-                    className="task-grip"
-                    disabled={sortableDisabled}
-                    ref={sortable.handleRef}
-                    title="Drag to reorder. With a keyboard, press Space, use the arrow keys, then press Space again."
-                    type="button"
-                >
-                    <Icon name="grip" size={17} />
-                </button>
-            )}
             <button
                 aria-label={completed ? `Restore ${task.title}` : `Complete ${task.title}`}
                 className="task-check"

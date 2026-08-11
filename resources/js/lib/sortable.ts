@@ -1,3 +1,9 @@
+import { PointerSensor } from '@dnd-kit/react';
+
+export const wholeItemPointerSensor = PointerSensor.configure({
+    preventActivation: () => false,
+});
+
 export function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
     if (
         fromIndex === toIndex

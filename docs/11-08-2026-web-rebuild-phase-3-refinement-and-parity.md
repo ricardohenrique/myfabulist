@@ -11,9 +11,11 @@ interaction polish, final documentation, and complete release verification.
 
 - Same-container drag-and-drop for active tasks, lists, and folders using
   `@dnd-kit/react`.
-- Dedicated handles with mouse, trackpad, touch, keyboard, and accessibility
-  support. Keyboard sorting starts with Space or Enter, moves with arrow keys,
-  and drops with Space or Enter.
+- Full-surface task, list, and folder dragging with mouse, trackpad, touch,
+  keyboard, and accessibility support. No grip icons are required, and nested
+  controls preserve their click actions. Keyboard sorting starts from the
+  focused item with Space or Enter, moves with arrow keys, and drops with Space
+  or Enter.
 - Optimistic local ordering, mutation locking while saving, and reconciliation
   from canonical Inertia props.
 - Transactional complete-ID-set validation for folders, lists, and tasks.
@@ -24,8 +26,8 @@ interaction polish, final documentation, and complete release verification.
 - Intentional removal of dedicated move-up/move-down menu actions. Explicit
   cross-list task and cross-folder list moves remain available through the
   details/dialog workflow.
-- Responsive handle styling, dragging/drop-target feedback, visible focus,
-  reduced-motion support, and usable touch targets.
+- Responsive sortable-item styling, dragging/drop-target feedback, visible
+  focus, reduced-motion support, and usable touch targets.
 - Final project, architecture, setup, scope, and frontend documentation.
 
 ## Final browser architecture

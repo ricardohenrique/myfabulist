@@ -72,7 +72,6 @@ export type IconName =
     | 'circle'
     | 'close'
     | 'folder'
-    | 'grip'
     | 'inbox'
     | 'list'
     | 'menu'
