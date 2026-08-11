@@ -459,6 +459,8 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     onClose={() => setSelectedTaskId(null)}
                     onDelete={() => setDeleteDialog({ kind: 'task', item: selectedTask })}
                     onSave={saveTask}
+                    onToggleComplete={toggleComplete}
+                    onToggleStar={toggleStar}
                     processing={pendingTaskIds.includes(selectedTask.id)}
                     task={selectedTask}
                 />

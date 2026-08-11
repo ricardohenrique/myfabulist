@@ -10,6 +10,8 @@ type TaskDetailsProps = {
     onAddComment: (taskId: number, body: string, onSuccess: () => void) => void;
     onDelete: (taskId: number) => void;
     onSave: (task: TaskSummary) => void;
+    onToggleComplete: (taskId: number) => void;
+    onToggleStar: (taskId: number) => void;
     errors?: Record<string, string>;
     commentError?: string;
     commentProcessing?: boolean;
@@ -30,6 +32,8 @@ export function TaskDetails({
     onAddComment,
     onDelete,
     onSave,
+    onToggleComplete,
+    onToggleStar,
     errors = {},
     commentError = '',
     commentProcessing = false,
@@ -39,6 +43,11 @@ export function TaskDetails({
     const [commentBody, setCommentBody] = useState('');
 
     useEffect(() => setDraft(task), [task.id]);
+    useEffect(() => setDraft((current) => ({
+        ...current,
+        completedAt: task.completedAt,
+        isStarred: task.isStarred,
+    })), [task.completedAt, task.isStarred]);
     useEffect(() => setCommentBody(''), [task.id]);
 
     const submitComment = (event?: FormEvent<HTMLFormElement>) => {
@@ -60,7 +69,15 @@ export function TaskDetails({
     return (
         <aside aria-label="Task details" className="task-details">
             <header className="details-header">
-                <button aria-label="Mark task complete" className="task-check task-check--large" type="button" />
+                <button
+                    aria-label={task.completedAt ? 'Restore task' : 'Mark task complete'}
+                    className="task-check task-check--large"
+                    disabled={processing}
+                    onClick={() => onToggleComplete(task.id)}
+                    type="button"
+                >
+                    {task.completedAt && <Icon name="check" size={15} />}
+                </button>
                 <input
                     aria-label="Task title"
                     aria-invalid={Boolean(errors.title)}
@@ -69,12 +86,13 @@ export function TaskDetails({
                     value={draft.title}
                 />
                 <button
-                    aria-label={draft.isStarred ? 'Unstar task' : 'Star task'}
-                    className={`task-star ${draft.isStarred ? 'is-starred' : ''}`}
-                    onClick={() => setDraft({ ...draft, isStarred: !draft.isStarred })}
+                    aria-label={task.isStarred ? 'Unstar task' : 'Star task'}
+                    className={`task-star ${task.isStarred ? 'is-starred' : ''}`}
+                    disabled={processing}
+                    onClick={() => onToggleStar(task.id)}
                     type="button"
                 >
-                    <Icon fill={draft.isStarred} name="star" size={21} />
+                    <Icon fill={task.isStarred} name="star" size={21} />
                 </button>
                 <button aria-label="Close task details" className="details-close" onClick={onClose} type="button"><Icon name="close" /></button>
             </header>
