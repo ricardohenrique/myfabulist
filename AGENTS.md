@@ -17,8 +17,8 @@ Read the relevant source before changing behaviour:
 1. `development/scope.md` defines product goals, boundaries, and priorities.
 2. `composer.json` and `package.json` define the installed dependencies and
    available quality commands.
-3. `routes/web.php`, `routes/api.php`, and `routes/settings.php` define the
-   public application surfaces.
+3. `routes/web.php` and `routes/api.php` define the public application
+   surfaces.
 4. `app/Services`, `app/Repositories`, `app/Policies`, and `app/Models` define
    the domain and persistence boundaries.
 5. `resources/js`, `resources/css`, and `resources/views/app.blade.php` define
@@ -96,11 +96,11 @@ that materially expand the boilerplate's stack or maintenance burden.
   `resources/js/pages`, shared product components in
   `resources/js/components`, and focused client logic in `resources/js/lib` or
   hooks as appropriate.
-- Livewire classes and dependencies remain temporarily, while their Blade/UI
-  resources are archived under `old-resources`. Do not add new product
-  architecture that deepens dependence on Livewire. Preserve established
-  behaviour as the Inertia implementation replaces each workflow with focused
-  tests.
+- The previous Livewire product classes have been retired after their workflows
+  were replaced by service-backed Inertia coverage. Livewire dependencies
+  remain temporarily, while the Blade/UI resources are archived under
+  `old-resources` for visual reference. Do not add new product architecture
+  that deepens dependence on Livewire.
 - Native screens use NativePHP 4 native components and NativePHP Mobile UI.
   Keep platform-independent domain logic outside native components so it can
   be tested without an emulator.
@@ -114,7 +114,8 @@ that materially expand the boilerplate's stack or maintenance burden.
 ### API-first multi-platform contract
 
 - Keep externally consumed endpoints under `/api/v1` and authenticated with
-  Sanctum plus the appropriate verification requirements.
+  Sanctum. Email verification is intentionally disabled for the current
+  release.
 - API Resources are the canonical JSON payload contract. Keep corresponding
   TypeScript and native client types synchronized as those clients are built.
 - Maintain the established response shapes: successful resources use Laravel's
@@ -215,8 +216,9 @@ that materially expand the boilerplate's stack or maintenance burden.
 
 - First-party browser requests use Laravel sessions and CSRF protection.
   Sanctum protects the versioned API.
-- Keep login, verification, password reset, uploads, and other abuse-sensitive
-  endpoints appropriately rate-limited.
+- Keep login, uploads, and other abuse-sensitive endpoints appropriately
+  rate-limited. Verification and password reset are not exposed in the current
+  release.
 - Validate uploads by size and actual file type. Profile photos and future user
   files require ownership checks and safe storage; never trust extensions or
   client-provided MIME types alone.

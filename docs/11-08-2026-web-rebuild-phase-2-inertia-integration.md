@@ -1,5 +1,56 @@
 # Web rebuild — Phase 2: Inertia and backend integration
 
+## Status
+
+Completed on 11 August 2026.
+
+The production browser experience now uses explicit Inertia props and
+session-authenticated web mutations backed by the existing services,
+repositories, policies, and domain exceptions. The `/prototype` routes remain
+fixture-backed and local/testing-only for isolated visual review.
+
+### Implemented result
+
+- Registration, login, and logout use Fortify's controllers through an
+  intentionally minimal route surface. Registration provisions the default
+  Inbox, login remains rate-limited, and logout redirects directly to login.
+- Email verification, password reset, password confirmation, 2FA, passkeys,
+  profile, security, and appearance routes are not registered for this release.
+- `WorkspacePresenter` serializes navigation and task service data into focused
+  camel-cased page props without passing Eloquent models to React.
+- Inbox, list, and Starred render the shared `workspace/show` page with
+  canonical task ordering, counts, due-date state, and source-list context.
+- Folder/list/task web controllers delegate mutations to the shared domain
+  services. The task detail update and optional cross-list move run atomically
+  through `App\Actions\Tasks\UpdateTask`.
+- Quick-add, task details, completion/restoration, starring, moving, deletion,
+  folder/list management, explicit folder deletion strategies, and accessible
+  move-up/move-down reordering are connected with Inertia.
+- Completion, restoration, starring, unstarring, and moving expose a single
+  inverse service-backed Undo action.
+- Known domain exceptions return actionable Inertia validation feedback; API
+  JSON exception envelopes remain unchanged.
+- The obsolete, unrouted Livewire/settings product classes and their UI-only
+  tests were retired after replacement with focused Inertia coverage. Shared
+  API, domain, service, repository, policy, model, and database tests remain.
+
+### Verification
+
+- Full suite: 260 tests, 1,670 assertions after retiring one obsolete
+  no-op Livewire architecture check and adding explicit login-throttling
+  coverage; all pass.
+- Phase 2/auth/read/mutation coverage: 30 focused tests.
+- Larastan/PHPStan: zero errors.
+- Pint: passes in check mode.
+- TypeScript: `npm run types:check` passes.
+- Production assets: `npm run build` passes.
+- Browser walkthrough: registration, Inbox provisioning, login/logout,
+  quick-add, folder/list creation, task editing/moving, completion/restoration,
+  Starred, Undo, and accessible task reordering all persist through real
+  Inertia requests.
+
+Pointer drag-and-drop and remaining visual/refinement work stay in Phase 3.
+
 ## Objective
 
 Replace Phase 1 fixtures and simulated actions with canonical Laravel data and

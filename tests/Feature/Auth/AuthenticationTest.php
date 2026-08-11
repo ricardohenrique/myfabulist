@@ -4,7 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Fortify\Features;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -48,23 +48,22 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge(): void
+    public function test_login_attempts_are_rate_limited(): void
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+        $user = User::factory()->create();
 
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
+        foreach (range(1, 5) as $attempt) {
+            $this->post(route('login.store'), [
+                'email' => $user->email,
+                'password' => "wrong-password-{$attempt}",
+            ]);
+        }
 
-        $user = User::factory()->withTwoFactor()->create();
-
-        $response = $this->post(route('login.store'), [
+        $this->post(route('login.store'), [
             'email' => $user->email,
-            'password' => 'password',
-        ]);
+            'password' => 'wrong-password-final',
+        ])->assertTooManyRequests();
 
-        $response->assertRedirect(route('two-factor.login'));
         $this->assertGuest();
     }
 
@@ -74,8 +73,20 @@ class AuthenticationTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('logout'));
 
-        $response->assertRedirect(route('home'));
+        $response->assertRedirect(route('login'));
 
         $this->assertGuest();
+    }
+
+    public function test_excluded_authentication_routes_are_not_registered(): void
+    {
+        $this->assertFalse(Route::has('verification.notice'));
+        $this->assertFalse(Route::has('password.request'));
+        $this->assertFalse(Route::has('password.confirm'));
+        $this->assertFalse(Route::has('password.confirm.store'));
+        $this->assertFalse(Route::has('password.confirmation'));
+        $this->assertFalse(Route::has('two-factor.login'));
+        $this->assertFalse(Route::has('passkey.login'));
+        $this->assertFalse(Route::has('profile.edit'));
     }
 }

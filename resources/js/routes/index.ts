@@ -1,7 +1,6 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../wayfinder'
 /**
-* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::login
-* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:47
+* @see routes/web.php:25
 * @route '/login'
 */
 export const login = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -15,8 +14,7 @@ login.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::login
-* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:47
+* @see routes/web.php:25
 * @route '/login'
 */
 login.url = (options?: RouteQueryOptions) => {
@@ -24,8 +22,7 @@ login.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::login
-* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:47
+* @see routes/web.php:25
 * @route '/login'
 */
 login.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -34,8 +31,7 @@ login.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::login
-* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:47
+* @see routes/web.php:25
 * @route '/login'
 */
 login.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -44,42 +40,7 @@ login.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
-* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::logout
-* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:100
-* @route '/logout'
-*/
-export const logout = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: logout.url(options),
-    method: 'post',
-})
-
-logout.definition = {
-    methods: ["post"],
-    url: '/logout',
-} satisfies RouteDefinition<["post"]>
-
-/**
-* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::logout
-* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:100
-* @route '/logout'
-*/
-logout.url = (options?: RouteQueryOptions) => {
-    return logout.definition.url + queryParams(options)
-}
-
-/**
-* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::logout
-* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:100
-* @route '/logout'
-*/
-logout.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
-    url: logout.url(options),
-    method: 'post',
-})
-
-/**
-* @see \Laravel\Fortify\Http\Controllers\RegisteredUserController::register
-* @see vendor/laravel/fortify/src/Http/Controllers/RegisteredUserController.php:41
+* @see routes/web.php:29
 * @route '/register'
 */
 export const register = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -93,8 +54,7 @@ register.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \Laravel\Fortify\Http\Controllers\RegisteredUserController::register
-* @see vendor/laravel/fortify/src/Http/Controllers/RegisteredUserController.php:41
+* @see routes/web.php:29
 * @route '/register'
 */
 register.url = (options?: RouteQueryOptions) => {
@@ -102,8 +62,7 @@ register.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see \Laravel\Fortify\Http\Controllers\RegisteredUserController::register
-* @see vendor/laravel/fortify/src/Http/Controllers/RegisteredUserController.php:41
+* @see routes/web.php:29
 * @route '/register'
 */
 register.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -112,8 +71,7 @@ register.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see \Laravel\Fortify\Http\Controllers\RegisteredUserController::register
-* @see vendor/laravel/fortify/src/Http/Controllers/RegisteredUserController.php:41
+* @see routes/web.php:29
 * @route '/register'
 */
 register.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -166,8 +124,42 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
+* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::logout
+* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:100
+* @route '/logout'
+*/
+export const logout = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: logout.url(options),
+    method: 'post',
+})
+
+logout.definition = {
+    methods: ["post"],
+    url: '/logout',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::logout
+* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:100
+* @route '/logout'
+*/
+logout.url = (options?: RouteQueryOptions) => {
+    return logout.definition.url + queryParams(options)
+}
+
+/**
+* @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::logout
+* @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:100
+* @route '/logout'
+*/
+logout.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: logout.url(options),
+    method: 'post',
+})
+
+/**
 * @see \App\Http\Controllers\InboxController::__invoke
-* @see app/Http/Controllers/InboxController.php:24
+* @see app/Http/Controllers/InboxController.php:27
 * @route '/inbox'
 */
 export const inbox = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -182,7 +174,7 @@ inbox.definition = {
 
 /**
 * @see \App\Http\Controllers\InboxController::__invoke
-* @see app/Http/Controllers/InboxController.php:24
+* @see app/Http/Controllers/InboxController.php:27
 * @route '/inbox'
 */
 inbox.url = (options?: RouteQueryOptions) => {
@@ -191,7 +183,7 @@ inbox.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\InboxController::__invoke
-* @see app/Http/Controllers/InboxController.php:24
+* @see app/Http/Controllers/InboxController.php:27
 * @route '/inbox'
 */
 inbox.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -201,7 +193,7 @@ inbox.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\InboxController::__invoke
-* @see app/Http/Controllers/InboxController.php:24
+* @see app/Http/Controllers/InboxController.php:27
 * @route '/inbox'
 */
 inbox.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -211,7 +203,7 @@ inbox.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\StarredController::__invoke
-* @see app/Http/Controllers/StarredController.php:14
+* @see app/Http/Controllers/StarredController.php:18
 * @route '/starred'
 */
 export const starred = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -226,7 +218,7 @@ starred.definition = {
 
 /**
 * @see \App\Http\Controllers\StarredController::__invoke
-* @see app/Http/Controllers/StarredController.php:14
+* @see app/Http/Controllers/StarredController.php:18
 * @route '/starred'
 */
 starred.url = (options?: RouteQueryOptions) => {
@@ -235,7 +227,7 @@ starred.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\StarredController::__invoke
-* @see app/Http/Controllers/StarredController.php:14
+* @see app/Http/Controllers/StarredController.php:18
 * @route '/starred'
 */
 starred.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -245,7 +237,7 @@ starred.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\StarredController::__invoke
-* @see app/Http/Controllers/StarredController.php:14
+* @see app/Http/Controllers/StarredController.php:18
 * @route '/starred'
 */
 starred.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({

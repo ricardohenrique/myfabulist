@@ -9,9 +9,11 @@ type TaskDetailsProps = {
     onClose: () => void;
     onDelete: (taskId: number) => void;
     onSave: (task: TaskSummary) => void;
+    errors?: Record<string, string>;
+    processing?: boolean;
 };
 
-export function TaskDetails({ task, lists, onClose, onDelete, onSave }: TaskDetailsProps) {
+export function TaskDetails({ task, lists, onClose, onDelete, onSave, errors = {}, processing = false }: TaskDetailsProps) {
     const [draft, setDraft] = useState(task);
 
     useEffect(() => setDraft(task), [task]);
@@ -22,6 +24,7 @@ export function TaskDetails({ task, lists, onClose, onDelete, onSave }: TaskDeta
                 <button aria-label="Mark task complete" className="task-check task-check--large" type="button" />
                 <input
                     aria-label="Task title"
+                    aria-invalid={Boolean(errors.title)}
                     className="details-title-input"
                     onChange={(event) => setDraft({ ...draft, title: event.target.value })}
                     value={draft.title}
@@ -36,6 +39,8 @@ export function TaskDetails({ task, lists, onClose, onDelete, onSave }: TaskDeta
                 </button>
                 <button aria-label="Close task details" className="details-close" onClick={onClose} type="button"><Icon name="close" /></button>
             </header>
+
+            {(errors.title || errors.domain) && <p className="details-error" role="alert">{errors.title ?? errors.domain}</p>}
 
             <div className="details-scroll">
                 <label className="detail-field detail-field--date">
@@ -91,10 +96,10 @@ export function TaskDetails({ task, lists, onClose, onDelete, onSave }: TaskDeta
             </div>
 
             <footer className="details-footer">
-                <Button aria-label="Delete task" onClick={() => onDelete(task.id)} variant="danger"><Icon name="trash" size={18} />Delete</Button>
+                <Button aria-label="Delete task" disabled={processing} onClick={() => onDelete(task.id)} variant="danger"><Icon name="trash" size={18} />Delete</Button>
                 <div>
-                    <Button onClick={onClose} variant="ghost">Cancel</Button>
-                    <Button onClick={() => onSave(draft)} variant="primary"><Icon name="check" size={18} />Save</Button>
+                    <Button disabled={processing} onClick={onClose} variant="ghost">Cancel</Button>
+                    <Button disabled={processing || !draft.title.trim()} onClick={() => onSave(draft)} variant="primary"><Icon name="check" size={18} />{processing ? 'Saving…' : 'Save'}</Button>
                 </div>
             </footer>
         </aside>

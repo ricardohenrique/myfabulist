@@ -37,5 +37,9 @@ class RegistrationTest extends TestCase
             ->assertRedirect(route('inbox', absolute: false));
 
         $this->assertAuthenticated();
+        $this->assertDatabaseHas('task_lists', [
+            'name' => 'Inbox',
+            'is_default' => true,
+        ]);
     }
 }

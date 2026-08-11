@@ -7,5 +7,7 @@ type WorkspaceProps = {
 };
 
 export default function Workspace({ initialView }: WorkspaceProps) {
-    return <AppShell fixture={workspaceFixture(initialView)} view={initialView} />;
+    const fixture = workspaceFixture(initialView);
+
+    return <AppShell prototype user={fixture.user} workspace={fixture} />;
 }

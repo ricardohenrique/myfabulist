@@ -34,9 +34,9 @@ field. Lists may also remain ungrouped.
 ### Accounts and ownership
 
 - Authentication is required for product data.
-- Users may register, sign in, sign out, verify their email, manage their
-  profile and security settings, and use the authentication capabilities
-  supplied by the application.
+- Users may register, sign in, and sign out. Email verification, password
+  reset, two-factor authentication, passkeys, and account settings are
+  intentionally excluded from the current release.
 - A user may only view or mutate their own folders, lists, and tasks.
 - The Laravel server and its database are canonical for shared account and
   task-management data.
@@ -123,16 +123,20 @@ field. Lists may also remain ungrouped.
 - The target browser application uses Inertia.js 3, React 19, TypeScript,
   Tailwind CSS 4, Vite 8, and Laravel Wayfinder.
 - The previous Livewire/Blade resources are archived under `old-resources` as a
-  migration reference. Phase 1 provides a fixture-backed Inertia/React
-  interface; service-backed behaviour is introduced incrementally in Phase 2.
+  migration reference, and the obsolete Livewire product classes have been
+  retired. Phase 1's fixture-backed interface remains available locally under
+  `/prototype`; production pages use service-backed Inertia props and web
+  mutations from Phase 2.
 - Browser authentication uses Laravel's stateful `web` guard, session cookies,
-  CSRF protection, and email-verification middleware for product routes.
+  and CSRF protection. Product routes do not require email verification in the
+  current release.
 
 ### API
 
 - Shared remote capabilities are exposed under the authenticated, versioned
   `/api/v1` namespace.
-- Sanctum and email verification protect domain endpoints.
+- Sanctum protects domain endpoints. Email verification is not required in the
+  current release.
 - API Resources provide stable folder, list, and task payloads. Domain and
   validation errors retain consistent machine-readable response shapes.
 - Browser controllers reuse domain services in-process and never call the API

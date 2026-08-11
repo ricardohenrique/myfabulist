@@ -33,5 +33,9 @@ return Application::configure(basePath: dirname(__DIR__))
                     'error_code' => $e->errorCode(),
                 ], $e->httpStatus());
             }
+
+            if ($request->header('X-Inertia')) {
+                return back()->withErrors(['domain' => $e->getMessage()]);
+            }
         });
     })->create();

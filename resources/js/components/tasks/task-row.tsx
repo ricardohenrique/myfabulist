@@ -8,9 +8,27 @@ type TaskRowProps = {
     onSelect: (task: TaskSummary) => void;
     onToggleComplete: (taskId: number) => void;
     onToggleStar: (taskId: number) => void;
+    onDelete: (task: TaskSummary) => void;
+    onMoveUp?: (task: TaskSummary) => void;
+    onMoveDown?: (task: TaskSummary) => void;
+    moveUpDisabled?: boolean;
+    moveDownDisabled?: boolean;
+    pending?: boolean;
 };
 
-export function TaskRow({ task, completed = false, onSelect, onToggleComplete, onToggleStar }: TaskRowProps) {
+export function TaskRow({
+    task,
+    completed = false,
+    onSelect,
+    onToggleComplete,
+    onToggleStar,
+    onDelete,
+    onMoveUp,
+    onMoveDown,
+    moveUpDisabled = false,
+    moveDownDisabled = false,
+    pending = false,
+}: TaskRowProps) {
     const [menuOpen, setMenuOpen] = useState(false);
 
     return (
@@ -23,6 +41,7 @@ export function TaskRow({ task, completed = false, onSelect, onToggleComplete, o
             <button
                 aria-label={completed ? `Restore ${task.title}` : `Complete ${task.title}`}
                 className="task-check"
+                disabled={pending}
                 onClick={() => onToggleComplete(task.id)}
                 type="button"
             >
@@ -43,6 +62,7 @@ export function TaskRow({ task, completed = false, onSelect, onToggleComplete, o
             <button
                 aria-label={task.isStarred ? `Unstar ${task.title}` : `Star ${task.title}`}
                 className={`task-star ${task.isStarred ? 'is-starred' : ''}`}
+                disabled={pending}
                 onClick={() => onToggleStar(task.id)}
                 type="button"
             >
@@ -55,8 +75,14 @@ export function TaskRow({ task, completed = false, onSelect, onToggleComplete, o
                 {menuOpen && (
                     <div className="task-menu">
                         <button onClick={() => { onSelect(task); setMenuOpen(false); }} type="button">Open details</button>
-                        <button onClick={() => setMenuOpen(false)} type="button">Move to…</button>
-                        <button className="is-danger" onClick={() => setMenuOpen(false)} type="button">Delete</button>
+                        {!completed && onMoveUp && (
+                            <button disabled={moveUpDisabled || pending} onClick={() => { onMoveUp(task); setMenuOpen(false); }} type="button">Move up</button>
+                        )}
+                        {!completed && onMoveDown && (
+                            <button disabled={moveDownDisabled || pending} onClick={() => { onMoveDown(task); setMenuOpen(false); }} type="button">Move down</button>
+                        )}
+                        <button onClick={() => { onSelect(task); setMenuOpen(false); }} type="button">Move to another list…</button>
+                        <button className="is-danger" onClick={() => { onDelete(task); setMenuOpen(false); }} type="button">Delete</button>
                     </div>
                 )}
             </div>

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Every /api/v1 route lives inside this single authenticated group
-| (auth:sanctum + verified). Never register a route outside of it —
+| (auth:sanctum). Never register a route outside of it —
 | tests/Feature/Api/V1/ApiFoundationTest.php asserts every api/v1 route
 | carries the auth:sanctum middleware (R2).
 |
@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('v1')->name('api.v1.')->group(function () {
+Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function () {
     Route::get('user', function (Request $request) {
         return $request->user();
     })->name('user');

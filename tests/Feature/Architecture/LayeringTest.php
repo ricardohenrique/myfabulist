@@ -19,13 +19,15 @@ use Tests\TestCase;
  */
 class LayeringTest extends TestCase
 {
-    public function test_livewire_never_uses_the_http_facade(): void
+    public function test_inertia_browser_never_re_enters_its_own_api(): void
     {
-        $this->assertNoneContain(
-            app_path('Livewire'),
-            ['Illuminate\Support\Facades\Http', 'Http::'],
-            'must never call the Http facade — Livewire calls services in-process (D1).',
-        );
+        foreach (['pages', 'layouts', 'components'] as $directory) {
+            $this->assertNoneContain(
+                resource_path("js/{$directory}"),
+                ['/api/v1', 'fetch(', 'axios'],
+                'must use Inertia web routes, never re-enter /api/v1 over HTTP (D1).',
+            );
+        }
     }
 
     public function test_services_never_use_the_http_facade(): void
@@ -34,15 +36,6 @@ class LayeringTest extends TestCase
             app_path('Services'),
             ['Illuminate\Support\Facades\Http', 'Http::'],
             'must never call the Http facade — services are the application layer, not an HTTP client (D1).',
-        );
-    }
-
-    public function test_livewire_never_re_enters_its_own_api(): void
-    {
-        $this->assertNoneContain(
-            app_path('Livewire'),
-            ['api/v1'],
-            'must call services in-process, never re-enter /api/v1 over HTTP (D1).',
         );
     }
 
@@ -120,10 +113,6 @@ class LayeringTest extends TestCase
         }
 
         foreach (File::allFiles($directory) as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
-
             $contents = File::get($file->getPathname());
 
             foreach ($forbidden as $needle) {

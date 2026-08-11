@@ -36,8 +36,8 @@ export type TaskSummary = {
     taskListName: string;
 };
 
-export type WorkspaceFixture = {
-    user: UserSummary;
+export type WorkspaceData = {
+    view: WorkspaceView;
     inbox: NavigationList;
     starredCount: number;
     folders: NavigationFolder[];
@@ -45,7 +45,25 @@ export type WorkspaceFixture = {
     currentList: NavigationList | null;
     heading: string;
     eyebrow: string;
+    canAddTask: boolean;
     tasks: TaskSummary[];
+    completedCount: number;
+};
+
+export type WorkspaceFixture = WorkspaceData & {
+    user: UserSummary;
+};
+
+export type SharedPageProps = {
+    appName: string;
+    auth: {
+        user: UserSummary | null;
+    };
+    flash: {
+        success: string | null;
+        error: string | null;
+    };
+    errors: Record<string, string>;
 };
 
 export type IconName =

@@ -24,6 +24,18 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'appName' => config('app.name', 'My Fabulist'),
+            'auth' => [
+                'user' => fn (): ?array => $request->user() === null ? null : [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'avatarUrl' => $request->user()->profile_photo_url,
+                ],
+            ],
+            'flash' => [
+                'success' => fn (): ?string => $request->session()->get('success'),
+                'error' => fn (): ?string => $request->session()->get('error'),
+            ],
         ];
     }
 }

@@ -22,7 +22,7 @@ class ApiFoundationTest extends TestCase
         $response->assertHeader('content-type', 'application/json');
     }
 
-    public function test_an_authenticated_verified_user_can_reach_the_api(): void
+    public function test_an_authenticated_user_can_reach_the_api(): void
     {
         $user = User::factory()->create();
 
@@ -33,13 +33,14 @@ class ApiFoundationTest extends TestCase
         $response->assertJsonPath('email', $user->email);
     }
 
-    public function test_an_unverified_user_is_forbidden(): void
+    public function test_an_unverified_user_can_reach_the_api_for_this_release(): void
     {
         $user = User::factory()->unverified()->create();
 
         $response = $this->actingAs($user)->getJson('/api/v1/user');
 
-        $response->assertStatus(403);
+        $response->assertOk();
+        $response->assertJsonPath('id', $user->id);
     }
 
     public function test_every_api_v1_route_requires_sanctum_authentication(): void

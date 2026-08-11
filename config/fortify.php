@@ -116,8 +116,6 @@ return [
 
     'limiters' => [
         'login' => 'login',
-        'two-factor' => 'two-factor',
-        'passkeys' => 'passkeys',
     ],
 
     /*
@@ -131,7 +129,16 @@ return [
     |
     */
 
-    'views' => true,
+    // Login/register GET routes are registered explicitly in routes/web.php.
+    // This prevents Fortify from exposing its unconditional password-
+    // confirmation views while retaining its hardened session POST actions.
+    'views' => false,
+
+    'redirects' => [
+        'login' => '/inbox',
+        'register' => '/inbox',
+        'logout' => '/login',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -162,16 +169,6 @@ return [
 
     'features' => [
         Features::registration(),
-        Features::resetPasswords(),
-        Features::emailVerification(),
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0
-        ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
     ],
 
 ];

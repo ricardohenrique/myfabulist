@@ -1,5 +1,11 @@
 # Web rebuild — Phase 1: static interfaces
 
+## Status
+
+Approved and completed on 11 August 2026. The local-only `/prototype` review
+routes remain available as isolated fixture-backed visual states; production
+routes now use the Phase 2 service-backed implementation.
+
 ## Implementation status
 
 **Ready for visual approval — 11 August 2026.**

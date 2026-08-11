@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/ui/logo';
-import { show as prototype } from '@/routes/prototype';
+import { home } from '@/routes';
 
 type AuthLayoutProps = {
     eyebrow: string;
@@ -15,7 +15,7 @@ export function AuthLayout({ eyebrow, title, intro, children }: AuthLayoutProps)
         <main className="auth-shell">
             <section className="auth-story" aria-label="My Fabulist introduction">
                 <div className="auth-story__wash" aria-hidden="true" />
-                <Link className="auth-brand" href={prototype('inbox')}>
+                <Link className="auth-brand" href={home()}>
                     <Logo size={50} />
                     <span>My Fabulist</span>
                 </Link>

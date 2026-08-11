@@ -242,6 +242,7 @@ export function workspaceFixture(view: WorkspaceView): WorkspaceFixture {
     }
 
     return {
+        view,
         user: {
             id: 1,
             name: 'Ricardo Mota',
@@ -255,6 +256,8 @@ export function workspaceFixture(view: WorkspaceView): WorkspaceFixture {
         currentList: view === 'starred' ? null : currentList,
         heading,
         eyebrow,
+        canAddTask: view !== 'starred',
         tasks: structuredClone(tasks),
+        completedCount: tasks.filter((task) => task.completedAt).length,
     };
 }
