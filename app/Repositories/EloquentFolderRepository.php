@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Exceptions\FolderReorderMismatchException;
 use App\Models\Folder;
 use App\Models\User;
 use App\Repositories\Contracts\FolderRepositoryInterface;
@@ -95,7 +96,23 @@ class EloquentFolderRepository implements FolderRepositoryInterface
     public function applyOrder(User $user, array $folderIds): void
     {
         DB::transaction(function () use ($user, $folderIds) {
-            foreach (array_values($folderIds) as $position => $folderId) {
+            $currentIds = Folder::query()
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->pluck('id')
+                ->all();
+            $submittedIds = array_values($folderIds);
+            $expectedIds = $currentIds;
+            $candidateIds = $submittedIds;
+
+            sort($expectedIds);
+            sort($candidateIds);
+
+            if ($expectedIds !== $candidateIds) {
+                throw FolderReorderMismatchException::forCurrentFolders();
+            }
+
+            foreach ($submittedIds as $position => $folderId) {
                 Folder::query()
                     ->where('user_id', $user->id)
                     ->where('id', $folderId)

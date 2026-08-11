@@ -192,4 +192,22 @@ class TaskListTest extends TestCase
         $this->assertSame(0, $b->fresh()->position);
         $this->assertSame(1, $a->fresh()->position);
     }
+
+    public function test_put_lists_order_rejects_a_stale_incomplete_set(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
+        $b = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+
+        $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
+            'folder_id' => $folder->id,
+            'task_list_ids' => [$a->id],
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonPath('error_code', 'task_list_reorder_mismatch');
+        $this->assertSame(0, $a->fresh()->position);
+        $this->assertSame(1, $b->fresh()->position);
+    }
 }

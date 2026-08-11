@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Repositories;
 
+use App\Exceptions\FolderReorderMismatchException;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -119,5 +120,22 @@ class EloquentFolderRepositoryTest extends TestCase
 
         $this->assertSame(0, $b->fresh()->position);
         $this->assertSame(1, $a->fresh()->position);
+    }
+
+    public function test_apply_order_rejects_an_incomplete_or_duplicate_folder_set_without_writing(): void
+    {
+        $user = User::factory()->create();
+        $a = Folder::factory()->for($user)->create(['position' => 0]);
+        $b = Folder::factory()->for($user)->create(['position' => 1]);
+
+        try {
+            $this->repository->applyOrder($user, [$a->id, $a->id]);
+            $this->fail('Expected a folder reorder mismatch.');
+        } catch (FolderReorderMismatchException $exception) {
+            $this->assertSame('folder_reorder_mismatch', $exception->errorCode());
+        }
+
+        $this->assertSame(0, $a->fresh()->position);
+        $this->assertSame(1, $b->fresh()->position);
     }
 }

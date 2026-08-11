@@ -1,3 +1,4 @@
+import { useSortable } from '@dnd-kit/react/sortable';
 import { useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import type { TaskSummary } from '@/types';
@@ -9,10 +10,8 @@ type TaskRowProps = {
     onToggleComplete: (taskId: number) => void;
     onToggleStar: (taskId: number) => void;
     onDelete: (task: TaskSummary) => void;
-    onMoveUp?: (task: TaskSummary) => void;
-    onMoveDown?: (task: TaskSummary) => void;
-    moveUpDisabled?: boolean;
-    moveDownDisabled?: boolean;
+    sortableIndex?: number;
+    sortableDisabled?: boolean;
     pending?: boolean;
 };
 
@@ -23,18 +22,32 @@ export function TaskRow({
     onToggleComplete,
     onToggleStar,
     onDelete,
-    onMoveUp,
-    onMoveDown,
-    moveUpDisabled = false,
-    moveDownDisabled = false,
+    sortableIndex = 0,
+    sortableDisabled = false,
     pending = false,
 }: TaskRowProps) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const sortable = useSortable({
+        id: `task-${task.id}`,
+        index: sortableIndex,
+        type: 'task',
+        disabled: completed || sortableDisabled,
+    });
 
     return (
-        <article className={`task-row ${completed ? 'is-completed' : ''}`}>
+        <article
+            className={`task-row ${completed ? 'is-completed' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
+            ref={completed ? undefined : sortable.ref}
+        >
             {!completed && (
-                <button aria-label={`Drag ${task.title}`} className="task-grip" type="button" title="Drag-and-drop arrives in Phase 3">
+                <button
+                    aria-label={`Reorder ${task.title}`}
+                    className="task-grip"
+                    disabled={sortableDisabled}
+                    ref={sortable.handleRef}
+                    title="Drag to reorder. With a keyboard, press Space, use the arrow keys, then press Space again."
+                    type="button"
+                >
                     <Icon name="grip" size={17} />
                 </button>
             )}
@@ -75,12 +88,6 @@ export function TaskRow({
                 {menuOpen && (
                     <div className="task-menu">
                         <button onClick={() => { onSelect(task); setMenuOpen(false); }} type="button">Open details</button>
-                        {!completed && onMoveUp && (
-                            <button disabled={moveUpDisabled || pending} onClick={() => { onMoveUp(task); setMenuOpen(false); }} type="button">Move up</button>
-                        )}
-                        {!completed && onMoveDown && (
-                            <button disabled={moveDownDisabled || pending} onClick={() => { onMoveDown(task); setMenuOpen(false); }} type="button">Move down</button>
-                        )}
                         <button onClick={() => { onSelect(task); setMenuOpen(false); }} type="button">Move to another list…</button>
                         <button className="is-danger" onClick={() => { onDelete(task); setMenuOpen(false); }} type="button">Delete</button>
                     </div>

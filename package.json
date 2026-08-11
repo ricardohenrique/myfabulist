@@ -8,6 +8,7 @@
         "types:check": "tsc --noEmit"
     },
     "dependencies": {
+        "@dnd-kit/react": "^0.5.0",
         "@inertiajs/react": "^3.6.1",
         "@inertiajs/vite": "^3.6.1",
         "@laravel/passkeys": "^0.2.0",

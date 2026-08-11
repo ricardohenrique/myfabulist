@@ -107,7 +107,9 @@ field. Lists may also remain ungrouped.
   focused after success. Failed saves retain enough context to recover.
 - Reordering should feel immediate. If persistence rejects stale state, the UI
   refreshes from canonical data and explains the failure.
-- Drag-and-drop must have accessible move-up/move-down alternatives.
+- Drag handles must support pointer, touch, and keyboard operation. Dedicated
+  move-up/move-down menu actions are intentionally excluded; keyboard users
+  reorder through the same handles.
 - Completing, starring, and moving a task may offer a short single-action Undo
   period. Undo is a safety net for the most recent action, not a history stack.
 - Destructive actions require explicit confirmation until a complete and
@@ -126,7 +128,7 @@ field. Lists may also remain ungrouped.
   migration reference, and the obsolete Livewire product classes have been
   retired. Phase 1's fixture-backed interface remains available locally under
   `/prototype`; production pages use service-backed Inertia props and web
-  mutations from Phase 2.
+  mutations, with scoped drag-and-drop refinement completed in Phase 3.
 - Browser authentication uses Laravel's stateful `web` guard, session cookies,
   and CSRF protection. Product routes do not require email verification in the
   current release.

@@ -185,7 +185,7 @@ it('requires an explicit strategy when deleting a non-empty folder', function ()
     $this->assertDatabaseHas('task_lists', ['id' => $list->id, 'folder_id' => null]);
 });
 
-it('persists accessible task list and folder reordering', function () {
+it('persists drag-and-drop task list and folder orders', function () {
     $user = User::factory()->create();
     $folderA = Folder::factory()->for($user)->create(['position' => 0]);
     $folderB = Folder::factory()->for($user)->create(['position' => 1]);
@@ -210,6 +210,47 @@ it('persists accessible task list and folder reordering', function () {
         ->and($listA->fresh()->position)->toBe(1)
         ->and($taskB->fresh()->position)->toBe(0)
         ->and($taskA->fresh()->position)->toBe(1);
+});
+
+it('rejects stale drag-and-drop orders and preserves canonical positions', function () {
+    $user = User::factory()->create();
+    $folderA = Folder::factory()->for($user)->create(['position' => 0]);
+    $folderB = Folder::factory()->for($user)->create(['position' => 1]);
+    $listA = TaskList::factory()->inFolder($folderA)->create(['position' => 0]);
+    $listB = TaskList::factory()->inFolder($folderA)->create(['position' => 1]);
+    $taskA = Task::factory()->forTaskList($listA)->create(['position' => 0]);
+    $taskB = Task::factory()->forTaskList($listA)->create(['position' => 1]);
+
+    $this->actingAs($user)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $listA))
+        ->put(route('folders.order'), ['folder_ids' => [$folderA->id]])
+        ->assertRedirect(route('lists.show', $listA))
+        ->assertSessionHasErrors('domain');
+
+    $this->actingAs($user)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $listA))
+        ->put(route('lists.order'), [
+            'folder_id' => $folderA->id,
+            'task_list_ids' => [$listA->id],
+        ])
+        ->assertRedirect(route('lists.show', $listA))
+        ->assertSessionHasErrors('domain');
+
+    $this->actingAs($user)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $listA))
+        ->put(route('lists.task-order', $listA), ['task_ids' => [$taskA->id]])
+        ->assertRedirect(route('lists.show', $listA))
+        ->assertSessionHasErrors('domain');
+
+    expect($folderA->fresh()->position)->toBe(0)
+        ->and($folderB->fresh()->position)->toBe(1)
+        ->and($listA->fresh()->position)->toBe(0)
+        ->and($listB->fresh()->position)->toBe(1)
+        ->and($taskA->fresh()->position)->toBe(0)
+        ->and($taskB->fresh()->position)->toBe(1);
 });
 
 it('rejects invalid and cross-user web mutations', function () {

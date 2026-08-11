@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Repositories;
 
+use App\Exceptions\TaskListReorderMismatchException;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -205,6 +206,42 @@ class EloquentTaskListRepositoryTest extends TestCase
 
         $this->repository->applyOrder($user, $folder->id, [$b->id, $a->id]);
 
+        $this->assertSame(0, $b->fresh()->position);
+        $this->assertSame(1, $a->fresh()->position);
+    }
+
+    public function test_apply_order_rejects_an_incomplete_list_set_without_writing(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
+        $b = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+
+        try {
+            $this->repository->applyOrder($user, $folder->id, [$a->id]);
+            $this->fail('Expected a list reorder mismatch.');
+        } catch (TaskListReorderMismatchException $exception) {
+            $this->assertSame('task_list_reorder_mismatch', $exception->errorCode());
+        }
+
+        $this->assertSame(0, $a->fresh()->position);
+        $this->assertSame(1, $b->fresh()->position);
+    }
+
+    public function test_ungrouped_order_excludes_the_fixed_default_inbox(): void
+    {
+        $user = User::factory()->create();
+        $inbox = TaskList::factory()->create([
+            'user_id' => $user->id,
+            'is_default' => true,
+            'position' => 0,
+        ]);
+        $a = TaskList::factory()->create(['user_id' => $user->id, 'position' => 1]);
+        $b = TaskList::factory()->create(['user_id' => $user->id, 'position' => 2]);
+
+        $this->repository->applyOrder($user, null, [$b->id, $a->id]);
+
+        $this->assertSame(0, $inbox->fresh()->position);
         $this->assertSame(0, $b->fresh()->position);
         $this->assertSame(1, $a->fresh()->position);
     }

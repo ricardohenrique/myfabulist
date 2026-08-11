@@ -203,6 +203,16 @@ When the user adds a task:
 
 When the user moves or reorders something, update the interface immediately and save the new order in the background.
 
+Reordering uses dedicated handles for active tasks, lists, and folders. Handles
+work with mouse, trackpad, touch, and keyboard; a keyboard user starts the drag
+with Space or Enter, changes position with the arrow keys, and drops with Space
+or Enter. Dedicated move-up/move-down menu items are intentionally not part of
+the final interface.
+
+Task and list drops are constrained to their current container. Moving a task
+to another list or a list to another folder remains an explicit details/dialog
+operation, never an accidental drag side effect.
+
 ## Empty states
 
 When a list has no tasks, show:
@@ -243,3 +253,23 @@ Create these main components:
 * Error state
 
 The final result should look like a polished but simple task-list product, not a full project-management platform.
+
+## Implemented frontend architecture
+
+The production browser experience is an Inertia 3 and React 19 application.
+Page entry points live in `resources/js/pages`, the responsive product shell in
+`resources/js/layouts/app-shell.tsx`, shared components in
+`resources/js/components`, and shared payload types in `resources/js/types`.
+Wayfinder supplies typed Laravel route calls.
+
+The browser never calls `/api/v1` over loopback HTTP. Laravel controllers build
+Inertia props through shared services and presenters, and mutations delegate to
+the same service/repository workflows used by API controllers. Server data is
+canonical.
+
+`@dnd-kit/react` provides sortable pointer, touch, and keyboard interaction.
+Each drop optimistically updates the local collection, submits its complete ID
+order, disables further drops while saving, and reconciles from returned
+Inertia props. Active tasks are sortable; completed tasks remain ordered by
+completion time. Inbox and Starred are fixed navigation items rather than
+sortable user lists.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Exceptions\TaskListReorderMismatchException;
 use App\Models\Folder;
 use App\Models\TaskList;
 use App\Models\User;
@@ -121,10 +122,29 @@ class EloquentTaskListRepository implements TaskListRepositoryInterface
     public function applyOrder(User $user, ?int $folderId, array $taskListIds): void
     {
         DB::transaction(function () use ($user, $folderId, $taskListIds) {
-            foreach (array_values($taskListIds) as $position => $taskListId) {
+            $currentIds = TaskList::query()
+                ->where('user_id', $user->id)
+                ->where('folder_id', $folderId)
+                ->where('is_default', false)
+                ->lockForUpdate()
+                ->pluck('id')
+                ->all();
+            $submittedIds = array_values($taskListIds);
+            $expectedIds = $currentIds;
+            $candidateIds = $submittedIds;
+
+            sort($expectedIds);
+            sort($candidateIds);
+
+            if ($expectedIds !== $candidateIds) {
+                throw TaskListReorderMismatchException::forCurrentContainer();
+            }
+
+            foreach ($submittedIds as $position => $taskListId) {
                 TaskList::query()
                     ->where('user_id', $user->id)
                     ->where('folder_id', $folderId)
+                    ->where('is_default', false)
                     ->where('id', $taskListId)
                     ->update(['position' => $position]);
             }

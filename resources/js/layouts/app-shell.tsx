@@ -1,3 +1,5 @@
+import { DragDropProvider, type DragEndEvent } from '@dnd-kit/react';
+import { isSortable } from '@dnd-kit/react/sortable';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Sidebar } from '@/components/navigation/sidebar';
@@ -6,6 +8,7 @@ import { TaskRow } from '@/components/tasks/task-row';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
+import { moveItem, orderByIds } from '@/lib/sortable';
 import * as folderRoutes from '@/routes/folders';
 import * as listRoutes from '@/routes/lists';
 import { store as storeTask } from '@/routes/lists/tasks';
@@ -21,7 +24,6 @@ import type {
     WorkspaceView,
 } from '@/types';
 
-type Direction = 'up' | 'down';
 type EntityDialog =
     | { kind: 'folder'; mode: 'create'; item?: undefined }
     | { kind: 'folder'; mode: 'edit'; item: NavigationFolder }
@@ -42,20 +44,6 @@ type AppShellProps = {
     prototype?: boolean;
 };
 
-function swappedIds(items: { id: number }[], itemId: number, direction: Direction): number[] | null {
-    const currentIndex = items.findIndex((item) => item.id === itemId);
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-
-    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= items.length) {
-        return null;
-    }
-
-    const ids = items.map((item) => item.id);
-    [ids[currentIndex], ids[targetIndex]] = [ids[targetIndex], ids[currentIndex]];
-
-    return ids;
-}
-
 export function AppShell({ workspace, user, prototype = false }: AppShellProps) {
     const page = usePage<SharedPageProps>();
     const [previewTasks, setPreviewTasks] = useState(workspace.tasks);
@@ -72,6 +60,10 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
     const [folderDeleteStrategy, setFolderDeleteStrategy] = useState<'detach' | 'delete'>('detach');
     const [taskErrors, setTaskErrors] = useState<Record<string, string>>({});
     const [pendingTaskIds, setPendingTaskIds] = useState<number[]>([]);
+    const [taskOrder, setTaskOrder] = useState<number[]>(() => workspace.tasks
+        .filter((task) => !task.completedAt)
+        .map((task) => task.id));
+    const [reorderPending, setReorderPending] = useState(false);
     const [entityProcessing, setEntityProcessing] = useState(false);
     const [notice, setNotice] = useState('');
     const [undo, setUndo] = useState<UndoState | null>(null);
@@ -79,7 +71,7 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
     const quickAdd = useForm({ title: '' });
 
     const tasks = prototype ? previewTasks : workspace.tasks;
-    const activeTasks = tasks.filter((task) => !task.completedAt);
+    const activeTasks = orderByIds(tasks.filter((task) => !task.completedAt), taskOrder);
     const completedTasks = tasks.filter((task) => task.completedAt);
     const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
     const destinationLists = useMemo(
@@ -92,6 +84,10 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
             setPreviewTasks(workspace.tasks);
         }
     }, [prototype, workspace]);
+
+    useEffect(() => {
+        setTaskOrder(tasks.filter((task) => !task.completedAt).map((task) => task.id));
+    }, [tasks]);
 
     useEffect(() => {
         if (selectedTaskId !== null && !tasks.some((task) => task.id === selectedTaskId)) {
@@ -335,34 +331,73 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
         }
     };
 
-    const reorderTask = (task: TaskSummary, direction: Direction) => {
-        if (prototype || !workspace.currentList) {
-            const ids = swappedIds(activeTasks, task.id, direction);
-            if (!ids) return;
+    const reorderTask = (taskIds: number[]) => {
+        const canonicalIds = tasks.filter((task) => !task.completedAt).map((task) => task.id);
+
+        setTaskOrder(taskIds);
+
+        if (prototype) {
             setPreviewTasks((current) => [
-                ...ids.map((id) => current.find((item) => item.id === id)).filter((item): item is TaskSummary => Boolean(item)),
-                ...current.filter((item) => item.completedAt),
+                ...orderByIds(current.filter((task) => !task.completedAt), taskIds),
+                ...current.filter((task) => task.completedAt),
             ]);
+            setNotice('Task order changed in this static preview.');
             return;
         }
 
-        const taskIds = swappedIds(activeTasks, task.id, direction);
-        if (!taskIds) return;
-        router.put(listRoutes.taskOrder(workspace.currentList.id), { task_ids: taskIds }, { preserveScroll: true });
+        if (!workspace.currentList) return;
+
+        setReorderPending(true);
+        router.put(listRoutes.taskOrder(workspace.currentList.id), { task_ids: taskIds }, {
+            preserveScroll: true,
+            onError: (errors) => {
+                setTaskOrder(canonicalIds);
+                setNotice(Object.values(errors)[0] ?? 'The task order could not be saved. The current order was restored.');
+            },
+            onFinish: () => setReorderPending(false),
+        });
     };
 
-    const reorderFolder = (folder: NavigationFolder, direction: Direction) => {
-        const folderIds = swappedIds(workspace.folders, folder.id, direction);
-        if (!folderIds) return;
-        if (prototype) return setNotice('Folder order changed in this static preview.');
-        router.put(folderRoutes.order(), { folder_ids: folderIds }, { preserveScroll: true });
+    const handleTaskDragEnd = (event: DragEndEvent) => {
+        const source = event.operation.source;
+
+        if (event.canceled || reorderPending || !isSortable(source)) {
+            return;
+        }
+
+        const reordered = moveItem(activeTasks, source.initialIndex, source.index);
+
+        if (reordered !== activeTasks) {
+            reorderTask(reordered.map((task) => task.id));
+        }
     };
 
-    const reorderList = (list: NavigationList, siblings: NavigationList[], direction: Direction) => {
-        const taskListIds = swappedIds(siblings, list.id, direction);
-        if (!taskListIds) return;
-        if (prototype) return setNotice('List order changed in this static preview.');
-        router.put(listRoutes.order(), { folder_id: list.folderId, task_list_ids: taskListIds }, { preserveScroll: true });
+    const reorderFolder = (folderIds: number[]) => {
+        if (prototype) {
+            setNotice('Folder order changed in this static preview.');
+            return;
+        }
+
+        setReorderPending(true);
+        router.put(folderRoutes.order(), { folder_ids: folderIds }, {
+            preserveScroll: true,
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'The folder order could not be saved. The current order was restored.'),
+            onFinish: () => setReorderPending(false),
+        });
+    };
+
+    const reorderList = (folderId: number | null, taskListIds: number[]) => {
+        if (prototype) {
+            setNotice('List order changed in this static preview.');
+            return;
+        }
+
+        setReorderPending(true);
+        router.put(listRoutes.order(), { folder_id: folderId, task_list_ids: taskListIds }, {
+            preserveScroll: true,
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'The list order could not be saved. The current order was restored.'),
+            onFinish: () => setReorderPending(false),
+        });
     };
 
     return (
@@ -383,6 +418,7 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
                 prototype={prototype}
+                reorderPending={reorderPending}
                 starredCount={workspace.starredCount}
                 ungroupedLists={workspace.ungroupedLists}
                 user={user}
@@ -424,23 +460,23 @@ export function AppShell({ workspace, user, prototype = false }: AppShellProps) 
 
                         <section aria-label="Active tasks" className="task-list-section">
                             {activeTasks.length > 0 ? (
-                                <div className="task-list">
-                                    {activeTasks.map((task, index) => (
-                                        <TaskRow
-                                            key={task.id}
-                                            moveDownDisabled={!workspace.currentList || index === activeTasks.length - 1}
-                                            moveUpDisabled={!workspace.currentList || index === 0}
-                                            onDelete={(item) => setDeleteDialog({ kind: 'task', item })}
-                                            onMoveDown={(item) => reorderTask(item, 'down')}
-                                            onMoveUp={(item) => reorderTask(item, 'up')}
-                                            onSelect={(selected) => { setTaskErrors({}); setSelectedTaskId(selected.id); }}
-                                            onToggleComplete={toggleComplete}
-                                            onToggleStar={toggleStar}
-                                            pending={pendingTaskIds.includes(task.id)}
-                                            task={task}
-                                        />
-                                    ))}
-                                </div>
+                                <DragDropProvider onDragEnd={handleTaskDragEnd}>
+                                    <div className="task-list">
+                                        {activeTasks.map((task, index) => (
+                                            <TaskRow
+                                                key={task.id}
+                                                onDelete={(item) => setDeleteDialog({ kind: 'task', item })}
+                                                onSelect={(selected) => { setTaskErrors({}); setSelectedTaskId(selected.id); }}
+                                                onToggleComplete={toggleComplete}
+                                                onToggleStar={toggleStar}
+                                                pending={pendingTaskIds.includes(task.id)}
+                                                sortableDisabled={!workspace.currentList || reorderPending || activeTasks.length < 2}
+                                                sortableIndex={index}
+                                                task={task}
+                                            />
+                                        ))}
+                                    </div>
+                                </DragDropProvider>
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state__icon"><Icon name="check" size={34} /></div>

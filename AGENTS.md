@@ -184,7 +184,9 @@ that materially expand the boilerplate's stack or maintenance burden.
   and display actionable failure states without losing the user's input.
 - Keep active tasks above completed tasks. Completed rows are muted,
   struck-through, restorable, and ordered by most recently completed.
-- Provide accessible non-pointer alternatives for drag-and-drop reordering.
+- Make drag handles operable by pointer, touch, and keyboard. Dedicated
+  move-up/move-down actions are intentionally absent; keyboard users start a
+  drag from the handle and use arrow keys to choose the drop position.
 - Preserve focus visibility, semantic labels, keyboard navigation, reduced
   motion, sufficient contrast, and usable touch targets.
 - Keep Tailwind CSS 4 configuration CSS-first in `resources/css/app.css` and

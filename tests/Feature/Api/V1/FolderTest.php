@@ -177,4 +177,20 @@ class FolderTest extends TestCase
         $response->assertStatus(422);
         $this->assertSame(0, $foreign->fresh()->position);
     }
+
+    public function test_put_folders_order_rejects_a_stale_incomplete_set(): void
+    {
+        $user = User::factory()->create();
+        $a = Folder::factory()->for($user)->create(['position' => 0]);
+        $b = Folder::factory()->for($user)->create(['position' => 1]);
+
+        $response = $this->actingAs($user)->putJson('/api/v1/folders/order', [
+            'folder_ids' => [$a->id],
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonPath('error_code', 'folder_reorder_mismatch');
+        $this->assertSame(0, $a->fresh()->position);
+        $this->assertSame(1, $b->fresh()->position);
+    }
 }

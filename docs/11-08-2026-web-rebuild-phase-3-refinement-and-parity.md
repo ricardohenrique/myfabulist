@@ -1,5 +1,11 @@
 # Web rebuild — Phase 3: refinement and parity
 
+> **Status: completed 11 August 2026.** The production Inertia interface now
+> supports persisted same-container drag-and-drop for active tasks, lists, and
+> folders. `@dnd-kit/react` was selected for React 19 pointer, touch, keyboard,
+> and accessibility support. By explicit product direction, the temporary
+> move-up/move-down menus were removed; keyboard sorting uses the drag handles.
+
 ## Objective
 
 Refine the integrated Inertia application into a production-ready experience.
@@ -15,7 +21,7 @@ and polish the product scope already approved in Phases 1 and 2.
 - The Phase 1 design and responsive structure are approved.
 - Login, registration, logout, navigation, Inbox, lists, Starred, task details,
   and service-backed mutations work through Inertia.
-- Accessible move-up/move-down reordering is already functional.
+- The Phase 2 reorder endpoints and service workflows are functional.
 - Existing domain and API tests remain green.
 - Known gaps are recorded before refinement begins.
 
@@ -33,18 +39,17 @@ and polish the product scope already approved in Phases 1 and 2.
 
 ## Workstream 1: drag-and-drop
 
-### Decision gate
+### Decision
 
-No drag-and-drop dependency has been selected. Before adding one:
+`@dnd-kit/react` 0.5 was selected after checking its current React API,
+sortable state model, default pointer/touch/keyboard sensors, accessibility
+announcements, and scoped provider design. It is the only new runtime frontend
+dependency introduced for Phase 3.
 
-1. evaluate React 19 compatibility and maintenance status;
-2. verify keyboard and screen-reader support;
-3. confirm touch and pointer behaviour;
-4. check bundle impact and ability to constrain movement by container;
-5. confirm that optimistic state can be reconciled with Inertia responses; and
-6. obtain approval for the dependency in accordance with `AGENTS.md`.
-
-Do not remove the move-up/move-down controls after drag-and-drop is added.
+Dedicated move-up/move-down controls were removed by explicit product
+direction. The drag handles themselves retain keyboard sorting: focus a handle,
+start with Space or Enter, change position with the arrow keys, and drop with
+Space or Enter.
 
 ### Tasks
 
@@ -68,7 +73,7 @@ Do not remove the move-up/move-down controls after drag-and-drop is added.
 - A stale, incomplete, duplicate, foreign, or cross-container set is rejected
   and visibly reconciled.
 - Touch scrolling remains usable near sortable regions.
-- Keyboard users retain complete reorder capability without dragging.
+- Keyboard users retain complete reorder capability through the drag handles.
 - Row action menus, task selection, checkboxes, and stars do not trigger drags.
 
 ## Workstream 2: interaction refinement
@@ -247,7 +252,7 @@ domain tests, or authentication actions still used by the Inertia application.
 ### Automated coverage
 
 - drag-and-drop reorder endpoints and stale-order recovery;
-- keyboard reorder fallback;
+- keyboard drag-handle reordering;
 - all parity-audit mutations and authorization boundaries;
 - Inertia component names and critical prop shapes;
 - auth scope with verification and excluded features absent;
@@ -309,7 +314,7 @@ features so future work does not accidentally assume they still exist.
 
 ## Deliverables
 
-- Accessible pointer and touch drag-and-drop with keyboard alternatives
+- Accessible pointer, touch, and keyboard drag-and-drop handles
 - Polished responsive Wunderlist-inspired web experience
 - Resilient pending, error, stale, empty, and Undo states
 - Completed parity audit with resolved blockers
@@ -322,7 +327,7 @@ features so future work does not accidentally assume they still exist.
 
 - Tasks, lists, and folders reorder by drag-and-drop within valid containers and
   persist through the existing services.
-- Keyboard users can perform equivalent reorder operations.
+- Keyboard users can perform equivalent reorder operations through the handles.
 - Cross-container drops cannot bypass explicit move workflows.
 - Desktop, tablet, and mobile layouts match the approved design and remain
   usable with details/navigation open.
