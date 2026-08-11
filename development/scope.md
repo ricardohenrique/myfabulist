@@ -1,0 +1,234 @@
+# My Fabulist product scope
+
+## Product purpose
+
+My Fabulist is a personal task manager inspired by the speed, warmth, and
+simplicity of Wunderlist. It helps people capture tasks quickly, organize them
+into meaningful lists, and review completed work without letting it distract
+from what remains active.
+
+The product is intentionally lighter than a general project-management tool.
+Its primary model is:
+
+**Folder → List → Task**
+
+Folders organize related lists. Lists act as lightweight projects or contexts.
+Tasks are the smallest actionable item, and their title is the only required
+field. Lists may also remain ungrouped.
+
+## Success criteria
+
+- A user can capture a task immediately after opening a list and can enter
+  another without manually restoring focus.
+- Active tasks are easy to scan and completed tasks remain available in a
+  separate, visually quiet section.
+- Folder, list, task, ordering, completion, and task-detail state persist across
+  sessions and are isolated by user.
+- The primary workflow remains clear and usable on desktop, tablet, mobile web,
+  and future native clients.
+- Browser, API, and native clients share domain rules and do not create
+  conflicting sources of truth.
+
+## Core domain
+
+### Accounts and ownership
+
+- Authentication is required for product data.
+- Users may register, sign in, sign out, verify their email, manage their
+  profile and security settings, and use the authentication capabilities
+  supplied by the application.
+- A user may only view or mutate their own folders, lists, and tasks.
+- The Laravel server and its database are canonical for shared account and
+  task-management data.
+
+### Inbox
+
+- Every user receives exactly one default Inbox list.
+- Inbox is always ungrouped and shown prominently in navigation.
+- Inbox cannot be renamed or deleted.
+- Inbox is the default destination for global quick capture.
+- Tasks may be moved from Inbox to another user-owned list.
+
+### Folders
+
+- Users can create, rename, reorder, expand/collapse, and delete folders.
+- A folder can contain multiple lists; lists may be moved into or out of it.
+- Deleting a non-empty folder must never silently orphan or destroy its lists.
+  The user must explicitly detach the lists or choose the destructive workflow
+  that deletes them.
+- Folder ordering is scoped to the owning user.
+
+### Lists
+
+- Users can create, rename, open, reorder, move, and delete lists.
+- A list belongs to at most one folder and can remain ungrouped.
+- A list displays active tasks first and completed tasks below them.
+- Lists are soft-deleted. The default Inbox is exempt from deletion.
+- Moving a list between a folder and the ungrouped collection is an explicit
+  operation; same-container reorder does not imply a move.
+
+### Tasks
+
+- Users can quickly create a task inside a selected list.
+- A trimmed, non-blank title is required. Notes and due dates are optional.
+- Users can rename, complete, restore, star/unstar, move, reorder, edit details,
+  and delete tasks.
+- A task row exposes completion, title, starred state, due-date state, and an
+  affordance for details or additional actions when applicable.
+- Completion and deletion are distinct. Tasks are soft-deleted and completed
+  tasks remain part of the list until explicitly deleted.
+- Active tasks use manual position order. Completed tasks are displayed by
+  most recent completion.
+- Cross-list movement is explicit and atomic. Reordering is scoped to one list
+  and rejects stale, incomplete, duplicate, or foreign ID sets.
+
+### Completed tasks
+
+- Completed tasks appear below active tasks in a collapsible section.
+- The section shows its completed count and remembers the user's open/closed
+  preference where supported.
+- Completed rows use reduced emphasis and a struck-through title.
+- A completed task can be restored through its checkbox.
+
+### Starred view
+
+- Starred is a smart cross-list view of the user's important tasks.
+- Importance is binary; multiple priority levels are out of scope.
+- Starred does not create or own duplicate task records.
+
+## Product experience
+
+- Use a responsive application shell with a folder/list sidebar and main task
+  area. On narrow screens, navigation opens from a menu control.
+- Keep the interface calm, friendly, spacious, and minimal. Use warm neutral
+  surfaces, the coral product accent, clear typography, subtle motion, and
+  muted completed work.
+- Pressing Enter in quick-add creates the task, clears the field, and keeps it
+  focused after success. Failed saves retain enough context to recover.
+- Reordering should feel immediate. If persistence rejects stale state, the UI
+  refreshes from canonical data and explains the failure.
+- Drag-and-drop must have accessible move-up/move-down alternatives.
+- Completing, starring, and moving a task may offer a short single-action Undo
+  period. Undo is a safety net for the most recent action, not a history stack.
+- Destructive actions require explicit confirmation until a complete and
+  tested restoration/undo interaction replaces it.
+- Empty and error states tell the user what to do next. Preferred examples are
+  “Nothing here yet. Add your first task.”, “Your Inbox is clear.”, and
+  “Everything is done.”
+
+## Delivery architecture
+
+### Browser
+
+- The target browser application uses Inertia.js 3, React 19, TypeScript,
+  Tailwind CSS 4, Vite 8, and Laravel Wayfinder.
+- The current Livewire/Blade task interface remains functional while the target
+  frontend is introduced incrementally. New work should avoid unnecessary
+  Livewire coupling and preserve behaviour during migration.
+- Browser authentication uses Laravel's stateful `web` guard, session cookies,
+  CSRF protection, and email-verification middleware for product routes.
+
+### API
+
+- Shared remote capabilities are exposed under the authenticated, versioned
+  `/api/v1` namespace.
+- Sanctum and email verification protect domain endpoints.
+- API Resources provide stable folder, list, and task payloads. Domain and
+  validation errors retain consistent machine-readable response shapes.
+- Browser controllers reuse domain services in-process and never call the API
+  over loopback HTTP.
+
+### Native
+
+- NativePHP Mobile 4 and NativePHP Mobile UI are the planned native delivery
+  stack.
+- Native clients consume the remote versioned API; they do not become a second
+  canonical database.
+- Native authentication uses narrowly scoped per-device tokens stored in
+  platform secure storage. Tokens must not be stored in local storage, SQLite,
+  logs, URLs, bundled environment files, or plaintext files.
+- Offline mutations and synchronization are not part of the initial scope.
+  Any future cached reads must expose freshness and stale state explicitly.
+
+## Current release scope
+
+The current product slice includes:
+
+- authenticated, user-isolated folders, lists, and tasks;
+- permanent Inbox creation and navigation;
+- Starred smart view;
+- quick task creation, rename, completion/restoration, notes, due dates,
+  starring, moving, reordering, and soft deletion;
+- folder/list creation, rename, move, reorder, and guarded deletion;
+- responsive browser navigation and task details;
+- focused undo for completion, moving, and starring;
+- versioned JSON endpoints for the implemented domain workflows; and
+- demo data tooling for local development.
+
+## Near-term priorities
+
+- Move the browser experience toward the declared Inertia/React/TypeScript
+  baseline without regressing current workflows.
+- Keep web and API behaviour aligned through shared services, repositories,
+  policies, and resources.
+- Complete consistent undo/restoration UX for soft-deleted tasks and lists.
+- Add cross-list task-title search with list and folder context.
+- Harden responsive, accessible, loading, empty, conflict, and error states.
+- Establish the NativePHP shell and secure device authentication before adding
+  native domain mutations.
+
+## Deferred capabilities
+
+The following may be considered after the core workflow and target clients are
+stable:
+
+- Today, Upcoming, All Tasks, and Completed smart views;
+- recurring tasks;
+- reminders and browser/native notifications;
+- one-level subtasks;
+- list sharing, collaborators, assignment, and comments;
+- file or image attachments;
+- natural-language date extraction;
+- themes and custom backgrounds; and
+- documented non-authoritative offline read snapshots.
+
+Each deferred capability requires explicit acceptance criteria and a review of
+its data model, authorization, API, native, privacy, and migration impact before
+implementation.
+
+## Explicitly out of scope
+
+- Kanban boards, Gantt charts, time tracking, sprints, workload dashboards, and
+  enterprise portfolio management.
+- Multiple priority scales; starred remains the single importance signal.
+- Silent cross-container drag operations.
+- Offline writes or automatic conflict resolution without a designed sync
+  model.
+- Multiple canonical data stores.
+- Client-side-only authorization or trusting resource IDs supplied by a client.
+- Bundling server secrets or production credentials in a native application.
+
+## Data and deletion boundaries
+
+- SQLite is the default local database; deployment database choice remains
+  environment-configurable.
+- Folder, list, task, order, completion, detail, and starred state persist on
+  the server.
+- Task and list deletion is soft deletion. Folder deletion follows the explicit
+  detach-or-delete-list workflow and must be transactional.
+- Restoration is allowed only when ownership and destination invariants remain
+  valid.
+- User uploads such as profile photos require server-side validation, ownership
+  checks, and safe storage.
+
+## Release and quality expectations
+
+- Every product behaviour requires authorization and focused automated tests.
+- Reordering, moving, soft deletion, restoration, default Inbox protection, and
+  cross-user access are high-risk paths and require explicit coverage.
+- Verify responsive and keyboard interactions for browser changes and relevant
+  simulator/device behaviour for native changes.
+- Native release bundles must exclude project instructions, development docs,
+  source/test tooling, credentials, and server-only environment values.
+- Run the repository's supported formatting, static-analysis, test, and build
+  commands before release.
