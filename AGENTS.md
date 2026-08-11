@@ -21,8 +21,9 @@ Read the relevant source before changing behaviour:
    public application surfaces.
 4. `app/Services`, `app/Repositories`, `app/Policies`, and `app/Models` define
    the domain and persistence boundaries.
-5. `app/Livewire` and `resources/views` define the current browser experience;
-   the baseline stack below defines the intended frontend and native direction.
+5. `resources/js`, `resources/css`, and `resources/views/app.blade.php` define
+   the new Inertia browser experience. `old-resources` preserves the previous
+   Livewire/Blade interface as a migration reference.
 6. `README.md` and the focused files under `docs/` document setup, implemented
    behaviour, and historical decisions.
 7. `.env.example` documents safe environment configuration.
@@ -95,10 +96,11 @@ that materially expand the boilerplate's stack or maintenance burden.
   `resources/js/pages`, shared product components in
   `resources/js/components`, and focused client logic in `resources/js/lib` or
   hooks as appropriate.
-- The current Livewire and Blade task UI is an existing migration surface. Do
-  not add new product architecture that deepens dependence on Livewire when the
-  same work can be implemented in the target stack. Preserve working behaviour
-  and migrate incrementally with tests rather than rewriting blindly.
+- Livewire classes and dependencies remain temporarily, while their Blade/UI
+  resources are archived under `old-resources`. Do not add new product
+  architecture that deepens dependence on Livewire. Preserve established
+  behaviour as the Inertia implementation replaces each workflow with focused
+  tests.
 - Native screens use NativePHP 4 native components and NativePHP Mobile UI.
   Keep platform-independent domain logic outside native components so it can
   be tested without an emulator.

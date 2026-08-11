@@ -122,9 +122,9 @@ field. Lists may also remain ungrouped.
 
 - The target browser application uses Inertia.js 3, React 19, TypeScript,
   Tailwind CSS 4, Vite 8, and Laravel Wayfinder.
-- The current Livewire/Blade task interface remains functional while the target
-  frontend is introduced incrementally. New work should avoid unnecessary
-  Livewire coupling and preserve behaviour during migration.
+- The previous Livewire/Blade resources are archived under `old-resources` as a
+  migration reference. Phase 1 provides a fixture-backed Inertia/React
+  interface; service-backed behaviour is introduced incrementally in Phase 2.
 - Browser authentication uses Laravel's stateful `web` guard, session cookies,
   CSRF protection, and email-verification middleware for product routes.
 
