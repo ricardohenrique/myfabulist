@@ -1,4 +1,5 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../wayfinder'
+import comments from './comments'
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::show
 * @see app/Http/Controllers/Api/V1/TaskController.php:21
@@ -359,6 +360,7 @@ move.post = (args: { task: number | { id: number } } | [task: number | { id: num
 
 const tasks = {
     show: Object.assign(show, show),
+    comments: Object.assign(comments, comments),
     update: Object.assign(update, update),
     destroy: Object.assign(destroy, destroy),
     complete: Object.assign(complete, complete),

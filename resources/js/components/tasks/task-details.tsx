@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import type { NavigationList, TaskSummary } from '@/types';
@@ -7,16 +7,55 @@ type TaskDetailsProps = {
     task: TaskSummary;
     lists: NavigationList[];
     onClose: () => void;
+    onAddComment: (taskId: number, body: string, onSuccess: () => void) => void;
     onDelete: (taskId: number) => void;
     onSave: (task: TaskSummary) => void;
     errors?: Record<string, string>;
+    commentError?: string;
+    commentProcessing?: boolean;
     processing?: boolean;
 };
 
-export function TaskDetails({ task, lists, onClose, onDelete, onSave, errors = {}, processing = false }: TaskDetailsProps) {
-    const [draft, setDraft] = useState(task);
+function formatCommentDate(value: string): string {
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value));
+}
 
-    useEffect(() => setDraft(task), [task]);
+export function TaskDetails({
+    task,
+    lists,
+    onClose,
+    onAddComment,
+    onDelete,
+    onSave,
+    errors = {},
+    commentError = '',
+    commentProcessing = false,
+    processing = false,
+}: TaskDetailsProps) {
+    const [draft, setDraft] = useState(task);
+    const [commentBody, setCommentBody] = useState('');
+
+    useEffect(() => setDraft(task), [task.id]);
+    useEffect(() => setCommentBody(''), [task.id]);
+
+    const submitComment = (event?: FormEvent<HTMLFormElement>) => {
+        event?.preventDefault();
+        const body = commentBody.trim();
+
+        if (!body || commentProcessing) return;
+
+        onAddComment(task.id, body, () => setCommentBody(''));
+    };
+
+    const handleCommentKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+
+        event.preventDefault();
+        submitComment();
+    };
 
     return (
         <aside aria-label="Task details" className="task-details">
@@ -93,14 +132,69 @@ export function TaskDetails({ task, lists, onClose, onDelete, onSave, errors = {
                         </select>
                     </span>
                 </label>
+
+                <section aria-label="Task comments" className="task-comments">
+                    <header className="task-comments__heading">
+                        <Icon name="comment" size={18} />
+                        <strong>Comments</strong>
+                        {task.comments.length > 0 && <span>{task.comments.length}</span>}
+                    </header>
+
+                    {task.comments.length > 0 ? (
+                        <div className="task-comments__list">
+                            {task.comments.map((comment) => (
+                                <article className="task-comment" key={comment.id}>
+                                    <span className="task-comment__avatar">
+                                        {comment.author.avatarUrl
+                                            ? <img alt="" src={comment.author.avatarUrl} />
+                                            : <Icon name="user" size={16} />}
+                                    </span>
+                                    <div>
+                                        <header>
+                                            <strong>{comment.author.name}</strong>
+                                            <time dateTime={comment.createdAt}>{formatCommentDate(comment.createdAt)}</time>
+                                        </header>
+                                        <p>{comment.body}</p>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="task-comments__empty">No comments yet. Add the first bit of context.</p>
+                    )}
+
+                    <form className="comment-composer" onSubmit={submitComment}>
+                        <Icon name="comment" size={17} />
+                        <textarea
+                            aria-describedby={commentError ? 'comment-error' : undefined}
+                            aria-invalid={Boolean(commentError)}
+                            aria-label="Add a comment"
+                            disabled={commentProcessing}
+                            maxLength={65_535}
+                            onChange={(event) => setCommentBody(event.target.value)}
+                            onKeyDown={handleCommentKeyDown}
+                            placeholder="Add a comment…"
+                            rows={2}
+                            value={commentBody}
+                        />
+                        <button
+                            aria-label="Post comment"
+                            disabled={commentProcessing || !commentBody.trim()}
+                            title="Post comment"
+                            type="submit"
+                        >
+                            <Icon name="chevron-right" size={18} />
+                        </button>
+                    </form>
+                    {commentError && <p className="comment-error" id="comment-error" role="alert">{commentError}</p>}
+                    <p className="comment-hint">Press Enter to post · Shift + Enter for a new line</p>
+                </section>
             </div>
 
             <footer className="details-footer">
-                <Button aria-label="Delete task" disabled={processing} onClick={() => onDelete(task.id)} variant="danger"><Icon name="trash" size={18} />Delete</Button>
-                <div>
-                    <Button disabled={processing} onClick={onClose} variant="ghost">Cancel</Button>
-                    <Button disabled={processing || !draft.title.trim()} onClick={() => onSave(draft)} variant="primary"><Icon name="check" size={18} />{processing ? 'Saving…' : 'Save'}</Button>
-                </div>
+                <Button aria-label="Close task details" className="details-footer-close" disabled={processing} onClick={onClose} size="sm" title="Close task details" variant="ghost"><Icon name="chevron-left" size={20} /></Button>
+                <Button className="details-save-button" disabled={processing || !draft.title.trim()} onClick={() => onSave(draft)} variant="primary"><Icon name="check" size={19} />{processing ? 'Saving…' : 'Save'}</Button>
+                <Button aria-label="Delete task" className="details-delete-button" disabled={processing} onClick={() => onDelete(task.id)} size="sm" title="Delete task" variant="ghost"><Icon name="trash" size={18} /></Button>
             </footer>
         </aside>
     );

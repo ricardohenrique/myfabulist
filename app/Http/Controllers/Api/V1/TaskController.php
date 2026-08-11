@@ -22,14 +22,14 @@ class TaskController extends Controller
     {
         $this->authorize('view', $task);
 
-        return TaskResource::make($task)->response();
+        return TaskResource::make($this->tasks->details($task))->response();
     }
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse
     {
         $task = $this->tasks->update($task, $request->toData());
 
-        return TaskResource::make($task)->response();
+        return TaskResource::make($this->tasks->details($task))->response();
     }
 
     public function destroy(Task $task): Response

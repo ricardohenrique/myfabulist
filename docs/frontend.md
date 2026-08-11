@@ -147,9 +147,17 @@ The details view can contain:
 * Important/starred status
 * Notes
 * Destination list
+* Chronological plain-text comments with author name and avatar
 * Delete action
 
 Keep the details interface simple and avoid making it feel like a complex project-management tool.
+
+The comment composer posts immediately when the user presses Enter. Shift +
+Enter inserts a new line. Comments render as plain text and display the
+author's profile image when available, with a neutral user icon as fallback.
+The task-details footer uses an icon-only close action on the left, a slightly
+larger blue Save button in the center, and an icon-only delete action on the
+right.
 
 ## Visual style
 

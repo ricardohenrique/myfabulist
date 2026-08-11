@@ -6,6 +6,7 @@ namespace Tests\Feature\Database;
 
 use App\Models\Folder;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\TaskList;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,6 +60,20 @@ class FactorySmokeTest extends TestCase
 
         $this->assertDatabaseHas('tasks', ['id' => $task->id]);
         $this->assertSame($task->taskList->user_id, $task->user_id);
+    }
+
+    public function test_task_comment_factory_for_task_state(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+        $comment = TaskComment::factory()->forTask($task, $user)->create();
+
+        $this->assertDatabaseHas('task_comments', [
+            'id' => $comment->id,
+            'task_id' => $task->id,
+            'user_id' => $user->id,
+        ]);
     }
 
     public function test_task_factory_for_task_list_state(): void

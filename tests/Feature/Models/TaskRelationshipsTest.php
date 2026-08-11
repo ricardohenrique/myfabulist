@@ -6,6 +6,7 @@ namespace Tests\Feature\Models;
 
 use App\Models\Folder;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\TaskList;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -46,6 +47,31 @@ class TaskRelationshipsTest extends TestCase
             'id' => $list->id,
             'folder_id' => null,
         ]);
+    }
+
+    public function test_a_task_comment_belongs_to_its_task_and_author(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+        $comment = TaskComment::factory()->forTask($task, $user)->create();
+
+        $this->assertTrue($task->is($comment->task));
+        $this->assertTrue($user->is($comment->author));
+        $this->assertTrue($task->comments->contains($comment));
+        $this->assertTrue($user->taskComments->contains($comment));
+    }
+
+    public function test_force_deleting_a_task_cascades_its_comments(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+        $comment = TaskComment::factory()->forTask($task, $user)->create();
+
+        $task->forceDelete();
+
+        $this->assertDatabaseMissing('task_comments', ['id' => $comment->id]);
     }
 
     public function test_soft_deleting_a_list_leaves_its_tasks_intact_but_hidden(): void

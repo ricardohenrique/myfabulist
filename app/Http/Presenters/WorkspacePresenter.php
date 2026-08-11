@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Presenters;
 
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\TaskList;
 use App\Models\User;
 use App\Services\Data\NavigationFolder;
@@ -118,6 +119,18 @@ class WorkspacePresenter
             'completedAt' => $task->completed_at?->toIso8601String(),
             'taskListId' => $task->task_list_id,
             'taskListName' => $list->name,
+            'comments' => $task->comments
+                ->map(fn (TaskComment $comment): array => [
+                    'id' => $comment->id,
+                    'body' => $comment->body,
+                    'author' => [
+                        'id' => $comment->author->id,
+                        'name' => $comment->author->name,
+                        'avatarUrl' => $comment->author->profile_photo_url,
+                    ],
+                    'createdAt' => $comment->created_at?->toIso8601String(),
+                ])
+                ->all(),
         ];
     }
 

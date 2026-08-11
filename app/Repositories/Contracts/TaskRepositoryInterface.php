@@ -55,6 +55,8 @@ interface TaskRepositoryInterface
      */
     public function findDeletedForUser(int $taskId, User $user): ?Task;
 
+    public function loadDetails(Task $task): Task;
+
     public function create(User $user, TaskList $taskList, string $title, int $position): Task;
 
     public function update(Task $task, string $title, ?string $note, ?Carbon $dueDate, bool $isStarred): Task;

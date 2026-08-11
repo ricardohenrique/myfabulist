@@ -75,7 +75,7 @@ function SortableListRow({
             aria-label={sortableEnabled ? `Reorder list ${list.name}` : undefined}
             aria-roledescription={sortableEnabled ? 'sortable list' : undefined}
             className={`nav-item-wrap ${sortableEnabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
-            ref={sortable.ref}
+            ref={sortableEnabled ? sortable.ref : undefined}
             role={sortableEnabled ? 'group' : undefined}
             tabIndex={sortableEnabled ? 0 : undefined}
         >
@@ -236,7 +236,7 @@ function SortableFolder({
             aria-label={sortableEnabled ? `Reorder folder ${folder.name}` : undefined}
             aria-roledescription={sortableEnabled ? 'sortable folder' : undefined}
             className={`folder-group ${sortableEnabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
-            ref={sortable.ref}
+            ref={sortableEnabled ? sortable.ref : undefined}
             role={sortableEnabled ? 'group' : undefined}
             tabIndex={sortableEnabled ? 0 : undefined}
         >

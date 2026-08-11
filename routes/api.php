@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\InboxController;
 use App\Http\Controllers\Api\V1\MoveTaskController;
 use App\Http\Controllers\Api\V1\RestoreTaskController;
 use App\Http\Controllers\Api\V1\StarredTaskController;
+use App\Http\Controllers\Api\V1\TaskCommentController;
 use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TaskListController;
 use App\Http\Controllers\Api\V1\TaskListOrderController;
@@ -66,6 +67,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
         ->whereNumber('list');
 
     Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
+    Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index'])->name('tasks.comments.index');
+    Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
     Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
     Route::post('tasks/{task}/complete', CompleteTaskController::class)->name('tasks.complete');

@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\FolderOrderController;
 use App\Http\Controllers\Web\MoveTaskController;
 use App\Http\Controllers\Web\RestoreTaskController;
 use App\Http\Controllers\Web\StarTaskController;
+use App\Http\Controllers\Web\TaskCommentController;
 use App\Http\Controllers\Web\TaskController;
 use App\Http\Controllers\Web\TaskListController as WebTaskListController;
 use App\Http\Controllers\Web\TaskListOrderController;
@@ -50,6 +51,7 @@ Route::middleware('auth')->group(function () {
     Route::post('lists/{list}/tasks', [TaskListTaskController::class, 'store'])->whereNumber('list')->name('lists.tasks.store');
     Route::put('lists/{list}/task-order', TaskOrderController::class)->whereNumber('list')->name('lists.task-order');
     Route::put('tasks/{task}', [TaskController::class, 'update'])->whereNumber('task')->name('tasks.update');
+    Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])->whereNumber('task')->name('tasks.comments.store');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->whereNumber('task')->name('tasks.destroy');
     Route::post('tasks/{task}/complete', CompleteTaskController::class)->whereNumber('task')->name('tasks.complete');
     Route::post('tasks/{task}/restore', RestoreTaskController::class)->whereNumber('task')->name('tasks.restore');

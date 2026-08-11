@@ -2,6 +2,7 @@
 
 use App\Models\Folder;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\TaskList;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,6 +40,30 @@ it('renders an unverified users inbox from canonical services', function () {
             ->where('workspace.tasks.1.id', $completed->id)
             ->where('workspace.completedCount', 1)
             ->where('workspace.inbox.activeTaskCount', 1));
+});
+
+it('renders task comments and creates them through the web adapter', function () {
+    $user = User::factory()->create(['name' => 'Grace Hopper']);
+    $inbox = TaskList::factory()->inbox()->create(['user_id' => $user->id]);
+    $task = Task::factory()->forTaskList($inbox)->create();
+    $existing = TaskComment::factory()->forTask($task, $user)->create(['body' => 'Existing context']);
+
+    $this->actingAs($user)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.tasks.0.comments.0.id', $existing->id)
+            ->where('workspace.tasks.0.comments.0.body', 'Existing context')
+            ->where('workspace.tasks.0.comments.0.author.name', 'Grace Hopper'));
+
+    $this->actingAs($user)->post(route('tasks.comments.store', $task), [
+        'body' => '  New context  ',
+    ])->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('task_comments', [
+        'task_id' => $task->id,
+        'user_id' => $user->id,
+        'body' => 'New context',
+    ]);
 });
 
 it('renders ordered folder navigation and the selected list', function () {

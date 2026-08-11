@@ -31,7 +31,7 @@ export function TaskRow({
         id: `task-${task.id}`,
         index: sortableIndex,
         type: 'task',
-        disabled: completed || sortableDisabled,
+        disabled: completed,
     });
 
     return (
@@ -39,7 +39,7 @@ export function TaskRow({
             aria-label={!completed && !sortableDisabled ? `Reorder task ${task.title}` : undefined}
             aria-roledescription={!completed && !sortableDisabled ? 'sortable task' : undefined}
             className={`task-row ${completed ? 'is-completed' : ''} ${!completed && !sortableDisabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
-            ref={completed ? undefined : sortable.ref}
+            ref={!completed && !sortableDisabled ? sortable.ref : undefined}
             role={!completed && !sortableDisabled ? 'group' : undefined}
             tabIndex={!completed && !sortableDisabled ? 0 : undefined}
         >

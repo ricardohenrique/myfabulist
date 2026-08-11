@@ -61,6 +61,11 @@ class TaskService
         return $this->tasks->update($task, $title, $data->note, $data->dueDate, $data->isStarred);
     }
 
+    public function details(Task $task): Task
+    {
+        return $this->tasks->loadDetails($task);
+    }
+
     public function rename(Task $task, string $title): Task
     {
         return $this->tasks->rename($task, $this->requireNonBlankTitle($title));

@@ -115,7 +115,8 @@ Guests can register and sign in. Authenticated users can:
 - navigate Inbox, Starred, folders, and lists;
 - create, rename, move, reorder, and delete folders/lists within their rules;
 - quickly add, edit, complete/restore, star, move, reorder, and delete tasks;
-- edit task title, note, due date, starred state, and destination list; and
+- edit task title, note, due date, starred state, and destination list;
+- add plain-text comments with author attribution from task details; and
 - undo the latest completion, star change, or task move.
 
 Email verification, password reset, 2FA, passkeys, account settings, search,

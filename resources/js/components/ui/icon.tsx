@@ -17,6 +17,7 @@ const paths: Record<IconName, ReactNode> = {
     'chevron-right': <path d="m9 18 6-6-6-6" />,
     circle: <circle cx="12" cy="12" r="9" />,
     close: <path d="M18 6 6 18M6 6l12 12" />,
+    comment: <><path d="M4 5h16v11H8l-4 4z" /><path d="M8 9h8M8 12h5" /></>,
     folder: <path d="M3 6h7l2 2h9v11H3z" />,
     inbox: <><path d="M4 5h16l2 9v5H2v-5z" /><path d="M2 14h5l2 3h6l2-3h5" /></>,
     list: <><path d="M9 6h12M9 12h12M9 18h12" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></>,

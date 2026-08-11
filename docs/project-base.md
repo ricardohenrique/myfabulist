@@ -225,6 +225,9 @@ Do not include complex permissions, workload dashboards, or multiple assignees i
 
 C7. Comments
 Collaborators could add a chronological discussion to a task. Wunderlist supported task comments.
+The initial implementation is deliberately basic: plain text only, immediate
+Enter-to-post, chronological ordering, and author attribution. Editing,
+deleting, reactions, mentions, and notification delivery remain future work.
 
 C8. Attachments
 Allow users to attach files or images to a task. Wunderlist included file attachments in task details.
@@ -374,4 +377,3 @@ Task
 /api/v1/tasks/{task}/restore
 /api/v1/tasks/{task}/move
 /api/v1/lists/{list}/task-order
-

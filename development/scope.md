@@ -22,8 +22,8 @@ field. Lists may also remain ungrouped.
   another without manually restoring focus.
 - Active tasks are easy to scan and completed tasks remain available in a
   separate, visually quiet section.
-- Folder, list, task, ordering, completion, and task-detail state persist across
-  sessions and are isolated by user.
+- Folder, list, task, ordering, completion, comments, and task-detail state
+  persist across sessions and are isolated by user.
 - The primary workflow remains clear and usable on desktop, tablet, mobile web,
   and future native clients.
 - Browser, API, and native clients share domain rules and do not create
@@ -81,6 +81,9 @@ field. Lists may also remain ungrouped.
   most recent completion.
 - Cross-list movement is explicit and atomic. Reordering is scoped to one list
   and rejects stale, incomplete, duplicate, or foreign ID sets.
+- Users can add chronological plain-text comments to their tasks. Each comment
+  records its author for the future shared-list model; comments cannot be blank
+  and use the same `TEXT` storage boundary as notes.
 
 ### Completed tasks
 
@@ -138,8 +141,9 @@ field. Lists may also remain ungrouped.
   `/api/v1` namespace.
 - Sanctum protects domain endpoints. Email verification is not required in the
   current release.
-- API Resources provide stable folder, list, and task payloads. Domain and
-  validation errors retain consistent machine-readable response shapes.
+- API Resources provide stable folder, list, task, and task-comment payloads.
+  Domain and validation errors retain consistent machine-readable response
+  shapes.
 - Browser controllers reuse domain services in-process and never call the API
   over loopback HTTP.
 
@@ -163,7 +167,7 @@ The current product slice includes:
 - permanent Inbox creation and navigation;
 - Starred smart view;
 - quick task creation, rename, completion/restoration, notes, due dates,
-  starring, moving, reordering, and soft deletion;
+  starring, moving, reordering, soft deletion, and attributed comments;
 - folder/list creation, rename, move, reorder, and guarded deletion;
 - responsive browser navigation and task details;
 - focused undo for completion, moving, and starring;
@@ -191,7 +195,7 @@ stable:
 - recurring tasks;
 - reminders and browser/native notifications;
 - one-level subtasks;
-- list sharing, collaborators, assignment, and comments;
+- list sharing, collaborators, and assignment;
 - file or image attachments;
 - natural-language date extraction;
 - themes and custom backgrounds; and
@@ -217,8 +221,8 @@ implementation.
 
 - SQLite is the default local database; deployment database choice remains
   environment-configurable.
-- Folder, list, task, order, completion, detail, and starred state persist on
-  the server.
+- Folder, list, task, order, completion, detail, comment, and starred state
+  persist on the server.
 - Task and list deletion is soft deletion. Folder deletion follows the explicit
   detach-or-delete-list workflow and must be transactional.
 - Restoration is allowed only when ownership and destination invariants remain

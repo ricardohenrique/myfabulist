@@ -13,6 +13,7 @@ import * as folderRoutes from '@/routes/folders';
 import * as listRoutes from '@/routes/lists';
 import { store as storeTask } from '@/routes/lists/tasks';
 import * as taskRoutes from '@/routes/tasks';
+import { store as storeTaskComment } from '@/routes/tasks/comments';
 import type {
     NavigationFolder,
     NavigationList,
@@ -55,6 +56,8 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [deleteDialog, setDeleteDialog] = useState<DeleteDialog | null>(null);
     const [folderDeleteStrategy, setFolderDeleteStrategy] = useState<'detach' | 'delete'>('detach');
     const [taskErrors, setTaskErrors] = useState<Record<string, string>>({});
+    const [commentError, setCommentError] = useState('');
+    const [commentProcessing, setCommentProcessing] = useState(false);
     const [pendingTaskIds, setPendingTaskIds] = useState<number[]>([]);
     const [taskOrder, setTaskOrder] = useState<number[]>(() => workspace.tasks
         .filter((task) => !task.completedAt)
@@ -188,6 +191,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
             },
             onError: (errors) => setTaskErrors(errors),
             onFinish: () => setTaskPending(draft.id, false),
+        });
+    };
+
+    const addComment = (taskId: number, body: string, onSuccess: () => void) => {
+        setCommentError('');
+        setCommentProcessing(true);
+
+        router.post(storeTaskComment(taskId), { body }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess,
+            onError: (errors) => setCommentError(errors.body ?? errors.domain ?? 'The comment could not be saved.'),
+            onFinish: () => setCommentProcessing(false),
         });
     };
 
@@ -385,7 +401,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                                             <TaskRow
                                                 key={task.id}
                                                 onDelete={(item) => setDeleteDialog({ kind: 'task', item })}
-                                                onSelect={(selected) => { setTaskErrors({}); setSelectedTaskId(selected.id); }}
+                                                onSelect={(selected) => { setTaskErrors({}); setCommentError(''); setSelectedTaskId(selected.id); }}
                                                 onToggleComplete={toggleComplete}
                                                 onToggleStar={toggleStar}
                                                 pending={pendingTaskIds.includes(task.id)}
@@ -418,7 +434,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                                                 completed
                                                 key={task.id}
                                                 onDelete={(item) => setDeleteDialog({ kind: 'task', item })}
-                                                onSelect={(selected) => { setTaskErrors({}); setSelectedTaskId(selected.id); }}
+                                                onSelect={(selected) => { setTaskErrors({}); setCommentError(''); setSelectedTaskId(selected.id); }}
                                                 onToggleComplete={toggleComplete}
                                                 onToggleStar={toggleStar}
                                                 pending={pendingTaskIds.includes(task.id)}
@@ -435,8 +451,11 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
             {selectedTask && (
                 <TaskDetails
+                    commentError={commentError}
+                    commentProcessing={commentProcessing}
                     errors={taskErrors}
                     lists={destinationLists}
+                    onAddComment={addComment}
                     onClose={() => setSelectedTaskId(null)}
                     onDelete={() => setDeleteDialog({ kind: 'task', item: selectedTask })}
                     onSave={saveTask}

@@ -90,7 +90,8 @@ that materially expand the boilerplate's stack or maintenance burden.
 ## Target application architecture
 
 - The remote Laravel application and its database are canonical for account,
-  folder, list, task, ordering, completion, due-date, note, and starred data.
+  folder, list, task, ordering, completion, due-date, note, comment, and starred
+  data.
 - The target browser UI uses Inertia and React with TypeScript. Pages belong in
   `resources/js/pages`, shared product components in
   `resources/js/components`, and focused client logic in `resources/js/lib` or
@@ -127,13 +128,17 @@ that materially expand the boilerplate's stack or maintenance burden.
 
 - Every folder, list, and task belongs to exactly one user. A task and its list
   must have the same owner; a list and its folder must have the same owner.
+  Every task comment records both its task and author so attribution remains
+  stable when list sharing is introduced.
 - Every user has exactly one default Inbox list. The Inbox is ungrouped,
   undeletable, and cannot be renamed through product workflows.
 - Lists may be ungrouped or belong to one folder. Deleting a non-empty folder
   must use an explicit choice: detach its lists or delete them through the
   documented destructive workflow.
 - Task titles are required after trimming; blank titles are invalid. Notes and
-  due dates are optional. Importance is a binary starred flag.
+  due dates are optional. Importance is a binary starred flag. Task comments
+  are trimmed plain text, non-blank, chronological, and limited to 65,535
+  characters.
 - Active and completed tasks remain distinct. Completing records completion;
   restoring returns the task to the active collection.
 - Positions are scoped to their container: folders per user, lists per

@@ -23,6 +23,17 @@ export type NavigationFolder = {
 
 export type DueDateStatus = 'overdue' | 'today' | 'upcoming' | null;
 
+export type TaskCommentSummary = {
+    id: number;
+    body: string;
+    author: {
+        id: number;
+        name: string;
+        avatarUrl: string | null;
+    };
+    createdAt: string;
+};
+
 export type TaskSummary = {
     id: number;
     title: string;
@@ -34,6 +45,7 @@ export type TaskSummary = {
     completedAt: string | null;
     taskListId: number;
     taskListName: string;
+    comments: TaskCommentSummary[];
 };
 
 export type WorkspaceData = {
@@ -71,6 +83,7 @@ export type IconName =
     | 'chevron-right'
     | 'circle'
     | 'close'
+    | 'comment'
     | 'folder'
     | 'inbox'
     | 'list'

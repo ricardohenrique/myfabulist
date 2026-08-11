@@ -33,6 +33,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property-read Collection<int, Folder> $folders
  * @property-read Collection<int, TaskList> $taskLists
  * @property-read Collection<int, Task> $tasks
+ * @property-read Collection<int, TaskComment> $taskComments
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -102,5 +103,13 @@ class User extends Authenticatable
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    /**
+     * @return HasMany<TaskComment, $this>
+     */
+    public function taskComments(): HasMany
+    {
+        return $this->hasMany(TaskComment::class);
     }
 }

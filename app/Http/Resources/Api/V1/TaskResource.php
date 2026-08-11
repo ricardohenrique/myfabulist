@@ -28,6 +28,7 @@ class TaskResource extends JsonResource
             'is_starred' => $this->is_starred,
             'due_date' => $this->due_date?->format('Y-m-d'),
             'position' => $this->position,
+            'comments' => TaskCommentResource::collection($this->whenLoaded('comments')),
             'list' => $this->whenLoaded('taskList', fn () => TaskListResource::make($this->taskList)),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
