@@ -166,6 +166,9 @@ use relative language, while older dates use a localized calendar date.
 The task-details footer uses an icon-only close action on the left, a slightly
 larger blue Save button in the center, and an icon-only delete action on the
 right.
+Task-detail form controls use a soft leaf-green focus ring and warm-neutral
+focused surface so keyboard focus stays visible without introducing a separate
+blue accent.
 
 ## Visual style
 
