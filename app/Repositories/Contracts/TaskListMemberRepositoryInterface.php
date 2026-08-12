@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Contracts;
 
+use App\Exceptions\TaskListMemberLimitReachedException;
 use App\Models\TaskList;
 use App\Models\TaskListMember;
 use App\Models\User;
@@ -43,9 +44,21 @@ interface TaskListMemberRepositoryInterface
     public function createOwnerMembership(TaskList $taskList, ?int $folderId, int $position): TaskListMember;
 
     /**
-     * Create a pending invitation row for $user on $taskList, attributed to
-     * $invitedBy. Not called by anything yet in Step 1 — the sharing
-     * lifecycle (Step 5) is its first caller.
+     * The single entry point `ListSharingService::invite()` calls regardless
+     * of whether this is a fresh invite or a re-invite after a decline — an
+     * upsert on the unique `(task_list_id, user_id)` pair (Plan 1, Step 5):
+     *
+     * - No existing row for this pair → insert a fresh `pending` row,
+     *   attributed to `$invitedBy`.
+     * - Existing `declined` row → update it back to `pending`, refreshing
+     *   `invited_by_user_id`/`invited_at` and clearing `responded_at` — it is
+     *   an open invitation again, not yet responded to.
+     * - Existing `pending` row → idempotent no-op; the existing row is
+     *   returned as-is (a duplicate pending invite is not an error).
+     *
+     * This is a pure upsert primitive — whether inviting is even *allowed*
+     * (member cap, self-invite, already-accepted, Inbox) is a decision the
+     * Service makes before ever calling this method.
      */
     public function create(TaskList $taskList, User $user, User $invitedBy): TaskListMember;
 
@@ -68,4 +81,25 @@ interface TaskListMemberRepositoryInterface
     public function nextPositionFor(User $user, ?int $folderId): int;
 
     public function countAcceptedFor(TaskList $taskList): int;
+
+    /**
+     * Atomically accept a pending invitation: locks $membership's list's
+     * `accepted` membership rows (`lockForUpdate()`, mirroring
+     * `EloquentTaskListRepository::applyOrder()`/`EloquentFolderRepository::applyOrder()`'s
+     * own locked-read-then-write pattern), re-checks the cap against that
+     * locked, up-to-date count, then flips $membership to `accepted` and
+     * places it at $position (F4: always ungrouped, `folder_id = null`).
+     *
+     * This is the race-safe replacement for a plain, non-locking
+     * `countAcceptedFor()` check followed by separate `updateStatus()` +
+     * `updatePlacement()` calls: two concurrent accepts on the same list
+     * would otherwise both read the same pre-write count and both pass a
+     * cap check that should only have let one of them through (N5). The
+     * lock serializes them — the second call's locked read blocks until the
+     * first transaction commits, then re-reads the now-current count.
+     *
+     * @throws TaskListMemberLimitReachedException when the locked count is
+     *                                             already >= $maxMembers.
+     */
+    public function acceptInvitation(TaskListMember $membership, int $position, int $maxMembers): TaskListMember;
 }

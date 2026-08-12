@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Repositories;
 
+use App\Exceptions\TaskListMemberLimitReachedException;
 use App\Models\Folder;
 use App\Models\TaskList;
 use App\Models\TaskListMember;
@@ -134,6 +135,80 @@ class EloquentTaskListMemberRepositoryTest extends TestCase
         $this->assertSame($inviter->id, $member->invited_by_user_id);
         $this->assertNotNull($member->invited_at);
         $this->assertNull($member->responded_at);
+    }
+
+    public function test_create_is_idempotent_for_an_existing_pending_invitation(): void
+    {
+        $list = TaskList::factory()->create();
+        $invitee = User::factory()->create();
+        $firstInviter = User::factory()->create();
+        $secondInviter = User::factory()->create();
+
+        $first = $this->repository->create($list, $invitee, $firstInviter);
+        $second = $this->repository->create($list, $invitee, $secondInviter);
+
+        $this->assertTrue($first->is($second));
+        $this->assertSame($firstInviter->id, $second->invited_by_user_id);
+        $this->assertSame(1, TaskListMember::query()->where('task_list_id', $list->id)->where('user_id', $invitee->id)->count());
+    }
+
+    public function test_create_reactivates_a_declined_row_back_to_pending_on_the_same_row(): void
+    {
+        $list = TaskList::factory()->create();
+        $invitee = User::factory()->create();
+        $originalInviter = User::factory()->create();
+        $reInviter = User::factory()->create();
+
+        $declined = TaskListMember::factory()
+            ->forTaskList($list, $invitee)
+            ->create([
+                'status' => 'declined',
+                'invited_by_user_id' => $originalInviter->id,
+                'invited_at' => now()->subDay(),
+                'responded_at' => now()->subHour(),
+            ]);
+
+        $reInvited = $this->repository->create($list, $invitee, $reInviter);
+
+        $this->assertSame($declined->id, $reInvited->id);
+        $this->assertSame('pending', $reInvited->status);
+        $this->assertSame($reInviter->id, $reInvited->invited_by_user_id);
+        $this->assertNull($reInvited->responded_at);
+        $this->assertTrue($reInvited->invited_at->greaterThan($declined->invited_at));
+        $this->assertSame(1, TaskListMember::query()->where('task_list_id', $list->id)->where('user_id', $invitee->id)->count());
+    }
+
+    public function test_accept_invitation_flips_status_places_ungrouped_and_stamps_responded_at(): void
+    {
+        $list = TaskList::factory()->create();
+        $member = User::factory()->create();
+        $pending = TaskListMember::factory()->forTaskList($list, $member)->pending()->create();
+
+        $accepted = $this->repository->acceptInvitation($pending, 3, 10);
+
+        $this->assertSame('accepted', $accepted->status);
+        $this->assertNull($accepted->folder_id);
+        $this->assertSame(3, $accepted->position);
+        $this->assertNotNull($accepted->responded_at);
+        $this->assertSame('accepted', $pending->fresh()->status);
+    }
+
+    public function test_accept_invitation_throws_and_writes_nothing_when_the_locked_count_is_at_the_cap(): void
+    {
+        $owner = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        $member = User::factory()->create();
+        $pending = TaskListMember::factory()->forTaskList($list, $member)->pending()->create();
+        // Owner's own accepted row already makes the locked count 1.
+
+        try {
+            $this->repository->acceptInvitation($pending, 0, 1);
+            $this->fail('Expected TaskListMemberLimitReachedException to be thrown.');
+        } catch (TaskListMemberLimitReachedException) {
+            // expected
+        }
+
+        $this->assertSame('pending', $pending->fresh()->status);
     }
 
     public function test_update_status_persists_the_new_status_and_stamps_responded_at(): void

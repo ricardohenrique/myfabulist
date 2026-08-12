@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Exceptions\TaskListMemberLimitReachedException;
 use App\Models\TaskList;
 use App\Models\TaskListMember;
 use App\Models\User;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterface
 {
@@ -78,20 +80,48 @@ class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterf
 
     public function create(TaskList $taskList, User $user, User $invitedBy): TaskListMember
     {
-        $member = new TaskListMember;
+        // Find-then-branch rather than a single upsert query: the three
+        // branches have materially different writes (a fresh insert; an
+        // update that also clears responded_at; a genuine no-op that must
+        // return the existing row untouched), and TaskListMember has no
+        // natural single-statement "upsert with conditional columns"
+        // expression that reads as clearly as this does. The unique
+        // (task_list_id, user_id) constraint is still the real guarantee
+        // against a duplicate row — this method just decides which of the
+        // three valid outcomes applies before writing.
+        $existing = $this->findMembership($taskList, $user);
 
-        $member->forceFill([
-            'task_list_id' => $taskList->id,
-            'user_id' => $user->id,
-            'status' => 'pending',
-            'folder_id' => null,
-            'position' => 0,
-            'invited_by_user_id' => $invitedBy->id,
-            'invited_at' => now(),
-            'responded_at' => null,
-        ])->save();
+        if ($existing === null) {
+            $member = new TaskListMember;
 
-        return $member;
+            $member->forceFill([
+                'task_list_id' => $taskList->id,
+                'user_id' => $user->id,
+                'status' => 'pending',
+                'folder_id' => null,
+                'position' => 0,
+                'invited_by_user_id' => $invitedBy->id,
+                'invited_at' => now(),
+                'responded_at' => null,
+            ])->save();
+
+            return $member;
+        }
+
+        if ($existing->status === 'declined') {
+            $existing->forceFill([
+                'status' => 'pending',
+                'invited_by_user_id' => $invitedBy->id,
+                'invited_at' => now(),
+                'responded_at' => null,
+            ])->save();
+        }
+
+        // A 'pending' row is returned as-is — the idempotent duplicate-invite
+        // case. An 'accepted' row should never reach here: the Service
+        // rejects that case (AlreadyMemberException) before ever calling
+        // create().
+        return $existing;
     }
 
     public function updateStatus(TaskListMember $member, string $status): TaskListMember
@@ -146,5 +176,39 @@ class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterf
             ->where('task_list_id', $taskList->id)
             ->where('status', 'accepted')
             ->count();
+    }
+
+    public function acceptInvitation(TaskListMember $membership, int $position, int $maxMembers): TaskListMember
+    {
+        return DB::transaction(function () use ($membership, $position, $maxMembers): TaskListMember {
+            // Locks every existing accepted row for this list — mirrors
+            // EloquentTaskListRepository::applyOrder()/
+            // EloquentFolderRepository::applyOrder()'s own locked-read-
+            // then-write pattern. A concurrent acceptInvitation() call for
+            // the same list blocks on this same locked read until this
+            // transaction commits or rolls back, then re-reads the current
+            // (post-commit) count rather than a stale snapshot — this is
+            // what makes the cap check below race-safe (N5).
+            $lockedAcceptedCount = TaskListMember::query()
+                ->where('task_list_id', $membership->task_list_id)
+                ->where('status', 'accepted')
+                ->lockForUpdate()
+                ->count();
+
+            if ($lockedAcceptedCount >= $maxMembers) {
+                throw TaskListMemberLimitReachedException::for($membership->loadMissing('taskList')->taskList);
+            }
+
+            $membership->forceFill([
+                'status' => 'accepted',
+                'responded_at' => now(),
+                // F4: a newly accepted member always lands ungrouped, never
+                // inheriting the sharer's folder.
+                'folder_id' => null,
+                'position' => $position,
+            ])->save();
+
+            return $membership;
+        });
     }
 }

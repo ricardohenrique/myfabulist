@@ -10,6 +10,7 @@ use App\Repositories\Contracts\TaskCommentRepositoryInterface;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
 use Tests\TestCase;
@@ -86,6 +87,7 @@ class LayeringTest extends TestCase
             TaskRepositoryInterface::class,
             SubtaskRepositoryInterface::class,
             TaskListMemberRepositoryInterface::class,
+            UserRepositoryInterface::class,
         ];
 
         $repositoriesDirectory = app_path('Repositories');
