@@ -75,6 +75,10 @@ class FolderServiceTest extends TestCase
         $service->detachLists($folder);
 
         $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
-        $this->assertDatabaseHas('task_lists', ['id' => $list->id, 'folder_id' => null]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $user->id,
+            'folder_id' => null,
+        ]);
     }
 }

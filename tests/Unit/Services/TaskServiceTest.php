@@ -78,7 +78,7 @@ class TaskServiceTest extends TestCase
         $task = new Task;
 
         $taskLists = Mockery::mock(TaskListRepositoryInterface::class);
-        $taskLists->shouldReceive('findForUser')->once()->with(99, $user)->andReturnNull();
+        $taskLists->shouldReceive('findOwnedBy')->once()->with(99, $user)->andReturnNull();
 
         $service = new TaskService(Mockery::mock(TaskRepositoryInterface::class), $taskLists);
 
@@ -95,7 +95,7 @@ class TaskServiceTest extends TestCase
         $movedTask = new Task(['task_list_id' => 5]);
 
         $taskLists = Mockery::mock(TaskListRepositoryInterface::class);
-        $taskLists->shouldReceive('findForUser')->once()->with(5, $user)->andReturn($targetList);
+        $taskLists->shouldReceive('findOwnedBy')->once()->with(5, $user)->andReturn($targetList);
 
         $tasks = Mockery::mock(TaskRepositoryInterface::class);
         $tasks->shouldReceive('moveToList')->once()->with($task, $targetList, null)->andReturn($movedTask);

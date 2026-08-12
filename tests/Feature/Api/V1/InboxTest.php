@@ -35,6 +35,24 @@ class InboxTest extends TestCase
         $response->assertJsonPath('data.list.is_default', true);
     }
 
+    /**
+     * Regression: `findDefaultFor()` must carry the same viewer-relative
+     * placement `allForUser()`'s join produces (Plan 1, Step 2 review
+     * follow-up) — the Inbox is always ungrouped at position 0 (D8/A2), so
+     * a wire-format `"position": null` here is a real V1 contract break,
+     * not just a cosmetic gap.
+     */
+    public function test_it_reports_the_inboxs_placement_as_ungrouped_at_position_zero(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->getJson('/api/v1/inbox');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.list.folder_id', null);
+        $response->assertJsonPath('data.list.position', 0);
+    }
+
     public function test_active_tasks_precede_completed_tasks_and_completed_tasks_are_most_recent_first(): void
     {
         $user = User::factory()->create();

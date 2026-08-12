@@ -8,6 +8,7 @@ use App\Models\Folder;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use App\Services\NavigationService;
 use App\Services\TaskListService;
@@ -60,8 +61,9 @@ class DemoSeederTest extends TestCase
             $this->assertCount(1, $inboxes, "user {$user->id} does not have exactly one default list.");
 
             $inbox = $inboxes->first();
-            $this->assertNull($inbox->folder_id);
-            $this->assertSame(0, $inbox->position);
+            $membership = $this->membershipFor($inbox, $user);
+            $this->assertNull($membership->folder_id);
+            $this->assertSame(0, $membership->position);
         });
     }
 
@@ -74,17 +76,17 @@ class DemoSeederTest extends TestCase
             $this->assertGreaterThanOrEqual(3, $folderCount);
             $this->assertLessThanOrEqual(5, $folderCount);
 
-            $folderedListCount = TaskList::query()
+            $folderedListCount = TaskListMember::query()
                 ->where('user_id', $user->id)
                 ->whereNotNull('folder_id')
                 ->count();
             $this->assertGreaterThanOrEqual(5, $folderedListCount);
             $this->assertLessThanOrEqual(10, $folderedListCount);
 
-            $standaloneListCount = TaskList::query()
+            $standaloneListCount = TaskListMember::query()
                 ->where('user_id', $user->id)
                 ->whereNull('folder_id')
-                ->where('is_default', false)
+                ->whereHas('taskList', fn ($query) => $query->where('is_default', false))
                 ->count();
             $this->assertGreaterThanOrEqual(2, $standaloneListCount);
             $this->assertLessThanOrEqual(4, $standaloneListCount);
@@ -138,7 +140,7 @@ class DemoSeederTest extends TestCase
         (new DemoSeeder)->run(self::USER_COUNT);
 
         Folder::query()->get()->each(function (Folder $folder): void {
-            $listCount = TaskList::query()->where('folder_id', $folder->id)->count();
+            $listCount = TaskListMember::query()->where('folder_id', $folder->id)->count();
             $this->assertGreaterThan(0, $listCount, "folder {$folder->id} has no lists.");
         });
     }
@@ -151,9 +153,10 @@ class DemoSeederTest extends TestCase
             $this->assertSame($task->taskList->user_id, $task->user_id);
         });
 
-        TaskList::query()->whereNotNull('folder_id')->with('folder')->get()->each(function (TaskList $list): void {
-            $this->assertSame($list->folder->user_id, $list->user_id);
-        });
+        TaskListMember::query()->whereNotNull('folder_id')->with(['folder', 'taskList'])->get()
+            ->each(function (TaskListMember $membership): void {
+                $this->assertSame($membership->folder->user_id, $membership->taskList->user_id);
+            });
     }
 
     public function test_positions_are_contiguous_within_every_ordering_bucket(): void
@@ -165,7 +168,7 @@ class DemoSeederTest extends TestCase
                 Folder::query()->where('user_id', $user->id)->orderBy('position')->pluck('position')->all(),
             );
 
-            $ungroupedPositions = TaskList::query()
+            $ungroupedPositions = TaskListMember::query()
                 ->where('user_id', $user->id)
                 ->whereNull('folder_id')
                 ->orderBy('position')
@@ -175,7 +178,7 @@ class DemoSeederTest extends TestCase
 
             Folder::query()->where('user_id', $user->id)->get()->each(function (Folder $folder): void {
                 $this->assertContiguousPositions(
-                    TaskList::query()->where('folder_id', $folder->id)->orderBy('position')->pluck('position')->all(),
+                    TaskListMember::query()->where('folder_id', $folder->id)->orderBy('position')->pluck('position')->all(),
                 );
             });
 
@@ -192,7 +195,10 @@ class DemoSeederTest extends TestCase
         (new DemoSeeder)->run(self::USER_COUNT);
 
         User::query()->get()->each(function (User $user): void {
-            $starred = Task::query()->where('user_id', $user->id)->where('is_starred', true)->count();
+            $starred = Task::query()
+                ->where('user_id', $user->id)
+                ->whereHas('stars', fn ($query) => $query->where('user_id', $user->id))
+                ->count();
             $overdue = Task::query()->where('user_id', $user->id)
                 ->where('is_completed', false)
                 ->whereDate('due_date', '<', today())
@@ -253,6 +259,43 @@ class DemoSeederTest extends TestCase
         (new DemoSeeder)->run(1);
 
         $this->assertSame(2, User::query()->count());
+    }
+
+    /**
+     * Plan 1 ("Shared Lists and Collaboration"): every list the seeder
+     * creates goes through `TaskList::factory()`, never the repository — so
+     * this is the steady-state proof that `TaskListFactory::configure()`'s
+     * `afterCreating` callback gives every factory-created list exactly one
+     * accepted owner membership row, exactly like
+     * `EloquentTaskListRepository::create()`/`createDefaultFor()` do for
+     * real list creation. Since Step 2 dropped `task_lists.folder_id`/
+     * `position`, there is no longer a second copy of placement on the list
+     * itself to compare the membership row against — the membership row
+     * *is* the placement — so this only asserts the membership row's own
+     * shape. `CreateTaskListMembersTableMigrationTest` covers the
+     * complementary case — genuinely pre-existing rows the backfill
+     * migration must repair.
+     */
+    public function test_every_seeded_list_has_exactly_one_matching_accepted_membership(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        $this->assertGreaterThan(0, TaskList::query()->count());
+
+        TaskList::query()->get()->each(function (TaskList $list): void {
+            $member = TaskListMember::query()->where('task_list_id', $list->id)->sole();
+
+            $this->assertSame($list->user_id, $member->user_id);
+            $this->assertSame('accepted', $member->status);
+        });
+    }
+
+    private function membershipFor(TaskList $list, User $user): TaskListMember
+    {
+        return TaskListMember::query()
+            ->where('task_list_id', $list->id)
+            ->where('user_id', $user->id)
+            ->sole();
     }
 
     /**

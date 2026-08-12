@@ -126,10 +126,19 @@ that materially expand the boilerplate's stack or maintenance burden.
 
 ## Domain invariants
 
-- Every folder, list, and task belongs to exactly one user. A task and its list
-  must have the same owner; a list and its folder must have the same owner.
-  Every task comment records both its task and author so attribution remains
-  stable when list sharing is introduced.
+- Every folder, list, and task has exactly one `user_id` owner recorded at
+  creation. A list's owner is fixed at creation and does not change when the
+  list is shared — sharing grants other users membership, never transfers
+  ownership. A task's creator must be an accepted member of its list, not
+  necessarily its owner; authorization for a task always resolves through its
+  list's membership (`TaskPolicy` → `TaskListPolicy`), never through
+  `tasks.user_id` directly. A folder's own owner never changes (folders are
+  never shareable); a shared list's *placement* folder, by contrast, always
+  belongs to whichever member filed it there — each member's folder_id/
+  position on a shared list is scoped to that member's own folders, not the
+  list owner's (`task_list_members`, Plan 1 Step 2). Every task comment
+  records both its task and author so attribution remains stable under
+  sharing.
 - Every user has exactly one default Inbox list. The Inbox is ungrouped,
   undeletable, and cannot be renamed through product workflows.
 - Lists may be ungrouped or belong to one folder. Deleting a non-empty folder

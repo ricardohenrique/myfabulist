@@ -6,6 +6,8 @@ namespace Database\Factories;
 
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskStar;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -27,7 +29,6 @@ class TaskFactory extends Factory
             'note' => null,
             'is_completed' => false,
             'completed_at' => null,
-            'is_starred' => false,
             'due_date' => null,
             'position' => 0,
         ];
@@ -56,13 +57,25 @@ class TaskFactory extends Factory
     }
 
     /**
-     * Indicate that the task is starred.
+     * Indicate that the task is starred (Plan 1, Step 3: a `task_stars` row,
+     * not an `is_starred` column). `$user` defaults to the task's own
+     * creator (`user_id`) once it exists — the pre-sharing shape every
+     * existing call site (`->starred()` with no argument) still gets — but
+     * accepts an explicit, different user so tests can star a shared task
+     * as a specific collaborator without starring it for its creator too.
+     *
+     * `afterCreating()` rather than a `state()` attribute because starring
+     * is no longer a `tasks` column at all — it has to happen after the
+     * task row (and its id) exist.
      */
-    public function starred(): static
+    public function starred(?User $user = null): static
     {
-        return $this->state(fn (array $attributes) => [
-            'is_starred' => true,
-        ]);
+        return $this->afterCreating(function (Task $task) use ($user) {
+            TaskStar::factory()->create([
+                'task_id' => $task->id,
+                'user_id' => $user === null ? $task->user_id : $user->id,
+            ]);
+        });
     }
 
     /**

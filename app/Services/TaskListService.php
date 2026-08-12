@@ -67,7 +67,7 @@ class TaskListService
             ? $taskList->position
             : $this->taskLists->nextPosition($user, $folder?->id);
 
-        return $this->taskLists->update($taskList, trim($name), $folder, $position);
+        return $this->taskLists->update($taskList, $user, trim($name), $folder, $position);
     }
 
     /**

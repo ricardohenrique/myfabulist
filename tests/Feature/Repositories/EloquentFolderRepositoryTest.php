@@ -107,7 +107,54 @@ class EloquentFolderRepositoryTest extends TestCase
         $this->repository->detachLists($folder);
 
         $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
-        $this->assertDatabaseHas('task_lists', ['id' => $list->id, 'folder_id' => null]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $user->id,
+            'folder_id' => null,
+        ]);
+    }
+
+    public function test_all_for_user_populates_each_folders_task_lists(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $list = TaskList::factory()->inFolder($folder)->create(['name' => 'Work list']);
+        $emptyFolder = Folder::factory()->for($user)->create();
+
+        $folders = $this->repository->allForUser($user);
+
+        $foldered = $folders->first(fn (Folder $f): bool => $f->is($folder));
+        $this->assertNotNull($foldered);
+        $this->assertTrue($foldered->relationLoaded('taskLists'));
+        $this->assertSame([$list->id], $foldered->taskLists->pluck('id')->all());
+
+        $empty = $folders->first(fn (Folder $f): bool => $f->is($emptyFolder));
+        $this->assertNotNull($empty);
+        $this->assertTrue($empty->relationLoaded('taskLists'));
+        $this->assertTrue($empty->taskLists->isEmpty());
+    }
+
+    /**
+     * `Folder::taskLists()` is a real `belongsToMany` through
+     * `task_list_members` (Plan 1, Step 2 review follow-up) — a plain
+     * `$folder->load('taskLists')` works exactly like it did before the
+     * columns were dropped from `task_lists`, including ordering by
+     * position, so callers like `FolderController::show()` need no
+     * repository passthrough for it.
+     */
+    public function test_folder_task_lists_relation_loads_lists_in_position_order(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $second = TaskList::factory()->inFolder($folder, 1)->create(['name' => 'Second']);
+        $first = TaskList::factory()->inFolder($folder, 0)->create(['name' => 'First']);
+
+        $loaded = $folder->load('taskLists');
+
+        $this->assertTrue($loaded->relationLoaded('taskLists'));
+        $this->assertSame([$first->id, $second->id], $loaded->taskLists->pluck('id')->all());
+        $this->assertSame($folder->id, $loaded->taskLists->first()->folder_id);
+        $this->assertSame(0, $loaded->taskLists->first()->position);
     }
 
     public function test_apply_order_rewrites_positions(): void

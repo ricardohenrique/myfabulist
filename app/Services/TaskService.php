@@ -25,14 +25,16 @@ class TaskService
 
     /**
      * The M4/M6 read model for a list: active tasks before completed tasks,
-     * completed tasks most-recently-completed first, plus a completed count.
+     * completed tasks most-recently-completed first, plus a completed
+     * count. `$viewer` is whose star state is aliased onto each task as
+     * `is_starred` (Plan 1, Step 3).
      */
-    public function tasksFor(TaskList $taskList): ListedTasks
+    public function tasksFor(TaskList $taskList, User $viewer): ListedTasks
     {
-        $completed = $this->tasks->completedForList($taskList);
+        $completed = $this->tasks->completedForList($taskList, $viewer);
 
         return new ListedTasks(
-            active: $this->tasks->activeForList($taskList),
+            active: $this->tasks->activeForList($taskList, $viewer),
             completed: $completed,
             completedCount: $completed->count(),
         );
@@ -53,17 +55,24 @@ class TaskService
 
     /**
      * Replace a task's title/note/due date/star state in one call (D4).
+     * `$user` is the acting user, whose own `task_stars` row is what
+     * `$data->isStarred` toggles (Plan 1, Step 3) — this never touches
+     * another user's star.
      */
-    public function update(Task $task, TaskDetailsData $data): Task
+    public function update(Task $task, User $user, TaskDetailsData $data): Task
     {
         $title = $this->requireNonBlankTitle($data->title);
 
-        return $this->tasks->update($task, $title, $data->note, $data->dueDate, $data->isStarred);
+        return $this->tasks->update($task, $user, $title, $data->note, $data->dueDate, $data->isStarred);
     }
 
-    public function details(Task $task): Task
+    /**
+     * `$viewer` resolves the embedded `taskList`'s placement for the
+     * caller — see `TaskRepositoryInterface::loadDetails()`.
+     */
+    public function details(Task $task, User $viewer): Task
     {
-        return $this->tasks->loadDetails($task);
+        return $this->tasks->loadDetails($task, $viewer);
     }
 
     public function rename(Task $task, string $title): Task
@@ -91,21 +100,31 @@ class TaskService
         return $this->tasks->markActive($task);
     }
 
-    public function setStarred(Task $task, bool $isStarred): Task
+    /**
+     * Star or unstar a task on behalf of `$user` — always their own star,
+     * never another list member's (Plan 1, Step 3).
+     */
+    public function setStarred(Task $task, User $user, bool $isStarred): Task
     {
-        return $this->tasks->setStarred($task, $isStarred);
+        return $isStarred ? $this->tasks->star($task, $user) : $this->tasks->unstar($task, $user);
     }
 
     /**
      * Move a task to another of the user's lists (S6). The target list
-     * reference arrives as an id and is resolved here, scoped to the
-     * owner (D3) — a missing or foreign list id throws, preserving D7's
-     * "a task can only move between lists belonging to the same user"
-     * invariant regardless of caller.
+     * reference arrives as an id and is resolved here, scoped strictly to
+     * ownership via `findOwnedBy()` (D3) — a missing or foreign list id
+     * throws, preserving D7's "a task can only move between lists
+     * belonging to the same user" invariant regardless of caller.
+     *
+     * Deliberately *not* widened to membership (Plan 1, Step 4/Q8): a task
+     * can never move into a list the acting user merely has an accepted
+     * membership on, only one they own — `findOwnedBy()`, not
+     * `findAccessibleFor()`, is what keeps that boundary intact even after
+     * Step 5 ships real invitations.
      */
     public function move(Task $task, User $user, int $targetListId, ?int $position): Task
     {
-        $targetList = $this->taskLists->findForUser($targetListId, $user)
+        $targetList = $this->taskLists->findOwnedBy($targetListId, $user)
             ?? throw TaskListNotFoundException::forId($targetListId);
 
         return $this->tasks->moveToList($task, $targetList, $position);
@@ -122,14 +141,17 @@ class TaskService
      * touches `is_completed`/`completed_at`.
      *
      * The acting user is required (D6) to resolve the task's parent list
-     * through the already user-scoped, trashed-blind
-     * `TaskListRepositoryInterface::findForUser()` — a task whose list is
-     * itself deleted cannot be un-deleted, or "Undo" would report success
-     * while hiding the task somewhere the user can no longer reach it.
+     * through the already access-scoped, trashed-blind
+     * `TaskListRepositoryInterface::findAccessibleFor()` — a task whose list
+     * is itself deleted cannot be un-deleted, or "Undo" would report success
+     * while hiding the task somewhere the user can no longer reach it. Any
+     * accepted member can undelete a task in a list they can access (Plan
+     * 1, Step 4), not just the list's owner — consistent with
+     * `TaskPolicy`'s fully-collaborative task-level delegation.
      */
     public function undelete(Task $task, User $user): Task
     {
-        $this->taskLists->findForUser($task->task_list_id, $user)
+        $this->taskLists->findAccessibleFor($task->task_list_id, $user)
             ?? throw TaskCannotBeUndeletedException::becauseItsListIsDeleted($task);
 
         return $this->tasks->undelete($task);

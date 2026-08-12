@@ -6,6 +6,8 @@ namespace App\Repositories;
 
 use App\Exceptions\FolderReorderMismatchException;
 use App\Models\Folder;
+use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -58,17 +60,32 @@ class EloquentFolderRepository implements FolderRepositoryInterface
         $folder->delete();
     }
 
+    /**
+     * "Lists placed in this folder" now means "lists with an accepted
+     * membership row for this folder's owner whose folder_id is this
+     * folder" (Plan 1, Step 2) rather than a live task_lists.folder_id
+     * relation — folders are never shareable and there is no functional
+     * invite/accept path yet, so this can today only ever resolve to lists
+     * this same owner also owns, making the rewrite behaviourally identical
+     * to the old relation-based query. F11's "only force-delete lists the
+     * actor owns" guard is deliberately not added here — that is Step 6's
+     * job, once a member could plausibly file another owner's shared list
+     * into their own folder.
+     */
     public function deleteWithLists(Folder $folder): void
     {
         DB::transaction(function () use ($folder) {
-            // Folder deletion is deliberately irreversible (D5/Plan 4) — a
-            // plain ->delete() would now be a mass *soft* delete once
-            // TaskList uses SoftDeletes, silently skipping the FK cascade
-            // and leaving the lists' tasks alive but permanently
-            // unreachable (no Trash UI exists). forceDelete() preserves
-            // today's exact semantics: a real DELETE that lets the FK
-            // cascade destroy the tasks too.
-            $folder->taskLists()->forceDelete();
+            $listIds = TaskListMember::query()
+                ->where('user_id', $folder->user_id)
+                ->where('folder_id', $folder->id)
+                ->where('status', 'accepted')
+                ->pluck('task_list_id');
+
+            // forceDelete() preserves today's exact semantics: a real
+            // DELETE that lets tasks.task_list_id's FK cascade destroy the
+            // tasks too (and, since Step 1, cascades the now-orphaned
+            // task_list_members rows for these lists as well).
+            TaskList::query()->whereIn('id', $listIds)->forceDelete();
             $folder->delete();
         });
     }
@@ -76,14 +93,22 @@ class EloquentFolderRepository implements FolderRepositoryInterface
     public function detachLists(Folder $folder): void
     {
         DB::transaction(function () use ($folder) {
-            $folder->taskLists()->update(['folder_id' => null]);
+            TaskListMember::query()
+                ->where('user_id', $folder->user_id)
+                ->where('folder_id', $folder->id)
+                ->update(['folder_id' => null]);
             $folder->delete();
         });
     }
 
     public function hasLists(Folder $folder): bool
     {
-        return $folder->taskLists()->exists();
+        return TaskListMember::query()
+            ->where('user_id', $folder->user_id)
+            ->where('folder_id', $folder->id)
+            ->where('status', 'accepted')
+            ->whereHas('taskList')
+            ->exists();
     }
 
     public function nextPosition(User $user): int

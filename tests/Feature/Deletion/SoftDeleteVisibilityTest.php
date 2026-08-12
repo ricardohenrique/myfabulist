@@ -56,22 +56,24 @@ class SoftDeleteVisibilityTest extends TestCase
 
     public function test_a_deleted_task_is_absent_from_the_list_panels_active_section(): void
     {
-        $list = TaskList::factory()->create();
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
         $task = Task::factory()->forTaskList($list)->create();
 
         app(TaskService::class)->delete($task);
 
-        $this->assertFalse(app(TaskService::class)->tasksFor($list)->active->contains(fn (Task $t): bool => $t->is($task)));
+        $this->assertFalse(app(TaskService::class)->tasksFor($list, $user)->active->contains(fn (Task $t): bool => $t->is($task)));
     }
 
     public function test_a_deleted_task_is_absent_from_the_list_panels_completed_section(): void
     {
-        $list = TaskList::factory()->create();
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
         $task = Task::factory()->forTaskList($list)->completed()->create();
 
         app(TaskService::class)->delete($task);
 
-        $this->assertFalse(app(TaskService::class)->tasksFor($list)->completed->contains(fn (Task $t): bool => $t->is($task)));
+        $this->assertFalse(app(TaskService::class)->tasksFor($list, $user)->completed->contains(fn (Task $t): bool => $t->is($task)));
     }
 
     public function test_a_deleted_task_is_absent_from_starred(): void
@@ -164,8 +166,8 @@ class SoftDeleteVisibilityTest extends TestCase
     public function test_a_deleted_list_is_rejected_in_a_reorder_payload(): void
     {
         $user = User::factory()->create();
-        $keep = TaskList::factory()->create(['user_id' => $user->id, 'position' => 0]);
-        $deletedList = TaskList::factory()->create(['user_id' => $user->id, 'position' => 1]);
+        $keep = TaskList::factory()->atPosition(0)->create(['user_id' => $user->id]);
+        $deletedList = TaskList::factory()->atPosition(1)->create(['user_id' => $user->id]);
 
         app(TaskListService::class)->delete($deletedList);
 
@@ -254,12 +256,13 @@ class SoftDeleteVisibilityTest extends TestCase
     public function test_the_v1_task_delete_contract_is_unchanged(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create(['user_id' => $user->id]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
 
         $this->actingAs($user)->deleteJson("/api/v1/tasks/{$task->id}")->assertNoContent();
         $this->actingAs($user)->getJson("/api/v1/tasks/{$task->id}")->assertNotFound();
 
-        $live = Task::factory()->create(['user_id' => $user->id]);
+        $live = Task::factory()->forTaskList($list)->create();
         $this->actingAs($user)->getJson("/api/v1/tasks/{$live->id}")
             ->assertOk()
             ->assertJsonMissingPath('data.deleted_at');

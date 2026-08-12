@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\Collection;
 interface FolderRepositoryInterface
 {
     /**
-     * All of the user's folders, with their lists eager-loaded, ordered by position.
+     * All of the user's folders, with their lists eager-loaded, ordered by
+     * position.
      *
      * @return Collection<int, Folder>
      */

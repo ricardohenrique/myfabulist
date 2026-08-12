@@ -5,11 +5,26 @@ use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
+
+/**
+ * A list's folder_id/position are per-viewer placement (Plan 1, Step 2) —
+ * they live on the acting user's own task_list_members row, not on
+ * task_lists itself, so assertions against a list's placement read this
+ * table directly instead of `$list->fresh()->position`.
+ */
+function memberPlacement(TaskList $list, User $user): TaskListMember
+{
+    return TaskListMember::query()
+        ->where('task_list_id', $list->id)
+        ->where('user_id', $user->id)
+        ->sole();
+}
 
 it('protects every workspace page with session authentication', function () {
     $list = TaskList::factory()->create();
@@ -103,7 +118,7 @@ it('renders ordered folder navigation and the selected list', function () {
     $user = User::factory()->create();
     $secondFolder = Folder::factory()->for($user)->create(['name' => 'Second', 'position' => 1]);
     $firstFolder = Folder::factory()->for($user)->create(['name' => 'First', 'position' => 0]);
-    $list = TaskList::factory()->inFolder($firstFolder)->create(['name' => 'Launch', 'position' => 0]);
+    $list = TaskList::factory()->inFolder($firstFolder, 0)->create(['name' => 'Launch']);
     Task::factory()->forTaskList($list)->create(['title' => 'Ship it']);
 
     $this->actingAs($user)->get(route('lists.show', $list))
@@ -160,7 +175,11 @@ it('creates folders lists and tasks through web service adapters', function () {
         ->assertSessionHasNoErrors();
 
     $this->assertDatabaseHas('folders', ['id' => $folder->id, 'name' => 'Work']);
-    $this->assertDatabaseHas('task_lists', ['id' => $list->id, 'folder_id' => $folder->id]);
+    $this->assertDatabaseHas('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $user->id,
+        'folder_id' => $folder->id,
+    ]);
     $this->assertDatabaseHas('tasks', ['task_list_id' => $list->id, 'title' => 'Ship it']);
     $this->assertDatabaseHas('task_lists', ['id' => $inbox->id, 'is_default' => true]);
 });
@@ -182,8 +201,8 @@ it('updates moves stars completes restores and deletes tasks', function () {
     expect($task->fresh())
         ->title->toBe('Updated')
         ->note->toBe('Notes')
-        ->is_starred->toBeTrue()
         ->task_list_id->toBe($target->id);
+    $this->assertDatabaseHas('task_stars', ['task_id' => $task->id, 'user_id' => $user->id]);
 
     $this->actingAs($user)->post(route('tasks.complete', $task))->assertSessionHasNoErrors();
     expect($task->fresh()->is_completed)->toBeTrue();
@@ -192,13 +211,41 @@ it('updates moves stars completes restores and deletes tasks', function () {
     expect($task->fresh()->is_completed)->toBeFalse();
 
     $this->actingAs($user)->put(route('tasks.star', $task), ['is_starred' => false])->assertSessionHasNoErrors();
-    expect($task->fresh()->is_starred)->toBeFalse();
+    $this->assertDatabaseMissing('task_stars', ['task_id' => $task->id, 'user_id' => $user->id]);
 
     $this->actingAs($user)->post(route('tasks.move', $task), ['task_list_id' => $source->id])->assertSessionHasNoErrors();
     expect($task->fresh()->task_list_id)->toBe($source->id);
 
     $this->actingAs($user)->delete(route('tasks.destroy', $task))->assertSessionHasNoErrors();
     $this->assertSoftDeleted('tasks', ['id' => $task->id]);
+});
+
+/**
+ * Plan 1 ("Shared Lists and Collaboration"), Step 4 code-review follow-up:
+ * `resources/js/layouts/app-shell.tsx` submits the task's current
+ * `task_list_id` on every save, not only on an actual move. For a task in a
+ * shared list that id belongs to the *owner*, not the acting (accepted,
+ * non-owner) member — `Web\UpdateTaskRequest` must not 422 an ordinary
+ * title/note/due-date edit just because the round-tripped list id isn't one
+ * the member owns. The membership here is constructed directly via the
+ * factory, ahead of the real invite/accept flow (Step 5).
+ */
+it('lets an accepted non owner member edit a task in a shared list over the web route', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+    $task = Task::factory()->forTaskList($list)->create(['title' => 'Original']);
+
+    $this->actingAs($member)->put(route('tasks.update', $task), [
+        'title' => 'Edited by a collaborator',
+        'note' => null,
+        'due_date' => null,
+        'is_starred' => false,
+        'task_list_id' => $task->task_list_id,
+    ])->assertSessionHasNoErrors();
+
+    expect($task->fresh()->title)->toBe('Edited by a collaborator');
 });
 
 it('renames moves and soft deletes lists while protecting the inbox', function () {
@@ -212,9 +259,8 @@ it('renames moves and soft deletes lists while protecting the inbox', function (
         'folder_id' => $folder->id,
     ])->assertSessionHasNoErrors();
 
-    expect($list->fresh())
-        ->name->toBe('New')
-        ->folder_id->toBe($folder->id);
+    expect($list->fresh()->name)->toBe('New');
+    expect(memberPlacement($list, $user)->folder_id)->toBe($folder->id);
 
     $this->actingAs($user)->delete(route('lists.destroy', $list))->assertRedirect(route('inbox'));
     $this->assertSoftDeleted('task_lists', ['id' => $list->id]);
@@ -240,15 +286,19 @@ it('requires an explicit strategy when deleting a non-empty folder', function ()
     $this->actingAs($user)->delete(route('folders.destroy', $folder), ['lists' => 'detach'])
         ->assertSessionHasNoErrors();
     $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
-    $this->assertDatabaseHas('task_lists', ['id' => $list->id, 'folder_id' => null]);
+    $this->assertDatabaseHas('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $user->id,
+        'folder_id' => null,
+    ]);
 });
 
 it('persists drag-and-drop task list and folder orders', function () {
     $user = User::factory()->create();
     $folderA = Folder::factory()->for($user)->create(['position' => 0]);
     $folderB = Folder::factory()->for($user)->create(['position' => 1]);
-    $listA = TaskList::factory()->inFolder($folderA)->create(['position' => 0]);
-    $listB = TaskList::factory()->inFolder($folderA)->create(['position' => 1]);
+    $listA = TaskList::factory()->inFolder($folderA, 0)->create();
+    $listB = TaskList::factory()->inFolder($folderA, 1)->create();
     $taskA = Task::factory()->forTaskList($listA)->create(['position' => 0]);
     $taskB = Task::factory()->forTaskList($listA)->create(['position' => 1]);
 
@@ -264,8 +314,8 @@ it('persists drag-and-drop task list and folder orders', function () {
 
     expect($folderB->fresh()->position)->toBe(0)
         ->and($folderA->fresh()->position)->toBe(1)
-        ->and($listB->fresh()->position)->toBe(0)
-        ->and($listA->fresh()->position)->toBe(1)
+        ->and(memberPlacement($listB, $user)->position)->toBe(0)
+        ->and(memberPlacement($listA, $user)->position)->toBe(1)
         ->and($taskB->fresh()->position)->toBe(0)
         ->and($taskA->fresh()->position)->toBe(1);
 });
@@ -274,8 +324,8 @@ it('rejects stale drag-and-drop orders and preserves canonical positions', funct
     $user = User::factory()->create();
     $folderA = Folder::factory()->for($user)->create(['position' => 0]);
     $folderB = Folder::factory()->for($user)->create(['position' => 1]);
-    $listA = TaskList::factory()->inFolder($folderA)->create(['position' => 0]);
-    $listB = TaskList::factory()->inFolder($folderA)->create(['position' => 1]);
+    $listA = TaskList::factory()->inFolder($folderA, 0)->create();
+    $listB = TaskList::factory()->inFolder($folderA, 1)->create();
     $taskA = Task::factory()->forTaskList($listA)->create(['position' => 0]);
     $taskB = Task::factory()->forTaskList($listA)->create(['position' => 1]);
 
@@ -305,8 +355,8 @@ it('rejects stale drag-and-drop orders and preserves canonical positions', funct
 
     expect($folderA->fresh()->position)->toBe(0)
         ->and($folderB->fresh()->position)->toBe(1)
-        ->and($listA->fresh()->position)->toBe(0)
-        ->and($listB->fresh()->position)->toBe(1)
+        ->and(memberPlacement($listA, $user)->position)->toBe(0)
+        ->and(memberPlacement($listB, $user)->position)->toBe(1)
         ->and($taskA->fresh()->position)->toBe(0)
         ->and($taskB->fresh()->position)->toBe(1);
 });

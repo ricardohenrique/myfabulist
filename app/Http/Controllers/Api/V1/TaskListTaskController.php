@@ -11,6 +11,7 @@ use App\Http\Resources\Api\V1\TaskResource;
 use App\Models\TaskList;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class TaskListTaskController extends Controller
@@ -23,12 +24,12 @@ class TaskListTaskController extends Controller
      * Same shape as GET /inbox (D4) — the read model is identical whether
      * the list is the Inbox or any other list.
      */
-    public function index(TaskList $list): JsonResponse
+    public function index(Request $request, TaskList $list): JsonResponse
     {
         $this->authorize('view', $list);
 
         return response()->json([
-            'data' => TaskListResource::withTasks($list, $this->tasks->tasksFor($list)),
+            'data' => TaskListResource::withTasks($list, $this->tasks->tasksFor($list, $request->user())),
         ]);
     }
 

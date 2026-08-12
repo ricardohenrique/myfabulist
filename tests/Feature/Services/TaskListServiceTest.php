@@ -85,7 +85,7 @@ class TaskListServiceTest extends TestCase
         $undeleted = $listService->undelete($list);
 
         $this->assertNull($undeleted->deleted_at);
-        $tasks = $taskService->tasksFor($undeleted);
+        $tasks = $taskService->tasksFor($undeleted, $user);
         $this->assertTrue($tasks->active->contains(fn (Task $t): bool => $t->is($active)));
         $this->assertTrue($tasks->completed->contains(fn (Task $t): bool => $t->is($completed)));
         $this->assertTrue($taskService->starredFor($user)->contains(fn (Task $t): bool => $t->is($starred)));

@@ -25,7 +25,7 @@ class WorkspacePresenter
      */
     public function forList(User $user, TaskList $list): array
     {
-        $listedTasks = $this->tasks->tasksFor($list);
+        $listedTasks = $this->tasks->tasksFor($list, $user);
 
         return [
             ...$this->base($user, $list->is_default ? 'inbox' : 'list'),
@@ -116,7 +116,14 @@ class WorkspacePresenter
             'dueDate' => $task->due_date?->format('Y-m-d'),
             'dueDateLabel' => $this->dueDateLabel($task),
             'dueDateStatus' => $task->dueDateStatus(),
-            'isStarred' => $task->is_starred,
+            // Task::$is_starred is honestly bool|null (Plan 1, Step 3 —
+            // nothing today produces null, since route binding always
+            // resolves the authenticated viewer before SubstituteBindings
+            // runs, but the type can't promise that) — coerce the same
+            // defensive way `activeTaskCount` already does above, since the
+            // TypeScript prop and the V1 API contract both declare this a
+            // plain boolean.
+            'isStarred' => (bool) $task->is_starred,
             'completedAt' => $task->completed_at?->toIso8601String(),
             'createdAt' => $task->created_at?->toIso8601String(),
             'taskListId' => $task->task_list_id,

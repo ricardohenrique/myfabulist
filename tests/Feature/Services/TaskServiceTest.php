@@ -8,6 +8,7 @@ use App\Exceptions\TaskCannotBeUndeletedException;
 use App\Exceptions\TaskListNotFoundException;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use App\Services\TaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -48,7 +49,7 @@ class TaskServiceTest extends TestCase
         $this->assertTrue($undeleted->is_completed);
         $this->assertTrue($undeleted->completed_at->equalTo($completedAt));
         $this->assertNull($undeleted->deleted_at);
-        $this->assertTrue($service->tasksFor($list)->completed->contains(fn (Task $t): bool => $t->is($task)));
+        $this->assertTrue($service->tasksFor($list, $user)->completed->contains(fn (Task $t): bool => $t->is($task)));
     }
 
     public function test_undeleting_a_task_twice_is_harmless(): void
@@ -66,7 +67,7 @@ class TaskServiceTest extends TestCase
     }
 
     /**
-     * R4/D2 defence in depth, service layer: findForUser() is trashed-blind,
+     * R4/D2 defence in depth, service layer: findOwnedBy() is trashed-blind,
      * so a deleted target list resolves to null exactly like a foreign one —
      * even a validation bypass cannot move a task into a deleted list.
      */
@@ -84,6 +85,35 @@ class TaskServiceTest extends TestCase
         $service->move($task, $user, $deletedList->id, null);
     }
 
+    /**
+     * Plan 1 ("Shared Lists and Collaboration"), Step 4/Q8: the regression
+     * test proving the findOwnedBy()/findAccessibleFor() split actually
+     * preserved the move() boundary rather than accidentally widening it —
+     * an accepted (non-owner) membership on some *other* list must never
+     * make that list a valid move target, even though the same acting user
+     * can otherwise fully view/update tasks in it (Step 4's own
+     * TaskPolicy/TaskListPolicy widening). Only the user's own lists are
+     * ever valid move targets.
+     */
+    public function test_move_rejects_a_list_the_user_has_accepted_membership_on_but_does_not_own(): void
+    {
+        $user = User::factory()->create();
+        $otherOwner = User::factory()->create();
+        $sourceList = TaskList::factory()->create(['user_id' => $user->id]);
+        $sharedList = TaskList::factory()->create(['user_id' => $otherOwner->id]);
+        TaskListMember::factory()->forTaskList($sharedList, $user)->create();
+        $task = Task::factory()->forTaskList($sourceList)->create();
+        $service = app(TaskService::class);
+
+        $this->expectException(TaskListNotFoundException::class);
+
+        try {
+            $service->move($task, $user, $sharedList->id, null);
+        } finally {
+            $this->assertSame($sourceList->id, $task->fresh()->task_list_id);
+        }
+    }
+
     public function test_user_can_delete_and_undelete_and_it_returns_to_its_original_position(): void
     {
         $user = User::factory()->create();
@@ -94,7 +124,7 @@ class TaskServiceTest extends TestCase
         $service->delete($task);
         $service->undelete($task, $user);
 
-        $this->assertTrue($service->tasksFor($list)->active->contains(fn (Task $t): bool => $t->is($task) && $t->position === 2));
+        $this->assertTrue($service->tasksFor($list, $user)->active->contains(fn (Task $t): bool => $t->is($task) && $t->position === 2));
     }
 
     /**

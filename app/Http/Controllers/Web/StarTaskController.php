@@ -17,7 +17,7 @@ class StarTaskController extends Controller
     public function __invoke(SetTaskStarredRequest $request, Task $task): RedirectResponse
     {
         $isStarred = $request->isStarred();
-        $this->tasks->setStarred($task, $isStarred);
+        $this->tasks->setStarred($task, $request->user(), $isStarred);
 
         return back()->with('success', $isStarred ? 'Task starred.' : 'Task unstarred.');
     }

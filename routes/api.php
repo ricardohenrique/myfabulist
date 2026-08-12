@@ -70,16 +70,16 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
         ->name('lists.task-order')
         ->whereNumber('list');
 
-    Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
-    Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index'])->name('tasks.comments.index');
-    Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
-    Route::get('tasks/{task}/subtasks', [TaskSubtaskController::class, 'index'])->name('tasks.subtasks.index');
-    Route::post('tasks/{task}/subtasks', [TaskSubtaskController::class, 'store'])->name('tasks.subtasks.store');
-    Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
-    Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
-    Route::post('tasks/{task}/complete', CompleteTaskController::class)->name('tasks.complete');
-    Route::post('tasks/{task}/restore', RestoreTaskController::class)->name('tasks.restore');
-    Route::post('tasks/{task}/move', MoveTaskController::class)->name('tasks.move');
+    Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show')->whereNumber('task');
+    Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index'])->name('tasks.comments.index')->whereNumber('task');
+    Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store')->whereNumber('task');
+    Route::get('tasks/{task}/subtasks', [TaskSubtaskController::class, 'index'])->name('tasks.subtasks.index')->whereNumber('task');
+    Route::post('tasks/{task}/subtasks', [TaskSubtaskController::class, 'store'])->name('tasks.subtasks.store')->whereNumber('task');
+    Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update')->whereNumber('task');
+    Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy')->whereNumber('task');
+    Route::post('tasks/{task}/complete', CompleteTaskController::class)->name('tasks.complete')->whereNumber('task');
+    Route::post('tasks/{task}/restore', RestoreTaskController::class)->name('tasks.restore')->whereNumber('task');
+    Route::post('tasks/{task}/move', MoveTaskController::class)->name('tasks.move')->whereNumber('task');
 
     Route::put('subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
     Route::delete('subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');

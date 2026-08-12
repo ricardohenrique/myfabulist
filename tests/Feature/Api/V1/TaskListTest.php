@@ -7,6 +7,7 @@ namespace Tests\Feature\Api\V1;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -74,7 +75,7 @@ class TaskListTest extends TestCase
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $list = TaskList::factory()->create(['user_id' => $user->id, 'folder_id' => null]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
         Task::factory()->forTaskList($list)->count(3)->create();
 
         $response = $this->actingAs($user)->putJson("/api/v1/lists/{$list->id}", [
@@ -163,8 +164,8 @@ class TaskListTest extends TestCase
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
-        $deleted = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $a = TaskList::factory()->inFolder($folder, 0)->create();
+        $deleted = TaskList::factory()->inFolder($folder, 1)->create();
         $deleted->delete();
 
         $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
@@ -173,15 +174,15 @@ class TaskListTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $this->assertSame(0, $a->fresh()->position);
+        $this->assertSame(0, $this->positionFor($a, $user));
     }
 
     public function test_put_lists_order_reorders_lists_within_a_folder(): void
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
-        $b = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $a = TaskList::factory()->inFolder($folder, 0)->create();
+        $b = TaskList::factory()->inFolder($folder, 1)->create();
 
         $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
             'folder_id' => $folder->id,
@@ -189,16 +190,16 @@ class TaskListTest extends TestCase
         ]);
 
         $response->assertNoContent();
-        $this->assertSame(0, $b->fresh()->position);
-        $this->assertSame(1, $a->fresh()->position);
+        $this->assertSame(0, $this->positionFor($b, $user));
+        $this->assertSame(1, $this->positionFor($a, $user));
     }
 
     public function test_put_lists_order_rejects_a_stale_incomplete_set(): void
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
-        $b = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $a = TaskList::factory()->inFolder($folder, 0)->create();
+        $b = TaskList::factory()->inFolder($folder, 1)->create();
 
         $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
             'folder_id' => $folder->id,
@@ -207,7 +208,15 @@ class TaskListTest extends TestCase
 
         $response->assertUnprocessable()
             ->assertJsonPath('error_code', 'task_list_reorder_mismatch');
-        $this->assertSame(0, $a->fresh()->position);
-        $this->assertSame(1, $b->fresh()->position);
+        $this->assertSame(0, $this->positionFor($a, $user));
+        $this->assertSame(1, $this->positionFor($b, $user));
+    }
+
+    private function positionFor(TaskList $list, User $user): int
+    {
+        return TaskListMember::query()
+            ->where('task_list_id', $list->id)
+            ->where('user_id', $user->id)
+            ->value('position');
     }
 }

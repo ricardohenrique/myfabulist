@@ -9,6 +9,7 @@ use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
+use App\Repositories\Contracts\TaskRepositoryInterface;
 use Carbon\CarbonInterface;
 use Database\Factories\TaskFactory;
 use Illuminate\Console\Command;
@@ -173,7 +174,7 @@ class DemoSeeder extends Seeder
 
         // D7: guarantee every user's Inbox is fully populated, regardless
         // of how the random pass above happened to land.
-        $this->applyShowcase($inboxTasks);
+        $this->applyShowcase($inboxTasks, $user);
 
         return [
             'folders' => count($folders),
@@ -263,11 +264,8 @@ class DemoSeeder extends Seeder
             $folder = $folders[$folderIndex];
 
             $lists[] = TaskList::factory()
-                ->inFolder($folder)
-                ->create([
-                    'name' => $name,
-                    'position' => $positionInFolder[$folderIndex]++,
-                ]);
+                ->inFolder($folder, $positionInFolder[$folderIndex]++)
+                ->create(['name' => $name]);
         }
 
         return $lists;
@@ -282,11 +280,9 @@ class DemoSeeder extends Seeder
         $lists = [];
 
         foreach (array_values($names) as $index => $name) {
-            $lists[] = TaskList::factory()->create([
+            // The Inbox owns position 0 in the ungrouped bucket (D8/A2).
+            $lists[] = TaskList::factory()->atPosition($index + 1)->create([
                 'user_id' => $user->id,
-                'folder_id' => null,
-                // The Inbox owns position 0 in the ungrouped bucket (D8/A2).
-                'position' => $index + 1,
                 'name' => $name,
             ]);
         }
@@ -390,13 +386,26 @@ class DemoSeeder extends Seeder
      * `seedTasksForList()` always produces at least TASKS_MIN (10) tasks,
      * so three are always available to claim.
      *
+     * `$user` is taken explicitly rather than derived from `$starred->user_id`
+     * (they are identical today, since every showcase task is created for
+     * its own user) — explicit over implicit, per this project's stated
+     * convention, and it is the star's owner that Plan 1, Step 3 actually
+     * needs, not the task's creator, now that the two can diverge once
+     * sharing ships.
+     *
      * @param  array<int, Task>  $inboxTasks
      */
-    private function applyShowcase(array $inboxTasks): void
+    private function applyShowcase(array $inboxTasks, User $user): void
     {
         [$starred, $overdue, $dueToday] = array_slice($inboxTasks, 0, 3);
 
-        $starred->forceFill(['is_starred' => true])->save();
+        // star() is the single idempotent primitive for "this user has
+        // starred this task" (Plan 1, Step 3) — calling it here rather than
+        // re-checking task_stars by hand means the random per-task pass
+        // above (which may have already starred this exact task for this
+        // exact user via STARRED_CHANCE) can never diverge from the
+        // repository's own definition of idempotent.
+        app(TaskRepositoryInterface::class)->star($starred, $user);
 
         $overdue->forceFill([
             'is_completed' => false,

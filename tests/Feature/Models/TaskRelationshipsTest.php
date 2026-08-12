@@ -36,6 +36,33 @@ class TaskRelationshipsTest extends TestCase
         $this->assertTrue($list->tasks->contains($task));
     }
 
+    /**
+     * Plan 1 ("Shared Lists and Collaboration"), Architecture Decision 4:
+     * `creator()` is an identical relation to `user()`, added so new call
+     * sites can name the attribution intent explicitly. Constructed
+     * directly via factories (no real sharing needed) — a task whose
+     * `user_id` differs from its list's `user_id` still resolves `creator()`
+     * correctly, proving the relation reads `tasks.user_id` and not
+     * `task_lists.user_id`.
+     */
+    public function test_creator_resolves_the_creating_user_even_when_different_from_the_lists_owner(): void
+    {
+        $owner = User::factory()->create();
+        $creator = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        $task = Task::factory()->forTaskList($list)->create(['user_id' => $creator->id]);
+
+        $this->assertTrue($creator->is($task->creator));
+        $this->assertFalse($owner->is($task->creator));
+        $this->assertTrue($task->user->is($task->creator));
+    }
+
+    /**
+     * A plain Eloquent ->delete() (not the repository's detachLists()) still
+     * leaves the list itself untouched and nulls its placement — this is
+     * task_list_members.folder_id's nullOnDelete() FK doing the work now
+     * (Plan 1, Step 2), not a FK on task_lists itself (that column is gone).
+     */
     public function test_deleting_a_folder_detaches_its_lists_without_deleting_them(): void
     {
         $user = User::factory()->create();
@@ -44,8 +71,10 @@ class TaskRelationshipsTest extends TestCase
 
         $folder->delete();
 
-        $this->assertDatabaseHas('task_lists', [
-            'id' => $list->id,
+        $this->assertDatabaseHas('task_lists', ['id' => $list->id]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $user->id,
             'folder_id' => null,
         ]);
     }

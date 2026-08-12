@@ -25,7 +25,10 @@ class TaskResource extends JsonResource
             'note' => $this->note,
             'is_completed' => $this->is_completed,
             'completed_at' => $this->completed_at?->toIso8601String(),
-            'is_starred' => $this->is_starred,
+            // Task::$is_starred is honestly bool|null (Plan 1, Step 3) —
+            // coerced here since the V1 contract declares this field a
+            // plain boolean; see WorkspacePresenter::task()'s identical cast.
+            'is_starred' => (bool) $this->is_starred,
             'due_date' => $this->due_date?->format('Y-m-d'),
             'position' => $this->position,
             'comments' => TaskCommentResource::collection($this->whenLoaded('comments')),

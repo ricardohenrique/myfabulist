@@ -120,7 +120,11 @@ class FolderTest extends TestCase
 
         $response->assertNoContent();
         $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
-        $this->assertDatabaseHas('task_lists', ['id' => $list->id, 'folder_id' => null]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $user->id,
+            'folder_id' => null,
+        ]);
     }
 
     public function test_deleting_with_delete_removes_lists_and_their_tasks(): void

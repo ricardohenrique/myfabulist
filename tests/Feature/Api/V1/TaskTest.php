@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
@@ -92,7 +93,8 @@ class TaskTest extends TestCase
     public function test_complete_sets_is_completed_and_completed_at_and_is_idempotent(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create(['user_id' => $user->id]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
 
         $response = $this->actingAs($user)->postJson("/api/v1/tasks/{$task->id}/complete");
         $response->assertOk();
@@ -108,7 +110,8 @@ class TaskTest extends TestCase
     public function test_restore_clears_is_completed_and_completed_at(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->completed()->create(['user_id' => $user->id]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->completed()->create();
 
         $response = $this->actingAs($user)->postJson("/api/v1/tasks/{$task->id}/restore");
 
@@ -120,11 +123,10 @@ class TaskTest extends TestCase
     public function test_update_replaces_note_due_date_and_star_and_clears_them_when_null(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create([
-            'user_id' => $user->id,
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred($user)->create([
             'note' => 'Old note',
             'due_date' => now()->addDay()->toDateString(),
-            'is_starred' => true,
         ]);
 
         $response = $this->actingAs($user)->putJson("/api/v1/tasks/{$task->id}", [
@@ -135,17 +137,68 @@ class TaskTest extends TestCase
         ]);
 
         $response->assertOk();
+        $response->assertJsonPath('data.is_starred', false);
         $task->refresh();
         $this->assertSame('Updated title', $task->title);
         $this->assertNull($task->note);
         $this->assertNull($task->due_date);
-        $this->assertFalse($task->is_starred);
+        $this->assertDatabaseMissing('task_stars', ['task_id' => $task->id, 'user_id' => $user->id]);
+    }
+
+    /**
+     * The empirical proof that the `{task}` route-binding fix (Plan 1,
+     * Step 3) works end-to-end: a real HTTP round trip through
+     * `PUT /api/v1/tasks/{task}`, reading `is_starred` back out of the
+     * response body — not off a freshly re-queried model, which is exactly
+     * what would hide a broken binding.
+     */
+    public function test_update_toggles_only_the_callers_own_star(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+
+        $response = $this->actingAs($owner)->putJson("/api/v1/tasks/{$task->id}", [
+            'title' => $task->title,
+            'is_starred' => true,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.is_starred', true);
+        $this->assertDatabaseHas('task_stars', ['task_id' => $task->id, 'user_id' => $owner->id]);
+        $this->assertDatabaseMissing('task_stars', ['task_id' => $task->id, 'user_id' => $other->id]);
+    }
+
+    /**
+     * Regression (Plan 1, Step 3 review): `TaskController::show()`'s
+     * embedded `list` must carry the viewer's *real* placement —
+     * `Task::taskList(): BelongsTo` never chains
+     * `TaskList::scopeJoinMemberPlacement()` on its own, so before
+     * `EloquentTaskRepository::loadDetails()` resolved this explicitly,
+     * this endpoint silently emitted `folder_id`/`position: null` for a
+     * task genuinely filed in a folder — the same class of bug Step 2's
+     * review caught for `GET /api/v1/inbox`.
+     */
+    public function test_show_embeds_the_tasks_list_with_its_real_placement(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $list = TaskList::factory()->inFolder($folder, 2)->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+
+        $response = $this->actingAs($user)->getJson("/api/v1/tasks/{$task->id}");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.list.folder_id', $folder->id);
+        $response->assertJsonPath('data.list.position', 2);
     }
 
     public function test_delete_removes_the_task_which_is_distinct_from_completing_it(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create(['user_id' => $user->id]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
 
         $response = $this->actingAs($user)->deleteJson("/api/v1/tasks/{$task->id}");
 
