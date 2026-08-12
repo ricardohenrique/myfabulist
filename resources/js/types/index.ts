@@ -43,6 +43,7 @@ export type TaskSummary = {
     dueDateStatus: DueDateStatus;
     isStarred: boolean;
     completedAt: string | null;
+    createdAt: string;
     taskListId: number;
     taskListName: string;
     comments: TaskCommentSummary[];

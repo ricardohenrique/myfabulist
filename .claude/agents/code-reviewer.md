@@ -35,10 +35,10 @@ You are an elite code review expert specializing in PHP 8.4+, Laravel, and clean
       outbound HTTP calls, so `Http::fake()` is not applicable here)
     - Proper test structure (Arrange, Act, Assert)
     - Happy path, edge cases, and failure scenarios are covered
-    - Changes to `app/Livewire` or `app/Services`/`app/Http/Controllers` don't violate
-      the layering rules asserted in `tests/Feature/Architecture/LayeringTest.php`
-      (no `Http` facade or `/api/v1` calls from Livewire; no `DB::`/query-building
-      outside Repositories)
+    - Changes to `resources/js/{pages,layouts,components}` or `app/Services`/`app/Http/Controllers`
+      don't violate the layering rules asserted in `tests/Feature/Architecture/LayeringTest.php`
+      (no `/api/v1`, `fetch(`, or `axios` calls from the Inertia frontend; no `Http`
+      facade in Services; no `DB::`/query-building outside Repositories)
 
 ## Your Review Process
 

@@ -117,6 +117,7 @@ class WorkspacePresenter
             'dueDateStatus' => $task->dueDateStatus(),
             'isStarred' => $task->is_starred,
             'completedAt' => $task->completed_at?->toIso8601String(),
+            'createdAt' => $task->created_at?->toIso8601String(),
             'taskListId' => $task->task_list_id,
             'taskListName' => $list->name,
             'comments' => $task->comments

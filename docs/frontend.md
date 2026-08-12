@@ -157,6 +157,8 @@ Enter inserts a new line. Comments render as plain text and display the
 author's profile image when available, with a neutral user icon as fallback.
 The task-details checkbox and star update completion and starred state
 immediately; they do not wait for the user to press Save.
+The task creation date appears directly above the footer actions. Recent dates
+use relative language, while older dates use a localized calendar date.
 The task-details footer uses an icon-only close action on the left, a slightly
 larger blue Save button in the center, and an icon-only delete action on the
 right.

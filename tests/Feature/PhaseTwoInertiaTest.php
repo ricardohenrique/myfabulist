@@ -37,6 +37,7 @@ it('renders an unverified users inbox from canonical services', function () {
             ->where('workspace.view', 'inbox')
             ->where('workspace.currentList.id', $inbox->id)
             ->where('workspace.tasks.0.id', $active->id)
+            ->where('workspace.tasks.0.createdAt', $active->created_at?->toIso8601String())
             ->where('workspace.tasks.1.id', $completed->id)
             ->where('workspace.completedCount', 1)
             ->where('workspace.inbox.activeTaskCount', 1));

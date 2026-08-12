@@ -25,6 +25,19 @@ function formatCommentDate(value: string): string {
     }).format(new Date(value));
 }
 
+function formatTaskCreationDate(value: string): string {
+    const createdAt = new Date(value);
+    const elapsedSeconds = Math.round((createdAt.getTime() - Date.now()) / 1_000);
+    const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
+    if (Math.abs(elapsedSeconds) < 60) return 'Created just now';
+    if (Math.abs(elapsedSeconds) < 3_600) return `Created ${relativeTime.format(Math.round(elapsedSeconds / 60), 'minute')}`;
+    if (Math.abs(elapsedSeconds) < 86_400) return `Created ${relativeTime.format(Math.round(elapsedSeconds / 3_600), 'hour')}`;
+    if (Math.abs(elapsedSeconds) < 604_800) return `Created ${relativeTime.format(Math.round(elapsedSeconds / 86_400), 'day')}`;
+
+    return `Created on ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(createdAt)}`;
+}
+
 export function TaskDetails({
     task,
     lists,
@@ -207,6 +220,12 @@ export function TaskDetails({
                     {commentError && <p className="comment-error" id="comment-error" role="alert">{commentError}</p>}
                     <p className="comment-hint">Press Enter to post · Shift + Enter for a new line</p>
                 </section>
+            </div>
+
+            <div className="details-created-at">
+                <time dateTime={task.createdAt} title={formatCommentDate(task.createdAt)}>
+                    {formatTaskCreationDate(task.createdAt)}
+                </time>
             </div>
 
             <footer className="details-footer">

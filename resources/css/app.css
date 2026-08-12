@@ -1560,6 +1560,20 @@ button:disabled {
     color: #98a1a7;
 }
 
+.details-created-at {
+    flex: none;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    border-top: 1px solid #e1e4e6;
+    color: #8b959c;
+    background: #f7f7f6;
+    font-size: 0.7rem;
+    text-align: center;
+}
+
 .details-footer {
     min-height: 74px;
     display: grid;

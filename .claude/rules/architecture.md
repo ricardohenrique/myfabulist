@@ -6,7 +6,13 @@
 
 ## Frontend
 
-- **blade** build with blade
+- **Inertia.js 3 + React 19 + TypeScript**, styled with Tailwind CSS 4 (CSS-first
+  config) and built with Vite 8.
+- Pages live in `resources/js/pages`, shared UI in `resources/js/components`,
+  page shells in `resources/js/layouts`, and client helpers/hooks in
+  `resources/js/lib`.
+- Use Laravel Wayfinder (`resources/js/routes`) for typed route/URL generation
+  instead of hand-written route strings.
 
 ## Database
 
@@ -38,10 +44,12 @@
 - Define Eloquent relationships, casts, fillable fields, and scopes.
 - No business logic, no service calls, no application workflows.
 
-### Livewire Components
-- Handle reactive UI state only.
-- Delegate all data operations to services or repositories.
-- No business logic inside component methods.
+### Inertia Pages and React Components
+- Handle reactive UI state only; no business logic in components.
+- Controllers pass data via `Inertia::render(...)` props — components never fetch
+  domain data themselves over HTTP.
+- Mutations go through Inertia form helpers (`useForm`, `router.post/put/delete`)
+  posting to `routes/web.php`/`routes/settings.php` controllers, never to `/api/v1`.
 
 ### Exceptions
 - Use named domain exceptions for every business rule violation.
@@ -72,8 +80,9 @@
   `tests/Feature/Api/V1/ApiFoundationTest.php`.
 
 ### Layer boundary (enforced by test)
-- `app/Livewire` must never call `/api/v1` over HTTP or use the `Http` facade —
-  it calls Services/Repositories in-process, exactly like the API controllers do.
+- `resources/js/{pages,layouts,components}` must never call `/api/v1`, `fetch(`, or
+  `axios` — the browser UI uses Inertia web routes and calls Services/Repositories
+  in-process via the Laravel controller, exactly like the API controllers do.
 - `app/Services` and `app/Http/Controllers` must never build queries directly
   (`DB::`, `::query(`, `->where(`) — only Repositories query the database.
 - This is a static assertion in `tests/Feature/Architecture/LayeringTest.php`;

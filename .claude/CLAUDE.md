@@ -1,13 +1,14 @@
 # MyFabulist
 
-Laravel 13, PHP 8.3+, SQLite (default) / MySQL
+Laravel 13, PHP 8.4+, SQLite (default) / MySQL
 Folders -> Lists -> Tasks (Wunderlist-style task manager)
 
-Two delivery mechanisms sit on top of one shared application layer: a Livewire web UI
-and a versioned JSON REST API (`/api/v1`, Sanctum-authenticated). Neither delivery layer
-talks to the other — Livewire components never call the API over HTTP, and both call the
-same Services/Repositories directly. See `.claude/rules/architecture.md` for the enforced
-invariant (`tests/Feature/Architecture/LayeringTest.php`).
+Two delivery mechanisms sit on top of one shared application layer: an Inertia.js +
+React (TypeScript) browser UI and a versioned JSON REST API (`/api/v1`,
+Sanctum-authenticated). Neither delivery layer talks to the other — the Inertia
+frontend never calls the API over HTTP, and both call the same Services/Repositories
+directly. See `.claude/rules/architecture.md` for the enforced invariant
+(`tests/Feature/Architecture/LayeringTest.php`).
 
 ## Structure
 
@@ -17,12 +18,10 @@ app/
 ├── Concerns/            # Shared validation-rule traits
 ├── Exceptions/          # Domain exceptions (extend App\Exceptions\DomainException)
 ├── Http/
-│   ├── Controllers/     # Web controllers + Http/Controllers/Api/V1 (REST API)
+│   ├── Controllers/     # Web controllers (Inertia responses) + Http/Controllers/Api/V1 (REST API)
 │   ├── Requests/        # Form requests; Http/Requests/Api/V1 for the API
 │   └── Resources/       # API wire-format transformers (Http/Resources/Api/V1)
 ├── Listeners/           # Event listeners (e.g. provisioning defaults on registration)
-├── Livewire/            # Reactive UI components (server-driven frontend)
-│   └── Navigation/      # Sidebar tree + folder/list create-rename-move-delete dialogs
 ├── Models/              # Eloquent models and domain entities
 ├── Policies/            # Model-level authorization rules (auto-discovered)
 ├── Providers/           # Service container bindings and application bootstrapping
@@ -31,10 +30,21 @@ app/
 └── Services/            # Business logic and application use cases
     └── Data/            # Immutable DTOs passed between Services and callers
 
+resources/
+├── js/
+│   ├── pages/           # Inertia page components (route targets)
+│   ├── layouts/         # Shared page shells (e.g. app-shell.tsx)
+│   ├── components/      # Reusable UI components (navigation, tasks, ui, auth)
+│   ├── lib/              # Client-side helpers and hooks
+│   ├── routes/           # Wayfinder-generated typed route helpers
+│   └── types/            # Shared TypeScript types for Inertia page props
+├── css/                 # Tailwind CSS 4 (CSS-first config) in app.css
+└── views/app.blade.php  # Single Inertia root view
+
 routes/
-├── web.php              # Web routes (Livewire pages)
+├── web.php              # Web routes (Inertia page responses)
 ├── api.php              # REST API routes, all under /api/v1, auth:sanctum + verified
-├── settings.php         # Livewire-routed settings pages
+├── settings.php         # Inertia-routed settings pages
 └── console.php          # Artisan console routes
 
 database/
@@ -43,7 +53,7 @@ database/
 └── factories/           # Model factories for generating test data
 
 tests/
-├── Feature/             # HTTP, database, service, repository, and Livewire tests
+├── Feature/             # HTTP, database, service, repository, and Inertia tests
 │   ├── Api/V1/          # REST API endpoint tests
 │   └── Architecture/    # Layering rules enforced by static test assertions
 └── Unit/                # Isolated tests for individual classes and methods
@@ -90,7 +100,7 @@ Controllers handle HTTP requests and responses.
 Services contain business logic and application use cases.
 Repositories encapsulate data access and persistence concerns.
 Models represent domain entities and database records.
-Livewire Components implement interactive UI behavior.
+Inertia pages and React components implement interactive UI behavior.
 
 ## Request Flow
 
@@ -103,9 +113,10 @@ API request  → routes/api.php (auth:sanctum + verified)
              → Service → Repository → Model / Database
              → Http/Resources/Api/V1 → JSON response
 
-Web request  → routes/web.php or Livewire component
+Web request  → routes/web.php or settings.php
              → Service → Repository → Model / Database
-             → Blade view
+             → Controller returns Inertia::render(...)
+             → React page component (resources/js/pages)
 ```
 
 Both paths converge on the same Services and Repositories — business logic is never
@@ -130,6 +141,10 @@ composer test
 Run just the test suite:
 ```bash
 php artisan test
+```
+Build the frontend and typecheck:
+```bash
+npm run build
 ```
 
 ## Conventions
