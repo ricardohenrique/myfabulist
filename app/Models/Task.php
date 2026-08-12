@@ -32,6 +32,7 @@ use Illuminate\Support\Carbon;
  * @property-read User $user
  * @property-read TaskList $taskList
  * @property-read Collection<int, TaskComment> $comments
+ * @property-read Collection<int, Subtask> $subtasks
  */
 #[Fillable(['title', 'note', 'is_starred', 'due_date', 'position'])]
 class Task extends Model
@@ -79,6 +80,19 @@ class Task extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(TaskComment::class)
+            ->oldest()
+            ->orderBy('id');
+    }
+
+    /**
+     * A subtask never has its own subtasks (no nesting) — this is the only
+     * relation Subtask exposes, structurally ruling out a second level.
+     *
+     * @return HasMany<Subtask, $this>
+     */
+    public function subtasks(): HasMany
+    {
+        return $this->hasMany(Subtask::class)
             ->oldest()
             ->orderBy('id');
     }

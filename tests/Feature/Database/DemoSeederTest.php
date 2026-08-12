@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Database;
 
 use App\Models\Folder;
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
@@ -93,6 +94,42 @@ class DemoSeederTest extends TestCase
                 $this->assertGreaterThanOrEqual(10, $taskCount, "list {$list->id} has fewer than 10 tasks.");
                 $this->assertLessThanOrEqual(20, $taskCount, "list {$list->id} has more than 20 tasks.");
             });
+        });
+    }
+
+    public function test_every_task_has_between_zero_and_five_subtasks(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        Task::query()->get()->each(function (Task $task): void {
+            $subtaskCount = Subtask::query()->where('task_id', $task->id)->count();
+            $this->assertGreaterThanOrEqual(0, $subtaskCount);
+            $this->assertLessThanOrEqual(5, $subtaskCount, "task {$task->id} has more than 5 subtasks.");
+        });
+
+        $this->assertGreaterThan(0, Subtask::query()->count(), 'Expected at least one subtask across the whole dataset.');
+    }
+
+    public function test_every_subtask_belongs_to_a_task_owned_by_the_same_user_chain(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        Subtask::query()->with('task')->get()->each(function (Subtask $subtask): void {
+            $this->assertNotNull($subtask->task);
+        });
+    }
+
+    public function test_completed_tasks_have_only_completed_subtasks(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        Task::query()->where('is_completed', true)->get()->each(function (Task $task): void {
+            $incomplete = Subtask::query()
+                ->where('task_id', $task->id)
+                ->where('is_completed', false)
+                ->count();
+
+            $this->assertSame(0, $incomplete, "completed task {$task->id} has an incomplete subtask.");
         });
     }
 

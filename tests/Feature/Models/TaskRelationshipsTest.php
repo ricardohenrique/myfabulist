@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Models;
 
 use App\Models\Folder;
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskList;
@@ -72,6 +73,29 @@ class TaskRelationshipsTest extends TestCase
         $task->forceDelete();
 
         $this->assertDatabaseMissing('task_comments', ['id' => $comment->id]);
+    }
+
+    public function test_a_subtask_belongs_to_its_task(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+        $subtask = Subtask::factory()->forTask($task)->create();
+
+        $this->assertTrue($task->is($subtask->task));
+        $this->assertTrue($task->subtasks->contains($subtask));
+    }
+
+    public function test_force_deleting_a_task_cascades_its_subtasks(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+        $subtask = Subtask::factory()->forTask($task)->create();
+
+        $task->forceDelete();
+
+        $this->assertDatabaseMissing('subtasks', ['id' => $subtask->id]);
     }
 
     public function test_soft_deleting_a_list_leaves_its_tasks_intact_but_hidden(): void

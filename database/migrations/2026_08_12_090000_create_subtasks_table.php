@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('subtasks', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('task_id')->constrained()->cascadeOnDelete();
+            $table->string('title', 150);
+            $table->boolean('is_completed')->default(false);
+            $table->timestamps();
+
+            $table->index(['task_id', 'id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('subtasks');
+    }
+};

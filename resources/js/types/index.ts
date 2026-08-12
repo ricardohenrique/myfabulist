@@ -34,6 +34,13 @@ export type TaskCommentSummary = {
     createdAt: string;
 };
 
+export type SubtaskSummary = {
+    id: number;
+    title: string;
+    isCompleted: boolean;
+    createdAt: string;
+};
+
 export type TaskSummary = {
     id: number;
     title: string;
@@ -46,6 +53,7 @@ export type TaskSummary = {
     createdAt: string;
     taskListId: number;
     taskListName: string;
+    subtasks: SubtaskSummary[];
     comments: TaskCommentSummary[];
 };
 

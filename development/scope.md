@@ -194,7 +194,6 @@ stable:
 - Today, Upcoming, All Tasks, and Completed smart views;
 - recurring tasks;
 - reminders and browser/native notifications;
-- one-level subtasks;
 - list sharing, collaborators, and assignment;
 - file or image attachments;
 - natural-language date extraction;

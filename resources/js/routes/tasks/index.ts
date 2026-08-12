@@ -1,5 +1,6 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../wayfinder'
 import comments from './comments'
+import subtasks from './subtasks'
 /**
 * @see \App\Http\Controllers\Web\TaskController::update
 * @see app/Http/Controllers/Web/TaskController.php:21
@@ -351,6 +352,7 @@ move.post = (args: { task: number | { id: number } } | [task: number | { id: num
 const tasks = {
     update: Object.assign(update, update),
     comments: Object.assign(comments, comments),
+    subtasks: Object.assign(subtasks, subtasks),
     destroy: Object.assign(destroy, destroy),
     complete: Object.assign(complete, complete),
     restore: Object.assign(restore, restore),

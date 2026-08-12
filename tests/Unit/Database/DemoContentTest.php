@@ -34,6 +34,14 @@ class DemoContentTest extends TestCase
         $this->assertCount(20, array_unique($titles));
     }
 
+    public function test_subtask_titles_returns_exactly_n_unique_values(): void
+    {
+        $titles = DemoContent::subtaskTitles(5);
+
+        $this->assertCount(5, $titles);
+        $this->assertCount(5, array_unique($titles));
+    }
+
     public function test_repeated_calls_vary(): void
     {
         $samples = array_map(
@@ -65,11 +73,19 @@ class DemoContentTest extends TestCase
         DemoContent::taskTitles(1_000);
     }
 
+    public function test_requesting_more_than_the_subtask_title_pool_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        DemoContent::subtaskTitles(1_000);
+    }
+
     public function test_requesting_zero_returns_an_empty_array(): void
     {
         $this->assertSame([], DemoContent::folderNames(0));
         $this->assertSame([], DemoContent::listNames(0));
         $this->assertSame([], DemoContent::taskTitles(0));
+        $this->assertSame([], DemoContent::subtaskTitles(0));
     }
 
     public function test_note_returns_a_non_empty_string(): void

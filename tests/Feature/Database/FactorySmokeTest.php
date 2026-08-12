@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Database;
 
 use App\Models\Folder;
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskList;
@@ -74,6 +75,25 @@ class FactorySmokeTest extends TestCase
             'task_id' => $task->id,
             'user_id' => $user->id,
         ]);
+    }
+
+    public function test_subtask_factory_for_task_state(): void
+    {
+        $task = Task::factory()->create();
+        $subtask = Subtask::factory()->forTask($task)->create();
+
+        $this->assertDatabaseHas('subtasks', [
+            'id' => $subtask->id,
+            'task_id' => $task->id,
+            'is_completed' => false,
+        ]);
+    }
+
+    public function test_subtask_factory_completed_state(): void
+    {
+        $subtask = Subtask::factory()->completed()->create();
+
+        $this->assertTrue($subtask->is_completed);
     }
 
     public function test_task_factory_for_task_list_state(): void

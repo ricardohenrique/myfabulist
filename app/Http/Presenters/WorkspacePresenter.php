@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Presenters;
 
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskList;
@@ -120,6 +121,14 @@ class WorkspacePresenter
             'createdAt' => $task->created_at?->toIso8601String(),
             'taskListId' => $task->task_list_id,
             'taskListName' => $list->name,
+            'subtasks' => $task->subtasks
+                ->map(fn (Subtask $subtask): array => [
+                    'id' => $subtask->id,
+                    'title' => $subtask->title,
+                    'isCompleted' => $subtask->is_completed,
+                    'createdAt' => $subtask->created_at?->toIso8601String(),
+                ])
+                ->all(),
             'comments' => $task->comments
                 ->map(fn (TaskComment $comment): array => [
                     'id' => $comment->id,

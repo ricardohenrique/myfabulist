@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Architecture;
 
 use App\Repositories\Contracts\FolderRepositoryInterface;
+use App\Repositories\Contracts\SubtaskRepositoryInterface;
 use App\Repositories\Contracts\TaskCommentRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
@@ -65,6 +66,7 @@ class LayeringTest extends TestCase
             TaskListRepositoryInterface::class,
             TaskCommentRepositoryInterface::class,
             TaskRepositoryInterface::class,
+            SubtaskRepositoryInterface::class,
         ];
 
         $repositoriesDirectory = app_path('Repositories');

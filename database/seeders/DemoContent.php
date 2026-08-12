@@ -137,6 +137,32 @@ final class DemoContent
     /**
      * @var array<int, non-empty-string>
      */
+    private const SUBTASK_TITLES = [
+        'Research options',
+        'Compare prices',
+        'Make a checklist',
+        'Set a reminder',
+        'Confirm with the team',
+        'Double-check the details',
+        'Send the confirmation',
+        'Review the draft',
+        'Get final approval',
+        'Update the calendar',
+        'Pack the essentials',
+        'Check the weather',
+        'Back up the files',
+        'Write a short summary',
+        'Gather the documents',
+        'Book the time slot',
+        'Print what is needed',
+        'Charge the batteries',
+        'Notify everyone involved',
+        'Tidy up afterward',
+    ];
+
+    /**
+     * @var array<int, non-empty-string>
+     */
     private const NOTES = [
         'Check with the team before finalizing.',
         'Waiting on a reply before this can move forward.',
@@ -177,6 +203,14 @@ final class DemoContent
     public static function taskTitles(int $count): array
     {
         return self::pickUnique(self::TASK_TITLES, $count);
+    }
+
+    /**
+     * @return array<int, non-empty-string>
+     */
+    public static function subtaskTitles(int $count): array
+    {
+        return self::pickUnique(self::SUBTASK_TITLES, $count);
     }
 
     public static function note(): string

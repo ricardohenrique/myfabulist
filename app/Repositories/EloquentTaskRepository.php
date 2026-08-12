@@ -24,7 +24,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return Task::query()
             ->where('task_list_id', $taskList->id)
             ->where('is_completed', false)
-            ->with('comments.author')
+            ->with(['comments.author', 'subtasks'])
             ->orderBy('position')
             ->orderBy('id')
             ->get();
@@ -38,7 +38,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return Task::query()
             ->where('task_list_id', $taskList->id)
             ->where('is_completed', true)
-            ->with('comments.author')
+            ->with(['comments.author', 'subtasks'])
             ->orderByDesc('completed_at')
             ->orderByDesc('id')
             ->get();
@@ -60,7 +60,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
             // applies TaskList's soft-delete global scope inside the
             // subquery, dropping any starred task whose list is trashed.
             ->whereHas('taskList')
-            ->with(['taskList.folder', 'comments.author'])
+            ->with(['taskList.folder', 'comments.author', 'subtasks'])
             ->orderByDesc('created_at')
             ->get();
     }
@@ -90,7 +90,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
 
     public function loadDetails(Task $task): Task
     {
-        return $task->load(['taskList', 'comments.author']);
+        return $task->load(['taskList', 'comments.author', 'subtasks']);
     }
 
     public function create(User $user, TaskList $taskList, string $title, int $position): Task

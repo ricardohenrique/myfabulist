@@ -2,8 +2,9 @@ import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../
 import folders from './folders'
 import lists from './lists'
 import tasks from './tasks'
+import subtasks from './subtasks'
 /**
-* @see routes/api.php:37
+* @see routes/api.php:41
 * @route '/api/v1/user'
 */
 export const user = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -17,7 +18,7 @@ user.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/api.php:37
+* @see routes/api.php:41
 * @route '/api/v1/user'
 */
 user.url = (options?: RouteQueryOptions) => {
@@ -25,7 +26,7 @@ user.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/api.php:37
+* @see routes/api.php:41
 * @route '/api/v1/user'
 */
 user.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -34,7 +35,7 @@ user.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/api.php:37
+* @see routes/api.php:41
 * @route '/api/v1/user'
 */
 user.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -136,6 +137,7 @@ const v1 = {
     folders: Object.assign(folders, folders),
     lists: Object.assign(lists, lists),
     tasks: Object.assign(tasks, tasks),
+    subtasks: Object.assign(subtasks, subtasks),
     starred: Object.assign(starred, starred),
 }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Folder;
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
@@ -18,8 +19,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Builds a realistic, multi-user demo dataset (Folders -> Lists -> Tasks)
- * used only by `php artisan db:fresh-seed`. `DatabaseSeeder` — the minimal
+ * Builds a realistic, multi-user demo dataset (Folders -> Lists -> Tasks ->
+ * Subtasks) used only by `php artisan db:fresh-seed`. `DatabaseSeeder` — the minimal
  * acceptance-criteria fixture behind `php artisan db:seed` — is untouched
  * and unrelated (D3/A5).
  *
@@ -76,6 +77,14 @@ class DemoSeeder extends Seeder
     /** Chance a non-completed task carries a note. */
     private const NOTE_CHANCE = 0.25;
 
+    /** Every task gets between 0 and 5 subtasks (inclusive), independent of its own state. */
+    private const SUBTASKS_MIN = 0;
+
+    private const SUBTASKS_MAX = 5;
+
+    /** Chance an individual subtask of a *non-completed* task is itself completed. */
+    private const SUBTASK_COMPLETED_CHANCE = 0.3;
+
     /** Task `created_at`/`updated_at` are spread over the last N days so ordering by them is meaningful. */
     private const TIMESTAMP_SPREAD_DAYS = 60;
 
@@ -100,7 +109,7 @@ class DemoSeeder extends Seeder
     {
         $users = $this->createUsers($userCount);
 
-        $totals = ['folders' => 0, 'lists' => 0, 'tasks' => 0];
+        $totals = ['folders' => 0, 'lists' => 0, 'tasks' => 0, 'subtasks' => 0];
 
         foreach ($users as $user) {
             // One transaction per user (D10): collapses ~190 inserts per
@@ -111,6 +120,7 @@ class DemoSeeder extends Seeder
             $totals['folders'] += $counts['folders'];
             $totals['lists'] += $counts['lists'];
             $totals['tasks'] += $counts['tasks'];
+            $totals['subtasks'] += $counts['subtasks'];
         }
 
         $this->reportSummary($users->count(), $totals);
@@ -139,7 +149,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * @return array{folders: int, lists: int, tasks: int}
+     * @return array{folders: int, lists: int, tasks: int, subtasks: int}
      */
     private function seedUser(User $user): array
     {
@@ -153,9 +163,12 @@ class DemoSeeder extends Seeder
 
         $inboxTasks = $this->seedTasksForList($inbox);
         $taskCount = count($inboxTasks);
+        $subtaskCount = $this->subtaskCountFor($inboxTasks);
 
         foreach ([...$folderedLists, ...$standaloneLists] as $list) {
-            $taskCount += count($this->seedTasksForList($list));
+            $listTasks = $this->seedTasksForList($list);
+            $taskCount += count($listTasks);
+            $subtaskCount += $this->subtaskCountFor($listTasks);
         }
 
         // D7: guarantee every user's Inbox is fully populated, regardless
@@ -166,7 +179,19 @@ class DemoSeeder extends Seeder
             'folders' => count($folders),
             'lists' => 1 + count($folderedLists) + count($standaloneLists),
             'tasks' => $taskCount,
+            'subtasks' => $subtaskCount,
         ];
+    }
+
+    /**
+     * @param  array<int, Task>  $tasks
+     */
+    private function subtaskCountFor(array $tasks): int
+    {
+        return array_sum(array_map(
+            fn (Task $task): int => $task->subtasks()->count(),
+            $tasks,
+        ));
     }
 
     private function createInbox(User $user): TaskList
@@ -299,24 +324,54 @@ class DemoSeeder extends Seeder
             ]);
 
         if ($this->rollChance(self::COMPLETED_CHANCE)) {
-            return $factory
+            $task = $factory
                 ->completedAt($this->randomPastMoment(self::COMPLETED_WITHIN_DAYS))
                 ->create();
+        } else {
+            if ($this->rollChance(self::STARRED_CHANCE)) {
+                $factory = $factory->starred();
+            }
+
+            if ($this->rollChance(self::DUE_DATE_CHANCE)) {
+                $factory = $this->withRandomDueDate($factory);
+            }
+
+            if ($this->rollChance(self::NOTE_CHANCE)) {
+                $factory = $factory->withNote(DemoContent::note());
+            }
+
+            $task = $factory->create();
         }
 
-        if ($this->rollChance(self::STARRED_CHANCE)) {
-            $factory = $factory->starred();
+        $this->createSubtasksForTask($task);
+
+        return $task;
+    }
+
+    /**
+     * Every task gets 0–5 subtasks (D-subtasks), regardless of the task's
+     * own completion state. A completed task's subtasks are all completed
+     * too — an incomplete checklist under a finished task would read as a
+     * seeding bug, not realistic data. An active task's subtasks complete
+     * independently at SUBTASK_COMPLETED_CHANCE, so most lists show a mix
+     * of ticked and open items.
+     */
+    private function createSubtasksForTask(Task $task): void
+    {
+        $count = random_int(self::SUBTASKS_MIN, self::SUBTASKS_MAX);
+
+        if ($count === 0) {
+            return;
         }
 
-        if ($this->rollChance(self::DUE_DATE_CHANCE)) {
-            $factory = $this->withRandomDueDate($factory);
-        }
+        foreach (DemoContent::subtaskTitles($count) as $title) {
+            $isCompleted = $task->is_completed || $this->rollChance(self::SUBTASK_COMPLETED_CHANCE);
 
-        if ($this->rollChance(self::NOTE_CHANCE)) {
-            $factory = $factory->withNote(DemoContent::note());
+            Subtask::factory()
+                ->forTask($task)
+                ->state(['title' => $title, 'is_completed' => $isCompleted])
+                ->create();
         }
-
-        return $factory->create();
     }
 
     private function withRandomDueDate(TaskFactory $factory): TaskFactory
@@ -369,16 +424,17 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * @param  array{folders: int, lists: int, tasks: int}  $totals
+     * @param  array{folders: int, lists: int, tasks: int, subtasks: int}  $totals
      */
     private function reportSummary(int $userCount, array $totals): void
     {
         $this->seederCommand?->getOutput()->writeln(sprintf(
-            'Demo dataset seeded: %d users, %d folders, %d lists, %d tasks.',
+            'Demo dataset seeded: %d users, %d folders, %d lists, %d tasks, %d subtasks.',
             $userCount,
             $totals['folders'],
             $totals['lists'],
             $totals['tasks'],
+            $totals['subtasks'],
         ));
     }
 }

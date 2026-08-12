@@ -1,21 +1,28 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import type { NavigationList, TaskSummary } from '@/types';
+import type { NavigationList, SubtaskSummary, TaskSummary } from '@/types';
 
 type TaskDetailsProps = {
     task: TaskSummary;
     lists: NavigationList[];
     onClose: () => void;
     onAddComment: (taskId: number, body: string, onSuccess: () => void) => void;
+    onAddSubtask: (taskId: number, title: string, onSuccess: () => void) => void;
     onDelete: (taskId: number) => void;
+    onDeleteSubtask: (subtaskId: number) => void;
+    onRenameSubtask: (subtaskId: number, title: string, onError: () => void) => void;
     onSave: (task: TaskSummary) => void;
+    onToggleSubtask: (subtask: SubtaskSummary) => void;
     onToggleComplete: (taskId: number) => void;
     onToggleStar: (taskId: number) => void;
     errors?: Record<string, string>;
     commentError?: string;
     commentProcessing?: boolean;
     processing?: boolean;
+    subtaskError?: string;
+    subtaskCreating?: boolean;
+    pendingSubtaskIds?: number[];
 };
 
 function formatCommentDate(value: string): string {
@@ -38,22 +45,101 @@ function formatTaskCreationDate(value: string): string {
     return `Created on ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(createdAt)}`;
 }
 
+type SubtaskRowProps = {
+    subtask: SubtaskSummary;
+    processing: boolean;
+    onDelete: (subtaskId: number) => void;
+    onRename: (subtaskId: number, title: string, onError: () => void) => void;
+    onToggle: (subtask: SubtaskSummary) => void;
+};
+
+function SubtaskRow({ subtask, processing, onDelete, onRename, onToggle }: SubtaskRowProps) {
+    const [title, setTitle] = useState(subtask.title);
+
+    useEffect(() => setTitle(subtask.title), [subtask.title]);
+
+    const saveTitle = () => {
+        const nextTitle = title.trim();
+
+        if (!nextTitle || nextTitle === subtask.title) {
+            setTitle(subtask.title);
+            return;
+        }
+
+        setTitle(nextTitle);
+        onRename(subtask.id, nextTitle, () => setTitle(subtask.title));
+    };
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.currentTarget.blur();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            setTitle(subtask.title);
+            event.currentTarget.blur();
+        }
+    };
+
+    return (
+        <div className={`subtask-row ${subtask.isCompleted ? 'is-completed' : ''}`}>
+            <button
+                aria-label={subtask.isCompleted ? `Restore ${subtask.title}` : `Complete ${subtask.title}`}
+                className="task-check"
+                disabled={processing}
+                onClick={() => onToggle(subtask)}
+                type="button"
+            >
+                {subtask.isCompleted && <Icon name="check" size={14} />}
+            </button>
+            <input
+                aria-label={`Subtask: ${subtask.title}`}
+                disabled={processing}
+                maxLength={150}
+                onBlur={saveTitle}
+                onChange={(event) => setTitle(event.target.value)}
+                onKeyDown={handleKeyDown}
+                value={title}
+            />
+            <button
+                aria-label={`Delete ${subtask.title}`}
+                className="subtask-delete"
+                disabled={processing}
+                onClick={() => onDelete(subtask.id)}
+                title="Delete subtask"
+                type="button"
+            >
+                <Icon name="trash" size={15} />
+            </button>
+        </div>
+    );
+}
+
 export function TaskDetails({
     task,
     lists,
     onClose,
     onAddComment,
+    onAddSubtask,
     onDelete,
+    onDeleteSubtask,
+    onRenameSubtask,
     onSave,
+    onToggleSubtask,
     onToggleComplete,
     onToggleStar,
     errors = {},
     commentError = '',
     commentProcessing = false,
     processing = false,
+    subtaskError = '',
+    subtaskCreating = false,
+    pendingSubtaskIds = [],
 }: TaskDetailsProps) {
     const [draft, setDraft] = useState(task);
     const [commentBody, setCommentBody] = useState('');
+    const [subtaskTitle, setSubtaskTitle] = useState('');
+    const subtaskInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => setDraft(task), [task.id]);
     useEffect(() => setDraft((current) => ({
@@ -62,6 +148,7 @@ export function TaskDetails({
         isStarred: task.isStarred,
     })), [task.completedAt, task.isStarred]);
     useEffect(() => setCommentBody(''), [task.id]);
+    useEffect(() => setSubtaskTitle(''), [task.id]);
 
     const submitComment = (event?: FormEvent<HTMLFormElement>) => {
         event?.preventDefault();
@@ -77,6 +164,29 @@ export function TaskDetails({
 
         event.preventDefault();
         submitComment();
+    };
+
+    const createSubtask = () => {
+        const title = subtaskTitle.trim();
+
+        if (!title || subtaskCreating) return;
+
+        onAddSubtask(task.id, title, () => {
+            setSubtaskTitle('');
+            requestAnimationFrame(() => subtaskInputRef.current?.focus());
+        });
+    };
+
+    const submitSubtask = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        createSubtask();
+    };
+
+    const handleSubtaskKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+
+        event.preventDefault();
+        createSubtask();
     };
 
     return (
@@ -134,6 +244,41 @@ export function TaskDetails({
                     <Icon name="bell" />
                     <span><small>Reminder</small><strong>Not available yet</strong></span>
                 </div>
+
+                <section aria-label="Subtasks" className="task-subtasks">
+                    {task.subtasks.map((subtask) => (
+                        <SubtaskRow
+                            key={subtask.id}
+                            onDelete={onDeleteSubtask}
+                            onRename={onRenameSubtask}
+                            onToggle={onToggleSubtask}
+                            processing={pendingSubtaskIds.includes(subtask.id)}
+                            subtask={subtask}
+                        />
+                    ))}
+                    <form className="subtask-add" onSubmit={submitSubtask}>
+                        <Icon name="plus" size={20} />
+                        <input
+                            aria-label="Add a subtask"
+                            disabled={subtaskCreating}
+                            maxLength={150}
+                            onChange={(event) => setSubtaskTitle(event.target.value)}
+                            onKeyDown={handleSubtaskKeyDown}
+                            placeholder="Add a subtask"
+                            ref={subtaskInputRef}
+                            value={subtaskTitle}
+                        />
+                        <button
+                            aria-label="Save subtask"
+                            disabled={subtaskCreating || !subtaskTitle.trim()}
+                            title="Save subtask"
+                            type="submit"
+                        >
+                            <Icon name="chevron-right" size={17} />
+                        </button>
+                    </form>
+                    {subtaskError && <p className="subtask-error" role="alert">{subtaskError}</p>}
+                </section>
 
                 <label className="detail-field detail-field--note">
                     <Icon name="note" />

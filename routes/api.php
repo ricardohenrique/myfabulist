@@ -1,18 +1,22 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CompleteSubtaskController;
 use App\Http\Controllers\Api\V1\CompleteTaskController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\FolderOrderController;
 use App\Http\Controllers\Api\V1\InboxController;
 use App\Http\Controllers\Api\V1\MoveTaskController;
+use App\Http\Controllers\Api\V1\RestoreSubtaskController;
 use App\Http\Controllers\Api\V1\RestoreTaskController;
 use App\Http\Controllers\Api\V1\StarredTaskController;
+use App\Http\Controllers\Api\V1\SubtaskController;
 use App\Http\Controllers\Api\V1\TaskCommentController;
 use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TaskListController;
 use App\Http\Controllers\Api\V1\TaskListOrderController;
 use App\Http\Controllers\Api\V1\TaskListTaskController;
 use App\Http\Controllers\Api\V1\TaskOrderController;
+use App\Http\Controllers\Api\V1\TaskSubtaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -69,11 +73,18 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
     Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index'])->name('tasks.comments.index');
     Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
+    Route::get('tasks/{task}/subtasks', [TaskSubtaskController::class, 'index'])->name('tasks.subtasks.index');
+    Route::post('tasks/{task}/subtasks', [TaskSubtaskController::class, 'store'])->name('tasks.subtasks.store');
     Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
     Route::post('tasks/{task}/complete', CompleteTaskController::class)->name('tasks.complete');
     Route::post('tasks/{task}/restore', RestoreTaskController::class)->name('tasks.restore');
     Route::post('tasks/{task}/move', MoveTaskController::class)->name('tasks.move');
+
+    Route::put('subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
+    Route::delete('subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');
+    Route::post('subtasks/{subtask}/complete', CompleteSubtaskController::class)->name('subtasks.complete');
+    Route::post('subtasks/{subtask}/restore', RestoreSubtaskController::class)->name('subtasks.restore');
 
     Route::get('starred', StarredTaskController::class)->name('starred');
 });

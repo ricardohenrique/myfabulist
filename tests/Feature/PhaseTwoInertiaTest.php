@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Folder;
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskList;
@@ -25,6 +26,7 @@ it('renders an unverified users inbox from canonical services', function () {
         'title' => 'Active first',
         'position' => 0,
     ]);
+    $subtask = Subtask::factory()->forTask($active)->create(['title' => 'First step']);
     $completed = Task::factory()->forTaskList($inbox)->completed()->create([
         'title' => 'Completed later',
     ]);
@@ -38,9 +40,39 @@ it('renders an unverified users inbox from canonical services', function () {
             ->where('workspace.currentList.id', $inbox->id)
             ->where('workspace.tasks.0.id', $active->id)
             ->where('workspace.tasks.0.createdAt', $active->created_at?->toIso8601String())
+            ->where('workspace.tasks.0.subtasks.0.id', $subtask->id)
+            ->where('workspace.tasks.0.subtasks.0.title', 'First step')
+            ->where('workspace.tasks.0.subtasks.0.isCompleted', false)
             ->where('workspace.tasks.1.id', $completed->id)
             ->where('workspace.completedCount', 1)
             ->where('workspace.inbox.activeTaskCount', 1));
+});
+
+it('creates renames completes restores and deletes subtasks through web adapters', function () {
+    $user = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $user->id]);
+    $task = Task::factory()->forTaskList($list)->create();
+
+    $this->actingAs($user)->post(route('tasks.subtasks.store', $task), [
+        'title' => '  First step  ',
+    ])->assertSessionHasNoErrors();
+
+    $subtask = Subtask::query()->where('task_id', $task->id)->firstOrFail();
+    $this->assertSame('First step', $subtask->title);
+
+    $this->actingAs($user)->put(route('subtasks.update', $subtask), [
+        'title' => 'Renamed step',
+    ])->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('subtasks', ['id' => $subtask->id, 'title' => 'Renamed step']);
+
+    $this->actingAs($user)->post(route('subtasks.complete', $subtask))->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('subtasks', ['id' => $subtask->id, 'is_completed' => true]);
+
+    $this->actingAs($user)->post(route('subtasks.restore', $subtask))->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('subtasks', ['id' => $subtask->id, 'is_completed' => false]);
+
+    $this->actingAs($user)->delete(route('subtasks.destroy', $subtask))->assertSessionHasNoErrors();
+    $this->assertDatabaseMissing('subtasks', ['id' => $subtask->id]);
 });
 
 it('renders task comments and creates them through the web adapter', function () {

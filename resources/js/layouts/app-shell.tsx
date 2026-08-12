@@ -14,10 +14,13 @@ import * as listRoutes from '@/routes/lists';
 import { store as storeTask } from '@/routes/lists/tasks';
 import * as taskRoutes from '@/routes/tasks';
 import { store as storeTaskComment } from '@/routes/tasks/comments';
+import { store as storeSubtask } from '@/routes/tasks/subtasks';
+import * as subtaskRoutes from '@/routes/subtasks';
 import type {
     NavigationFolder,
     NavigationList,
     SharedPageProps,
+    SubtaskSummary,
     TaskSummary,
     UserSummary,
     WorkspaceData,
@@ -58,6 +61,9 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [taskErrors, setTaskErrors] = useState<Record<string, string>>({});
     const [commentError, setCommentError] = useState('');
     const [commentProcessing, setCommentProcessing] = useState(false);
+    const [subtaskError, setSubtaskError] = useState('');
+    const [subtaskCreating, setSubtaskCreating] = useState(false);
+    const [pendingSubtaskIds, setPendingSubtaskIds] = useState<number[]>([]);
     const [pendingTaskIds, setPendingTaskIds] = useState<number[]>([]);
     const [taskOrder, setTaskOrder] = useState<number[]>(() => workspace.tasks
         .filter((task) => !task.completedAt)
@@ -204,6 +210,63 @@ export function AppShell({ workspace, user }: AppShellProps) {
             onSuccess,
             onError: (errors) => setCommentError(errors.body ?? errors.domain ?? 'The comment could not be saved.'),
             onFinish: () => setCommentProcessing(false),
+        });
+    };
+
+    const setSubtaskPending = (subtaskId: number, pending: boolean) => {
+        setPendingSubtaskIds((current) => pending
+            ? [...new Set([...current, subtaskId])]
+            : current.filter((id) => id !== subtaskId));
+    };
+
+    const subtaskErrorMessage = (errors: Record<string, string>) =>
+        errors.title ?? errors.domain ?? Object.values(errors)[0] ?? 'The subtask could not be saved.';
+
+    const addSubtask = (taskId: number, title: string, onSuccess: () => void) => {
+        setSubtaskError('');
+        setSubtaskCreating(true);
+        router.post(storeSubtask(taskId), { title }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess,
+            onError: (errors) => setSubtaskError(subtaskErrorMessage(errors)),
+            onFinish: () => setSubtaskCreating(false),
+        });
+    };
+
+    const toggleSubtask = (subtask: SubtaskSummary) => {
+        setSubtaskError('');
+        setSubtaskPending(subtask.id, true);
+        router.post(subtask.isCompleted ? subtaskRoutes.restore(subtask.id) : subtaskRoutes.complete(subtask.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => setSubtaskError(subtaskErrorMessage(errors)),
+            onFinish: () => setSubtaskPending(subtask.id, false),
+        });
+    };
+
+    const renameSubtask = (subtaskId: number, title: string, onError: () => void) => {
+        setSubtaskError('');
+        setSubtaskPending(subtaskId, true);
+        router.put(subtaskRoutes.update(subtaskId), { title }, {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                setSubtaskError(subtaskErrorMessage(errors));
+                onError();
+            },
+            onFinish: () => setSubtaskPending(subtaskId, false),
+        });
+    };
+
+    const deleteSubtask = (subtaskId: number) => {
+        setSubtaskError('');
+        setSubtaskPending(subtaskId, true);
+        router.delete(subtaskRoutes.destroy(subtaskId), {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => setSubtaskError(subtaskErrorMessage(errors)),
+            onFinish: () => setSubtaskPending(subtaskId, false),
         });
     };
 
@@ -456,12 +519,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     errors={taskErrors}
                     lists={destinationLists}
                     onAddComment={addComment}
+                    onAddSubtask={addSubtask}
                     onClose={() => setSelectedTaskId(null)}
                     onDelete={() => setDeleteDialog({ kind: 'task', item: selectedTask })}
+                    onDeleteSubtask={deleteSubtask}
+                    onRenameSubtask={renameSubtask}
                     onSave={saveTask}
+                    onToggleSubtask={toggleSubtask}
                     onToggleComplete={toggleComplete}
                     onToggleStar={toggleStar}
                     processing={pendingTaskIds.includes(selectedTask.id)}
+                    pendingSubtaskIds={pendingSubtaskIds}
+                    subtaskCreating={subtaskCreating}
+                    subtaskError={subtaskError}
                     task={selectedTask}
                 />
             )}

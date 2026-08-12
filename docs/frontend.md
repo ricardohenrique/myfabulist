@@ -147,6 +147,7 @@ The details view can contain:
 * Important/starred status
 * Notes
 * Destination list
+* One-level subtasks with title and completion state
 * Chronological plain-text comments with author name and avatar
 * Delete action
 
@@ -157,6 +158,9 @@ Enter inserts a new line. Comments render as plain text and display the
 author's profile image when available, with a neutral user icon as fallback.
 The task-details checkbox and star update completion and starred state
 immediately; they do not wait for the user to press Save.
+Subtasks appear between Reminder and Notes as compact, editable checkbox rows.
+Enter creates a subtask, checking it completes or restores it immediately,
+editing its title saves on Enter or blur, and its row action deletes it.
 The task creation date appears directly above the footer actions. Recent dates
 use relative language, while older dates use a localized calendar date.
 The task-details footer uses an icon-only close action on the left, a slightly
