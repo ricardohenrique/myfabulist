@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\CompleteSubtaskController;
 use App\Http\Controllers\Web\CompleteTaskController;
 use App\Http\Controllers\Web\FolderController;
 use App\Http\Controllers\Web\FolderOrderController;
+use App\Http\Controllers\Web\ListInvitationController;
 use App\Http\Controllers\Web\MoveTaskController;
 use App\Http\Controllers\Web\RestoreSubtaskController;
 use App\Http\Controllers\Web\RestoreTaskController;
@@ -16,6 +17,8 @@ use App\Http\Controllers\Web\SubtaskController;
 use App\Http\Controllers\Web\TaskCommentController;
 use App\Http\Controllers\Web\TaskController;
 use App\Http\Controllers\Web\TaskListController as WebTaskListController;
+use App\Http\Controllers\Web\TaskListMemberController;
+use App\Http\Controllers\Web\TaskListMembershipController;
 use App\Http\Controllers\Web\TaskListOrderController;
 use App\Http\Controllers\Web\TaskListTaskController;
 use App\Http\Controllers\Web\TaskOrderController;
@@ -51,6 +54,23 @@ Route::middleware('auth')->group(function () {
     Route::post('lists', [WebTaskListController::class, 'store'])->name('lists.store');
     Route::put('lists/{list}', [WebTaskListController::class, 'update'])->whereNumber('list')->name('lists.update');
     Route::delete('lists/{list}', [WebTaskListController::class, 'destroy'])->whereNumber('list')->name('lists.destroy');
+
+    // Plan 1 ("Shared Lists and Collaboration"), Step 8: the web mirror of
+    // routes/api.php's sharing lifecycle. No web equivalent of
+    // "GET lists/{list}/members" or "GET invitations" — the frontend gets
+    // both through Inertia props (currentList.members, the shared
+    // notifications prop), not dedicated page routes.
+    Route::post('lists/{list}/members', [TaskListMemberController::class, 'store'])
+        ->middleware('throttle:invite')
+        ->whereNumber('list')->name('lists.members.store');
+    Route::delete('lists/{list}/members/{user}', [TaskListMemberController::class, 'destroy'])
+        ->whereNumber('list')->whereNumber('user')->name('lists.members.destroy');
+    Route::delete('lists/{list}/membership', [TaskListMembershipController::class, 'destroy'])
+        ->whereNumber('list')->name('lists.membership.destroy');
+    Route::post('invitations/{invitation}/accept', [ListInvitationController::class, 'accept'])
+        ->whereNumber('invitation')->name('invitations.accept');
+    Route::post('invitations/{invitation}/decline', [ListInvitationController::class, 'decline'])
+        ->whereNumber('invitation')->name('invitations.decline');
 
     Route::post('lists/{list}/tasks', [TaskListTaskController::class, 'store'])->whereNumber('list')->name('lists.tasks.store');
     Route::put('lists/{list}/task-order', TaskOrderController::class)->whereNumber('list')->name('lists.task-order');

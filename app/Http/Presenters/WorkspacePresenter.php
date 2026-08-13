@@ -8,7 +8,9 @@ use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
+use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Services\Data\NavigationFolder;
 use App\Services\NavigationService;
 use App\Services\TaskService;
@@ -18,6 +20,7 @@ class WorkspacePresenter
     public function __construct(
         private readonly NavigationService $navigation,
         private readonly TaskService $tasks,
+        private readonly TaskListMemberRepositoryInterface $members,
     ) {}
 
     /**
@@ -29,7 +32,7 @@ class WorkspacePresenter
 
         return [
             ...$this->base($user, $list->is_default ? 'inbox' : 'list'),
-            'currentList' => $this->list($list),
+            'currentList' => $this->currentList($user, $list),
             'heading' => $list->name,
             'eyebrow' => $list->is_default
                 ? 'Quick capture'
@@ -91,7 +94,7 @@ class WorkspacePresenter
     }
 
     /**
-     * @return array{id: int, name: string, folderId: int|null, isDefault: bool, activeTaskCount: int}
+     * @return array{id: int, name: string, folderId: int|null, isDefault: bool, activeTaskCount: int, isShared: bool}
      */
     private function list(TaskList $list): array
     {
@@ -101,6 +104,56 @@ class WorkspacePresenter
             'folderId' => $list->folder_id,
             'isDefault' => $list->is_default,
             'activeTaskCount' => (int) ($list->active_tasks_count ?? 0),
+            // Plan 1, Step 8: every list this method receives already
+            // carries accepted_members_count — allForUser() (which feeds
+            // every call site here except forList()'s own $list) attaches
+            // it via withCount(). A list with only its owner accepted has a
+            // count of 1, hence ">1", not ">0".
+            'isShared' => ($list->accepted_members_count ?? 1) > 1,
+        ];
+    }
+
+    /**
+     * The richer, distinct shape for the one list the user is actually
+     * looking at (`forList()`) — carries the member roster and
+     * sharing-management flags on top of the plain sidebar shape every
+     * other list gets from `list()` above.
+     *
+     * `isShared` here is deliberately derived from the roster this method
+     * already loads (`count($members) > 1`), not `list()`'s own
+     * `accepted_members_count`-based flag — `$list` reaches this method
+     * from route-model-binding, which never populates that count (only
+     * `allForUser()` and the dedicated `withAcceptedMemberCount()` seam do),
+     * so `list()`'s flag would silently read `false` here regardless of
+     * reality. Reusing `$members` instead of adding a second, separately
+     * loaded count keeps there being exactly one query and exactly one
+     * source of truth for "is this list shared" on this page — the
+     * `...$this->list($list)` spread below still contributes every other
+     * key, and this explicit `'isShared'` entry after it wins (later keys
+     * override earlier ones in PHP array literals).
+     *
+     * @return array<string, mixed>
+     */
+    private function currentList(User $user, TaskList $list): array
+    {
+        $members = $this->members->acceptedMembersFor($list)
+            ->map(fn (TaskListMember $member): array => [
+                'id' => $member->id,
+                'userId' => $member->user->id,
+                'name' => $member->user->name,
+                'avatarUrl' => $member->user->profile_photo_url,
+                // F18: email visible to the list owner only.
+                'email' => $user->id === $list->user_id ? $member->user->email : null,
+                'isOwner' => $member->user_id === $list->user_id,
+            ])
+            ->all();
+
+        return [
+            ...$this->list($list),
+            'isShared' => count($members) > 1,
+            'members' => $members,
+            'isOwner' => $list->user_id === $user->id,
+            'canManageSharing' => $list->user_id === $user->id,
         ];
     }
 

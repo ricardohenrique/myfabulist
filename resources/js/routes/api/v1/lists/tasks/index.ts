@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListTaskController::index
-* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:26
+* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:39
 * @route '/api/v1/lists/{list}/tasks'
 */
 export const index = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListTaskController::index
-* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:26
+* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:39
 * @route '/api/v1/lists/{list}/tasks'
 */
 index.url = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ index.url = (args: { list: number | { id: number } } | [list: number | { id: num
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListTaskController::index
-* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:26
+* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:39
 * @route '/api/v1/lists/{list}/tasks'
 */
 index.get = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -59,7 +59,7 @@ index.get = (args: { list: number | { id: number } } | [list: number | { id: num
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListTaskController::index
-* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:26
+* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:39
 * @route '/api/v1/lists/{list}/tasks'
 */
 index.head = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -69,7 +69,7 @@ index.head = (args: { list: number | { id: number } } | [list: number | { id: nu
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListTaskController::store
-* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:35
+* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:50
 * @route '/api/v1/lists/{list}/tasks'
 */
 export const store = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -84,7 +84,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListTaskController::store
-* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:35
+* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:50
 * @route '/api/v1/lists/{list}/tasks'
 */
 store.url = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -117,7 +117,7 @@ store.url = (args: { list: number | { id: number } } | [list: number | { id: num
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListTaskController::store
-* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:35
+* @see app/Http/Controllers/Api/V1/TaskListTaskController.php:50
 * @route '/api/v1/lists/{list}/tasks'
 */
 store.post = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({

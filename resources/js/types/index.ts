@@ -13,12 +13,35 @@ export type NavigationList = {
     folderId: number | null;
     isDefault: boolean;
     activeTaskCount: number;
+    isShared: boolean;
 };
 
 export type NavigationFolder = {
     id: number;
     name: string;
     lists: NavigationList[];
+};
+
+export type ListMemberSummary = {
+    id: number;
+    userId: number;
+    name: string;
+    avatarUrl: string | null;
+    email: string | null;
+    isOwner: boolean;
+};
+
+export type CurrentListDetails = NavigationList & {
+    members: ListMemberSummary[];
+    isOwner: boolean;
+    canManageSharing: boolean;
+};
+
+export type PendingInvitationSummary = {
+    id: number;
+    list: { id: number; name: string };
+    invitedBy: { id: number; name: string; avatarUrl: string | null } | null;
+    invitedAt: string | null;
 };
 
 export type DueDateStatus = 'overdue' | 'today' | 'upcoming' | null;
@@ -63,7 +86,7 @@ export type WorkspaceData = {
     starredCount: number;
     folders: NavigationFolder[];
     ungroupedLists: NavigationList[];
-    currentList: NavigationList | null;
+    currentList: CurrentListDetails | null;
     heading: string;
     eyebrow: string;
     canAddTask: boolean;
@@ -81,6 +104,12 @@ export type SharedPageProps = {
         error: string | null;
     };
     errors: Record<string, string>;
+    notifications: {
+        pendingInvitationCount: number;
+        // Absent unless explicitly requested via Inertia::optional() — a
+        // partial reload naming 'notifications.invitations' (Step 9).
+        invitations?: PendingInvitationSummary[];
+    };
 };
 
 export type IconName =

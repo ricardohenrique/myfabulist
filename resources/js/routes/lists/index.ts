@@ -1,4 +1,6 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../wayfinder'
+import members from './members'
+import membership from './membership'
 import tasks from './tasks'
 /**
 * @see \App\Http\Controllers\TaskListController::__invoke
@@ -104,7 +106,7 @@ order.put = (options?: RouteQueryOptions): RouteDefinition<'put'> => ({
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::store
-* @see app/Http/Controllers/Web/TaskListController.php:20
+* @see app/Http/Controllers/Web/TaskListController.php:21
 * @route '/lists'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -119,7 +121,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::store
-* @see app/Http/Controllers/Web/TaskListController.php:20
+* @see app/Http/Controllers/Web/TaskListController.php:21
 * @route '/lists'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -128,7 +130,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::store
-* @see app/Http/Controllers/Web/TaskListController.php:20
+* @see app/Http/Controllers/Web/TaskListController.php:21
 * @route '/lists'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -138,7 +140,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::update
-* @see app/Http/Controllers/Web/TaskListController.php:31
+* @see app/Http/Controllers/Web/TaskListController.php:32
 * @route '/lists/{list}'
 */
 export const update = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -153,7 +155,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::update
-* @see app/Http/Controllers/Web/TaskListController.php:31
+* @see app/Http/Controllers/Web/TaskListController.php:32
 * @route '/lists/{list}'
 */
 update.url = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -186,7 +188,7 @@ update.url = (args: { list: number | { id: number } } | [list: number | { id: nu
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::update
-* @see app/Http/Controllers/Web/TaskListController.php:31
+* @see app/Http/Controllers/Web/TaskListController.php:32
 * @route '/lists/{list}'
 */
 update.put = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -196,7 +198,7 @@ update.put = (args: { list: number | { id: number } } | [list: number | { id: nu
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::destroy
-* @see app/Http/Controllers/Web/TaskListController.php:43
+* @see app/Http/Controllers/Web/TaskListController.php:44
 * @route '/lists/{list}'
 */
 export const destroy = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -211,7 +213,7 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::destroy
-* @see app/Http/Controllers/Web/TaskListController.php:43
+* @see app/Http/Controllers/Web/TaskListController.php:44
 * @route '/lists/{list}'
 */
 destroy.url = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -244,7 +246,7 @@ destroy.url = (args: { list: number | { id: number } } | [list: number | { id: n
 
 /**
 * @see \App\Http\Controllers\Web\TaskListController::destroy
-* @see app/Http/Controllers/Web/TaskListController.php:43
+* @see app/Http/Controllers/Web/TaskListController.php:44
 * @route '/lists/{list}'
 */
 destroy.delete = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -316,6 +318,8 @@ const lists = {
     store: Object.assign(store, store),
     update: Object.assign(update, update),
     destroy: Object.assign(destroy, destroy),
+    members: Object.assign(members, members),
+    membership: Object.assign(membership, membership),
     tasks: Object.assign(tasks, tasks),
     taskOrder: Object.assign(taskOrder, taskOrder),
 }

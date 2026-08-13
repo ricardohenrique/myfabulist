@@ -74,9 +74,22 @@ class AppServiceProvider extends ServiceProvider
         // to the invite-creation route — invitation creation is the
         // abuse-sensitive endpoint (email enumeration, spam invites), not
         // every API call.
-        RateLimiter::for('invite', fn (Request $request): Limit => Limit::perMinute(10)->by(
-            $request->user()?->id ?: $request->ip(),
-        ));
+        //
+        // Step 8 code-review follow-up: a tripped limit on the *web* route
+        // must render through Inertia (back() with an inline field error on
+        // the invite form), matching every other validation/domain error on
+        // that form — a plain 429 HTML page is not an Inertia response, so
+        // Inertia's client can't reconcile it and pops the full-page error
+        // modal instead. `response()` must always return a real Response
+        // (ThrottleRequests::buildException() passes whatever it returns
+        // straight into `new HttpResponseException($response)`, which is
+        // not nullable) — so the non-Inertia branch builds the same 429
+        // Laravel would have built on its own, rather than returning null.
+        RateLimiter::for('invite', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by($request->user()?->id ?: $request->ip())
+            ->response(fn (Request $request, array $headers) => $request->header('X-Inertia')
+                ? back()->withErrors(['email' => 'Too many invitations. Try again shortly.'])
+                : response('Too Many Attempts.', 429, $headers)));
     }
 
     /**

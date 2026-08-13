@@ -1,0 +1,469 @@
+<?php
+
+use App\Models\Task;
+use App\Models\TaskList;
+use App\Models\TaskListMember;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
+
+uses(RefreshDatabase::class);
+
+/**
+ * Plan 1 ("Shared Lists and Collaboration"), Step 8: the web mirror of the
+ * `/api/v1` sharing lifecycle (`tests/Feature/Api/V1/{TaskListMemberTest,
+ * TaskListMembershipTest,ListInvitationTest}.php`), plus the shared Inertia
+ * props the notification center (Step 9) will read.
+ */
+it('invites and revokes a member through web routes', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)->post(route('lists.members.store', $list), [
+        'email' => $invitee->email,
+    ])->assertRedirect()->assertSessionHas('success');
+
+    $this->assertDatabaseHas('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $invitee->id,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($owner)->delete(route('lists.members.destroy', [$list, $invitee]))
+        ->assertRedirect()->assertSessionHas('success');
+
+    $this->assertDatabaseMissing('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $invitee->id,
+    ]);
+});
+
+it('rejects an invite from a non owner over the web route', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($member)->post(route('lists.members.store', $list), [
+        'email' => $invitee->email,
+    ])->assertForbidden();
+});
+
+it('lets an accepted non owner member leave and redirects to inbox', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($member)->delete(route('lists.membership.destroy', $list))
+        ->assertRedirect(route('inbox'))
+        ->assertSessionHas('success');
+
+    $this->assertDatabaseMissing('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $member->id,
+    ]);
+});
+
+it('denies the owner from leaving their own list over the web route', function () {
+    $owner = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)->delete(route('lists.membership.destroy', $list))
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $owner->id,
+    ]);
+});
+
+it('accepts and declines invitations through web routes with flash and disappears from the shared prop', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    $invitation = TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
+
+    $this->actingAs($invitee)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notifications.pendingInvitationCount', 1));
+
+    $this->actingAs($invitee)->post(route('invitations.accept', $invitation))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $this->assertDatabaseHas('task_list_members', ['id' => $invitation->id, 'status' => 'accepted']);
+
+    $this->actingAs($invitee)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notifications.pendingInvitationCount', 0));
+});
+
+it('declines an invitation through the web route', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    $invitation = TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
+
+    $this->actingAs($invitee)->post(route('invitations.decline', $invitation))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $this->assertDatabaseHas('task_list_members', ['id' => $invitation->id, 'status' => 'declined']);
+});
+
+it('rejects a stranger responding to someone elses invitation over the web route', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $stranger = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    $invitation = TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
+
+    $this->actingAs($stranger)->post(route('invitations.accept', $invitation))->assertForbidden();
+    $this->actingAs($stranger)->post(route('invitations.decline', $invitation))->assertForbidden();
+});
+
+// -- Guest / non-member denial paths ----------------------------------------
+
+it('redirects guests to login for every sharing route', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    $invitation = TaskListMember::factory()->forTaskList($list, $member)->pending()->create();
+
+    $this->post(route('lists.members.store', $list), ['email' => 'x@example.com'])
+        ->assertRedirect(route('login'));
+    $this->delete(route('lists.members.destroy', [$list, $member]))
+        ->assertRedirect(route('login'));
+    $this->delete(route('lists.membership.destroy', $list))
+        ->assertRedirect(route('login'));
+    $this->post(route('invitations.accept', $invitation))
+        ->assertRedirect(route('login'));
+    $this->post(route('invitations.decline', $invitation))
+        ->assertRedirect(route('login'));
+});
+
+it('denies a pending member from inviting anyone to a list they have not accepted', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $anotherInvitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
+
+    $this->actingAs($invitee)->post(route('lists.members.store', $list), [
+        'email' => $anotherInvitee->email,
+    ])->assertForbidden();
+});
+
+it('denies a pending member from leaving a list they have not accepted', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
+
+    $this->actingAs($invitee)->delete(route('lists.membership.destroy', $list))->assertForbidden();
+
+    $this->assertDatabaseHas('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $invitee->id,
+        'status' => 'pending',
+    ]);
+});
+
+it('denies a declined member from leaving a list they are no longer part of', function () {
+    $owner = User::factory()->create();
+    $decliner = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $decliner)
+        ->create(['status' => 'declined', 'responded_at' => now()]);
+
+    $this->actingAs($decliner)->delete(route('lists.membership.destroy', $list))->assertForbidden();
+});
+
+// -- Domain-exception rendering on the web (Inertia) surface -----------------
+//
+// Every rejection below must take bootstrap/app.php's DomainException ->
+// back()->withErrors(['domain' => ...]) branch, which only fires for a
+// request carrying the X-Inertia header (see PhaseTwoInertiaTest.php's own
+// ->withHeader('X-Inertia', 'true')->from(...)->assertSessionHasErrors('domain')
+// idiom). Without that header a DomainException falls through as a plain
+// RuntimeException — a 500, not a redirect — so these tests exist
+// specifically to pin the correct code path, not just the correct rule.
+
+it('renders the inbox-cannot-be-shared domain error inline on an inertia request', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $inbox = TaskList::factory()->inbox()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('inbox'))
+        ->post(route('lists.members.store', $inbox), ['email' => $invitee->email])
+        ->assertRedirect(route('inbox'))
+        ->assertSessionHasErrors('domain');
+});
+
+it('renders the self-invite domain error inline on an inertia request', function () {
+    $owner = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $list))
+        ->post(route('lists.members.store', $list), ['email' => $owner->email])
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasErrors('domain');
+});
+
+it('renders the already-member domain error inline on an inertia request', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $list))
+        ->post(route('lists.members.store', $list), ['email' => $member->email])
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasErrors('domain');
+});
+
+it('renders the unregistered-email domain error inline on an inertia request', function () {
+    $owner = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $list))
+        ->post(route('lists.members.store', $list), ['email' => 'nobody-registered@example.com'])
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasErrors('domain');
+});
+
+it('renders the member-cap domain error inline on an inertia request', function () {
+    config(['sharing.max_members_per_list' => 1]);
+
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $list))
+        ->post(route('lists.members.store', $list), ['email' => $invitee->email])
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasErrors('domain');
+});
+
+it('renders the not-a-member domain error when revoking someone with no membership row', function () {
+    $owner = User::factory()->create();
+    $notAMember = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $list))
+        ->delete(route('lists.members.destroy', [$list, $notAMember]))
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasErrors('domain');
+});
+
+it('renders the owner-cannot-be-revoked domain error inline on an inertia request', function () {
+    $owner = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $list))
+        ->delete(route('lists.members.destroy', [$list, $owner]))
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasErrors('domain');
+
+    $this->assertDatabaseHas('task_list_members', [
+        'task_list_id' => $list->id,
+        'user_id' => $owner->id,
+    ]);
+});
+
+it('renders the invitation-no-longer-pending domain error when accepting a declined invitation', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    $invitation = TaskListMember::factory()->forTaskList($list, $invitee)
+        ->create(['status' => 'declined', 'responded_at' => now()]);
+
+    $this->actingAs($invitee)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('inbox'))
+        ->post(route('invitations.accept', $invitation))
+        ->assertRedirect(route('inbox'))
+        ->assertSessionHasErrors('domain');
+});
+
+it('renders the invitation-no-longer-pending domain error when declining an accepted membership', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    $membership = TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($member)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('inbox'))
+        ->post(route('invitations.decline', $membership))
+        ->assertRedirect(route('inbox'))
+        ->assertSessionHasErrors('domain');
+});
+
+// -- Invite rate limiting -----------------------------------------------------
+
+it('renders a tripped invite rate limit inline instead of a raw 429 for an inertia request', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    for ($i = 0; $i < 10; $i++) {
+        $this->actingAs($owner)
+            ->post(route('lists.members.store', $list), ['email' => $invitee->email])
+            ->assertRedirect();
+    }
+
+    $this->actingAs($owner)
+        ->withHeader('X-Inertia', 'true')
+        ->from(route('lists.show', $list))
+        ->post(route('lists.members.store', $list), ['email' => $invitee->email])
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasErrors('email');
+});
+
+it('still returns a plain 429 for a non inertia request once the invite limit trips', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    for ($i = 0; $i < 10; $i++) {
+        $this->actingAs($owner)
+            ->post(route('lists.members.store', $list), ['email' => $invitee->email])
+            ->assertRedirect();
+    }
+
+    $this->actingAs($owner)
+        ->post(route('lists.members.store', $list), ['email' => $invitee->email])
+        ->assertStatus(429);
+});
+
+// -- Shared notifications props -----------------------------------------------
+
+it('shares the pending invitation count on every request but only the full list on a partial reload', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id, 'name' => 'Website launch']);
+    TaskListMember::factory()->forTaskList($list, $invitee)
+        ->pending()
+        ->create(['invited_by_user_id' => $owner->id]);
+
+    $this->actingAs($invitee)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('notifications.pendingInvitationCount', 1)
+            ->missing('notifications.invitations'));
+
+    // 'notifications' (the parent key), matching what the frontend actually
+    // sends (Architecture Decision 5, Step 9) — not the leaf
+    // 'notifications.invitations' path, though that also happens to work
+    // (PropsResolver::leadsToOnly() walks down from an "only" ancestor).
+    $this->actingAs($invitee)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->reloadOnly('notifications', fn (Assert $page) => $page
+            ->where('notifications.invitations.0.list.id', $list->id)
+            ->where('notifications.invitations.0.list.name', 'Website launch')
+            ->where('notifications.invitations.0.invitedBy.id', $owner->id)));
+});
+
+// -- currentList: roster, sharing flags, F18 email visibility ----------------
+
+it('renders currentList with the member roster and sharing flags for the owner', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($owner)->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.currentList.isShared', true)
+            ->where('workspace.currentList.isOwner', true)
+            ->where('workspace.currentList.canManageSharing', true)
+            ->has('workspace.currentList.members', 2));
+});
+
+it('shows the owner every members email in the roster', function () {
+    $owner = User::factory()->create(['email' => 'owner@example.com']);
+    $member = User::factory()->create(['email' => 'member@example.com']);
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($owner)->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.currentList.members.0.email', 'owner@example.com')
+            ->where('workspace.currentList.members.1.email', 'member@example.com'));
+});
+
+it('hides member emails from a non owner member on currentList', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($member)->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.currentList.isOwner', false)
+            ->where('workspace.currentList.canManageSharing', false)
+            ->where('workspace.currentList.members.0.email', null)
+            ->where('workspace.currentList.members.1.email', null));
+});
+
+it('marks an unshared list as not shared', function () {
+    $owner = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('workspace.currentList.isShared', false));
+});
+
+// -- N+1 guard (N4) ------------------------------------------------------------
+
+it('renders a shared lists workspace page in a bounded number of queries', function () {
+    $owner = User::factory()->create();
+    $memberA = User::factory()->create();
+    $memberB = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $memberA)->create();
+    TaskListMember::factory()->forTaskList($list, $memberB)->create();
+    Task::factory()->forTaskList($list)->count(3)->create();
+
+    DB::enableQueryLog();
+
+    $this->actingAs($owner)->get(route('lists.show', $list))->assertOk();
+
+    $queryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    // Guards against the member roster (currentList()'s acceptedMembersFor())
+    // or the notification count/deferred-prop closures turning into a
+    // per-member or per-invitation query. Measured at 15 with 2 members and
+    // 3 tasks (auth, session, notifications.pendingInvitationCount, the
+    // workspace tree, the roster + its eager-loaded user, tasks + their
+    // subtasks/comments); headroom to 20 so unrelated, legitimate query
+    // additions elsewhere on this page don't make this test flaky — it
+    // exists to catch an O(N) regression, not to pin an exact number.
+    $this->assertLessThanOrEqual(20, $queryCount);
+});
