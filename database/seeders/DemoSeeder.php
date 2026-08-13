@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Exceptions\DomainException;
 use App\Models\Folder;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Services\ListSharingService;
 use Carbon\CarbonInterface;
 use Database\Factories\TaskFactory;
 use Illuminate\Console\Command;
@@ -95,6 +97,9 @@ class DemoSeeder extends Seeder
     /** D7 showcase: how far in the past the forced overdue task's due date lands. */
     private const SHOWCASE_OVERDUE_MAX_DAYS_AGO = 14;
 
+    /** F23: how many lists gain a real, accepted cross-user collaborator. */
+    private const SHARED_LISTS_MAX = 3;
+
     public function setCommand(Command $command): static
     {
         $this->seederCommand = $command;
@@ -123,6 +128,11 @@ class DemoSeeder extends Seeder
             $totals['tasks'] += $counts['tasks'];
             $totals['subtasks'] += $counts['subtasks'];
         }
+
+        // Sharing is inherently cross-user, so it cannot live inside
+        // seedUser()'s per-user transaction above — every user and their
+        // lists must already exist first (F23, Plan 1 Step 10).
+        $this->shareLists($users);
 
         $this->reportSummary($users->count(), $totals);
     }
@@ -418,6 +428,160 @@ class DemoSeeder extends Seeder
             'completed_at' => null,
             'due_date' => today(),
         ])->save();
+    }
+
+    /**
+     * F23: the sharing pass. Guarantees a pending invitation for
+     * `demo1@example.com` (so a developer logging in as that account has
+     * something in the notification center) and puts a real, accepted
+     * cross-user collaborator on a handful of other lists. Degrades to a
+     * no-op whenever the population is too small to satisfy either
+     * guarantee (`DemoSeederTest` calls `run(3)`, and `run(1)` is used
+     * elsewhere) rather than throwing — this is demo flavour, not a
+     * required invariant of the dataset.
+     *
+     * @param  Collection<int, User>  $users
+     */
+    private function shareLists(Collection $users): void
+    {
+        if ($users->count() < 2) {
+            return;
+        }
+
+        $sharing = app(ListSharingService::class);
+
+        $guaranteedListId = $this->guaranteeDemo1PendingInvitation($users, $sharing);
+        $this->createAcceptedShares($users, $sharing, $guaranteedListId);
+    }
+
+    /**
+     * `demo1@example.com` only exists once some earlier `run()` call has
+     * created it — this is the *first* demo account, not necessarily a
+     * member of *this* call's own `$users` batch (the sequence continues
+     * across calls, per `createUsers()`'s own docblock) — so it is resolved
+     * with its own query rather than assumed to be `$users->first()`.
+     *
+     * Returns the id of the list the guarantee actually landed on (or null
+     * if it couldn't run at all) — `createAcceptedShares()` uses this to
+     * avoid the one specific collision that would silently defeat this
+     * guarantee, without excluding demo1 from the rest of the sharing pass.
+     *
+     * @param  Collection<int, User>  $users
+     */
+    private function guaranteeDemo1PendingInvitation(Collection $users, ListSharingService $sharing): ?int
+    {
+        $demo1 = User::query()->where('email', 'demo1@example.com')->first();
+
+        if ($demo1 === null) {
+            return null;
+        }
+
+        $inviter = $users->first(fn (User $user): bool => $user->id !== $demo1->id);
+
+        if ($inviter === null) {
+            return null;
+        }
+
+        $list = $this->randomShareableListFor($inviter);
+
+        if ($list === null) {
+            return null;
+        }
+
+        try {
+            $sharing->invite($list, $inviter, $demo1->email);
+
+            return $list->id;
+        } catch (DomainException $exception) {
+            // A re-run against a non-fresh database (or an unlucky random
+            // pick) may find demo1 already a member of this exact list —
+            // demo data flavour, not worth failing the whole seed over, but
+            // silent failure here means F23's guarantee is quietly unmet,
+            // so it goes to the seed output rather than nowhere.
+            $this->warnSeeding("Could not guarantee a pending invitation for demo1@example.com: {$exception->getMessage()}");
+
+            return null;
+        }
+    }
+
+    /**
+     * Puts a real, accepted collaborator on up to SHARED_LISTS_MAX lists,
+     * pairing distinct owner/collaborator users so no one invites
+     * themselves. Every pairing degrades silently (skip and warn, never
+     * throw) if the owner happens to have no shareable list or the
+     * invite/accept is rejected for any reason — see the class docblock.
+     *
+     * demo1@example.com is deliberately *not* excluded from this pass —
+     * F23 wants that account reachable as a real accepted collaborator too,
+     * not just a pending invitee, so excluding it entirely would defeat
+     * half of what the demo data is supposed to exercise (the share
+     * dialog's roster, the shared sidebar indicator, "Leave list"). Only
+     * the exact collision that would silently erase
+     * guaranteeDemo1PendingInvitation()'s own guarantee is excluded: this
+     * pass inviting *demo1 specifically* to the *exact list* ($excludedListId)
+     * that already holds demo1's guaranteed pending row — invite()'s
+     * idempotent-pending branch would return that same row, and accept()
+     * would immediately flip it from pending to accepted. Found via a
+     * genuine order-dependent test flake, not a hypothetical.
+     *
+     * @param  Collection<int, User>  $users
+     */
+    private function createAcceptedShares(Collection $users, ListSharingService $sharing, ?int $excludedListId): void
+    {
+        $owners = $users->shuffle()->values();
+        $pairCount = min(self::SHARED_LISTS_MAX, $owners->count());
+
+        for ($index = 0; $index < $pairCount; $index++) {
+            $owner = $owners[$index];
+            $collaborator = $owners[($index + 1) % $owners->count()];
+
+            if ($owner->id === $collaborator->id) {
+                continue;
+            }
+
+            $list = $this->randomShareableListFor($owner);
+
+            if ($list === null) {
+                continue;
+            }
+
+            if ($excludedListId !== null && $list->id === $excludedListId && $collaborator->email === 'demo1@example.com') {
+                continue;
+            }
+
+            try {
+                $membership = $sharing->invite($list, $owner, $collaborator->email);
+                $sharing->accept($membership, $collaborator);
+            } catch (DomainException $exception) {
+                $this->warnSeeding("Could not share list #{$list->id} with {$collaborator->email}: {$exception->getMessage()}");
+            }
+        }
+    }
+
+    /**
+     * The seeder's one warning channel, mirroring `reportSummary()`'s own
+     * optional-command access — silent everywhere except an actual Artisan
+     * run, and never fatal (`AGENTS.md`/`.claude/rules/laravel.md`: "never
+     * catch silently — always log or re-throw"; this is the seeder's
+     * equivalent of surfacing the failure rather than swallowing it).
+     */
+    private function warnSeeding(string $message): void
+    {
+        $this->seederCommand?->warn($message);
+    }
+
+    /**
+     * A random non-default list owned by $user — Inbox is never shareable
+     * (`ListSharingService::invite()` already rejects it), so this simply
+     * never offers it as a candidate.
+     */
+    private function randomShareableListFor(User $user): ?TaskList
+    {
+        return TaskList::query()
+            ->where('user_id', $user->id)
+            ->where('is_default', false)
+            ->inRandomOrder()
+            ->first();
     }
 
     private function randomPastMoment(int $maxDaysAgo): CarbonInterface

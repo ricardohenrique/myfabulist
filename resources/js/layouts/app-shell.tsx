@@ -2,6 +2,7 @@ import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/rea
 import { isSortable } from '@dnd-kit/react/sortable';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { ShareDialog } from '@/components/lists/share-dialog';
 import { Sidebar } from '@/components/navigation/sidebar';
 import { TaskDetails } from '@/components/tasks/task-details';
 import { TaskRow } from '@/components/tasks/task-row';
@@ -12,6 +13,8 @@ import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
 import * as folderRoutes from '@/routes/folders';
 import * as invitationRoutes from '@/routes/invitations';
 import * as listRoutes from '@/routes/lists';
+import * as listMemberRoutes from '@/routes/lists/members';
+import * as listMembershipRoutes from '@/routes/lists/membership';
 import { store as storeTask } from '@/routes/lists/tasks';
 import * as taskRoutes from '@/routes/tasks';
 import { store as storeTaskComment } from '@/routes/tasks/comments';
@@ -76,6 +79,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [undo, setUndo] = useState<UndoState | null>(null);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [respondingInvitationIds, setRespondingInvitationIds] = useState<number[]>([]);
+    const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const [shareInviteError, setShareInviteError] = useState('');
+    const [shareInviteProcessing, setShareInviteProcessing] = useState(false);
+    const [revokingMemberIds, setRevokingMemberIds] = useState<number[]>([]);
     // Always starts `undefined` — `notifications.invitations` is `Inertia::optional()`
     // and is never present on the initial page load, only after the partial
     // reload `openNotifications` triggers below.
@@ -475,6 +482,62 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
     const declineInvitation = (invitationId: number) => respondToInvitation(invitationId, false);
 
+    const openShareDialog = () => {
+        setShareInviteError('');
+        setShareDialogOpen(true);
+    };
+
+    const closeShareDialog = () => {
+        setShareDialogOpen(false);
+        setShareInviteError('');
+    };
+
+    const inviteMember = (email: string) => {
+        if (!workspace.currentList) return;
+
+        setShareInviteProcessing(true);
+        setShareInviteError('');
+        router.post(listMemberRoutes.store(workspace.currentList.id), { email }, {
+            preserveScroll: true,
+            onError: (errors) => setShareInviteError(errors.email ?? errors.domain ?? 'That invitation could not be sent.'),
+            onFinish: () => setShareInviteProcessing(false),
+        });
+    };
+
+    const setMemberRevoking = (userId: number, revoking: boolean) => {
+        setRevokingMemberIds((current) => revoking
+            ? [...new Set([...current, userId])]
+            : current.filter((id) => id !== userId));
+    };
+
+    // The same underlying route (DELETE lists/{list}/members/{user}) revokes
+    // both an accepted member and a still-pending invitation — the backend
+    // doesn't distinguish, so this one handler serves both
+    // ShareDialog callbacks (`onRevokeMember`/`onRevokeInvitation`).
+    const revokeMembership = (userId: number) => {
+        if (!workspace.currentList) return;
+
+        setMemberRevoking(userId, true);
+        router.delete(listMemberRoutes.destroy([workspace.currentList.id, userId]), {
+            preserveScroll: true,
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'That member could not be removed.'),
+            onFinish: () => setMemberRevoking(userId, false),
+        });
+    };
+
+    // TaskListMembershipController::destroy() (web) redirects to the inbox
+    // route on success, and Inertia's router.delete() follows that redirect
+    // as part of the same visit — no extra client-side navigation is needed
+    // here on top of it.
+    const leaveList = (list: NavigationList) => {
+        // No preserveScroll — a successful leave redirects to a different
+        // page entirely (the inbox), so there is no scroll position on this
+        // page worth preserving into it.
+        router.delete(listMembershipRoutes.destroy(list.id), {
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'You could not leave this list.'),
+        });
+    };
+
     return (
         <div className="app-frame">
             <Head title={`${workspace.heading} · My Fabulist`} />
@@ -494,6 +557,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onDeleteList={(list) => { setEntityError(''); setDeleteDialog({ kind: 'list', item: list }); }}
                 onEditFolder={openEditFolder}
                 onEditList={openEditList}
+                onLeaveList={leaveList}
                 onOpenCreate={openCreate}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
@@ -517,7 +581,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     </div>
                     <div className="workspace-actions">
                         <button aria-label="Search is not available yet" disabled type="button"><Icon name="search" size={19} /><span>Search</span></button>
-                        <button aria-label="More list options are available in the sidebar" disabled type="button"><Icon name="more" size={19} /><span>More</span></button>
+                        {workspace.currentList && !workspace.currentList.isDefault ? (
+                            <button aria-label={`Share “${workspace.currentList.name}”`} onClick={openShareDialog} type="button">
+                                <Icon name="user" size={19} /><span>Share</span>
+                            </button>
+                        ) : (
+                            <button aria-label="More list options are available in the sidebar" disabled type="button"><Icon name="more" size={19} /><span>More</span></button>
+                        )}
                     </div>
                 </header>
 
@@ -681,6 +751,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     <Button disabled={entityProcessing} onClick={confirmDelete} variant="danger">{entityProcessing ? 'Deleting…' : 'Delete'}</Button>
                 </div>
             </Dialog>
+
+            <ShareDialog
+                inviteError={shareInviteError}
+                inviteProcessing={shareInviteProcessing}
+                list={workspace.currentList}
+                onClose={closeShareDialog}
+                onInvite={inviteMember}
+                onRevokeInvitation={revokeMembership}
+                onRevokeMember={revokeMembership}
+                open={shareDialogOpen}
+                revokingIds={revokingMemberIds}
+                viewerId={user.id}
+            />
 
         </div>
     );

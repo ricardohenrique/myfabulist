@@ -65,6 +65,22 @@ class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterf
             ->get();
     }
 
+    /**
+     * @return Collection<int, TaskListMember>
+     */
+    public function pendingInvitationsFor(TaskList $taskList): Collection
+    {
+        // Mirrors acceptedMembersFor() above exactly, filtered to
+        // status = 'pending' — see the interface docblock.
+        return TaskListMember::query()
+            ->where('task_list_id', $taskList->id)
+            ->where('status', 'pending')
+            ->with('user')
+            ->orderBy('id')
+            ->get()
+            ->each(fn (TaskListMember $member) => $member->setRelation('taskList', $taskList));
+    }
+
     public function pendingCountFor(User $user): int
     {
         // Same whereHas('taskList') guard as pendingFor() above, for the

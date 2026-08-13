@@ -14,6 +14,7 @@ export type NavigationList = {
     isDefault: boolean;
     activeTaskCount: number;
     isShared: boolean;
+    isOwner: boolean;
 };
 
 export type NavigationFolder = {
@@ -31,8 +32,22 @@ export type ListMemberSummary = {
     isOwner: boolean;
 };
 
+// Distinct from `PendingInvitationSummary` below, which is shaped for the
+// invitee's own notification-center view ("what have I been invited to").
+// This is the owner-facing shape used by the share dialog's roster
+// ("who have I invited to this list").
+export type PendingListInvitationSummary = {
+    id: number;
+    userId: number;
+    name: string;
+    avatarUrl: string | null;
+    email: string | null;
+    invitedAt: string | null;
+};
+
 export type CurrentListDetails = NavigationList & {
     members: ListMemberSummary[];
+    pendingInvitations: PendingListInvitationSummary[];
     isOwner: boolean;
     canManageSharing: boolean;
 };

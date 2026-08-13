@@ -52,6 +52,21 @@ interface TaskListMemberRepositoryInterface
     public function pendingFor(User $user): Collection;
 
     /**
+     * Every outstanding pending invitation *for this list* — mirrors
+     * `acceptedMembersFor()` exactly (same `user` eager-load, same
+     * `orderBy('id')`, same attached `taskList` relation instead of a second
+     * query for an instance already in hand), filtered to
+     * `status = 'pending'` instead of `'accepted'`. Answers "who has been
+     * invited to this list but hasn't responded yet" — the share dialog's
+     * pending-invitations section (Plan 1, Step 10) — which is the opposite
+     * question from `pendingFor()` above ("what has this user been invited
+     * to").
+     *
+     * @return Collection<int, TaskListMember>
+     */
+    public function pendingInvitationsFor(TaskList $taskList): Collection;
+
+    /**
      * Excludes invitations to a since soft-deleted list, same as
      * `pendingFor()` — the bell notification badge count (Step 8) must never
      * disagree with `pendingFor()`'s own list.

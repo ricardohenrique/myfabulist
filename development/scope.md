@@ -37,7 +37,10 @@ field. Lists may also remain ungrouped.
 - Users may register, sign in, and sign out. Email verification, password
   reset, two-factor authentication, passkeys, and account settings are
   intentionally excluded from the current release.
-- A user may only view or mutate their own folders, lists, and tasks.
+- A user may only view or mutate folders and tasks they own, and lists they
+  own or hold an accepted membership on. Only a list's owner may invite or
+  revoke a member; any accepted member, including a non-owner, may leave a
+  shared list voluntarily.
 - The Laravel server and its database are canonical for shared account and
   task-management data.
 
@@ -169,10 +172,22 @@ The current product slice includes:
 - quick task creation, rename, completion/restoration, notes, due dates,
   starring, moving, reordering, soft deletion, and attributed comments;
 - folder/list creation, rename, move, reorder, and guarded deletion;
+- list sharing and collaboration: inviting a registered user by email,
+  accepting/declining/revoking, and leaving voluntarily, with a notification
+  center for pending invitations and a share dialog on the list itself. Task,
+  subtask, and comment content — title, notes, due dates, completion, and
+  chronological comments — is identical for every accepted member, since a
+  shared list stays exactly one canonical row with one set of child records.
+  Only a list's *placement* (which folder it sits in, and its sidebar
+  position) and *starring* are per-member: each member files and stars a
+  shared list independently of every other member, including its owner.
+  There is no live sync — members see one another's changes on their next
+  page load or navigation, not in real time;
 - responsive browser navigation and task details;
 - focused undo for completion, moving, and starring;
 - versioned JSON endpoints for the implemented domain workflows; and
-- demo data tooling for local development.
+- demo data tooling for local development, including seeded shared lists and
+  a pending invitation for the first demo account.
 
 ## Near-term priorities
 
@@ -194,7 +209,7 @@ stable:
 - Today, Upcoming, All Tasks, and Completed smart views;
 - recurring tasks;
 - reminders and browser/native notifications;
-- list sharing, collaborators, and assignment;
+- task assignment to a specific collaborator on a shared list;
 - file or image attachments;
 - natural-language date extraction;
 - themes and custom backgrounds; and

@@ -75,28 +75,28 @@ class WorkspacePresenter
 
         return [
             'view' => $view,
-            'inbox' => $this->list($navigation->inbox),
+            'inbox' => $this->list($navigation->inbox, $user),
             'starredCount' => $navigation->starredCount,
             'folders' => array_map(
                 fn (NavigationFolder $folder): array => [
                     'id' => $folder->folder->id,
                     'name' => $folder->folder->name,
                     'lists' => $folder->lists
-                        ->map(fn (TaskList $list): array => $this->list($list))
+                        ->map(fn (TaskList $list): array => $this->list($list, $user))
                         ->all(),
                 ],
                 $navigation->folders,
             ),
             'ungroupedLists' => $navigation->ungroupedLists
-                ->map(fn (TaskList $list): array => $this->list($list))
+                ->map(fn (TaskList $list): array => $this->list($list, $user))
                 ->all(),
         ];
     }
 
     /**
-     * @return array{id: int, name: string, folderId: int|null, isDefault: bool, activeTaskCount: int, isShared: bool}
+     * @return array{id: int, name: string, folderId: int|null, isDefault: bool, activeTaskCount: int, isShared: bool, isOwner: bool}
      */
-    private function list(TaskList $list): array
+    private function list(TaskList $list, User $user): array
     {
         return [
             'id' => $list->id,
@@ -110,6 +110,10 @@ class WorkspacePresenter
             // it via withCount(). A list with only its owner accepted has a
             // count of 1, hence ">1", not ">0".
             'isShared' => ($list->accepted_members_count ?? 1) > 1,
+            // Plan 1, Step 10: lets the sidebar decide Delete-vs-Leave per
+            // row without needing the richer currentList() shape below,
+            // which only ever loads for the one list actually being viewed.
+            'isOwner' => $list->user_id === $user->id,
         ];
     }
 
@@ -136,6 +140,8 @@ class WorkspacePresenter
      */
     private function currentList(User $user, TaskList $list): array
     {
+        $isOwner = $list->user_id === $user->id;
+
         $members = $this->members->acceptedMembersFor($list)
             ->map(fn (TaskListMember $member): array => [
                 'id' => $member->id,
@@ -143,17 +149,40 @@ class WorkspacePresenter
                 'name' => $member->user->name,
                 'avatarUrl' => $member->user->profile_photo_url,
                 // F18: email visible to the list owner only.
-                'email' => $user->id === $list->user_id ? $member->user->email : null,
+                'email' => $isOwner ? $member->user->email : null,
                 'isOwner' => $member->user_id === $list->user_id,
             ])
             ->all();
 
+        // Plan 1, Step 10 code review: gated to the owner only, and the
+        // query is skipped entirely for anyone else — Q10(e) sanctioned
+        // exposing *accepted* members to each other, never who else has
+        // merely been invited and hasn't responded (they aren't a member
+        // yet, and may still decline). Distinct from `pendingFor($user)`
+        // (Step 8's notification center), which answers the opposite
+        // question ("what has *this* user been invited to").
+        $pendingInvitations = $isOwner
+            ? $this->members->pendingInvitationsFor($list)
+                ->map(fn (TaskListMember $member): array => [
+                    'id' => $member->id,
+                    'userId' => $member->user->id,
+                    'name' => $member->user->name,
+                    'avatarUrl' => $member->user->profile_photo_url,
+                    'email' => $member->user->email,
+                    'invitedAt' => $member->invited_at?->toIso8601String(),
+                ])
+                ->all()
+            : [];
+
         return [
-            ...$this->list($list),
+            // `isOwner` here is identical to this spread's own `isOwner`
+            // (`$list->user_id === $user->id`) — no separate explicit key
+            // needed.
+            ...$this->list($list, $user),
             'isShared' => count($members) > 1,
             'members' => $members,
-            'isOwner' => $list->user_id === $user->id,
-            'canManageSharing' => $list->user_id === $user->id,
+            'pendingInvitations' => $pendingInvitations,
+            'canManageSharing' => $isOwner,
         ];
     }
 

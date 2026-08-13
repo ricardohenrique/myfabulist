@@ -81,6 +81,24 @@ class EloquentTaskListMemberRepositoryTest extends TestCase
         $this->assertTrue($members->first()->taskList->is($list));
     }
 
+    public function test_pending_invitations_for_returns_only_pending_rows_for_the_list_with_user_loaded(): void
+    {
+        // TaskListFactory::configure() already dual-writes one accepted
+        // owner membership; the other two prove the status filter.
+        $list = TaskList::factory()->create();
+        $pending = TaskListMember::factory()->forTaskList($list, User::factory()->create())->pending()->create();
+        TaskListMember::factory()->forTaskList($list, User::factory()->create())->create(['status' => 'declined']);
+        // A pending invitation on a different list must never leak in.
+        TaskListMember::factory()->pending()->create();
+
+        $invitations = $this->repository->pendingInvitationsFor($list);
+
+        $this->assertSame([$pending->id], $invitations->pluck('id')->all());
+        $this->assertTrue($invitations->first()->relationLoaded('user'));
+        $this->assertTrue($invitations->first()->relationLoaded('taskList'));
+        $this->assertTrue($invitations->first()->taskList->is($list));
+    }
+
     public function test_pending_for_returns_only_this_users_pending_invitations(): void
     {
         $user = User::factory()->create();

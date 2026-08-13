@@ -83,10 +83,15 @@ class DemoSeederTest extends TestCase
             $this->assertGreaterThanOrEqual(5, $folderedListCount);
             $this->assertLessThanOrEqual(10, $folderedListCount);
 
+            // Scoped to lists this user actually owns (Plan 1, Step 10):
+            // an accepted collaborator's own membership row is also
+            // folder_id null (F4 — a newly accepted member always lands
+            // ungrouped) but belongs to someone else's standaloneLists()
+            // creation pass, not this user's own random range.
             $standaloneListCount = TaskListMember::query()
                 ->where('user_id', $user->id)
                 ->whereNull('folder_id')
-                ->whereHas('taskList', fn ($query) => $query->where('is_default', false))
+                ->whereHas('taskList', fn ($query) => $query->where('is_default', false)->where('user_id', $user->id))
                 ->count();
             $this->assertGreaterThanOrEqual(2, $standaloneListCount);
             $this->assertLessThanOrEqual(4, $standaloneListCount);
@@ -168,8 +173,14 @@ class DemoSeederTest extends TestCase
                 Folder::query()->where('user_id', $user->id)->orderBy('position')->pluck('position')->all(),
             );
 
+            // status = 'accepted' only (Plan 1, Step 10): a pending
+            // invitation also carries folder_id = null, but its position is
+            // an unused placeholder (0), never a real ordering slot — see
+            // TaskListMemberRepositoryInterface::nextPositionFor()'s own
+            // docblock for the same exclusion.
             $ungroupedPositions = TaskListMember::query()
                 ->where('user_id', $user->id)
+                ->where('status', 'accepted')
                 ->whereNull('folder_id')
                 ->orderBy('position')
                 ->pluck('position')
@@ -282,12 +293,48 @@ class DemoSeederTest extends TestCase
 
         $this->assertGreaterThan(0, TaskList::query()->count());
 
+        // Scoped to the owner's own row (Plan 1, Step 10): the sharing pass
+        // deliberately adds extra accepted collaborator rows to a handful
+        // of lists (F23), so "the list has exactly one membership row"
+        // is no longer universally true — what TaskListFactory::configure()
+        // actually guarantees, and what this test exists to pin, is that
+        // the owner's own row is singular and accepted.
         TaskList::query()->get()->each(function (TaskList $list): void {
-            $member = TaskListMember::query()->where('task_list_id', $list->id)->sole();
+            $ownerMembership = TaskListMember::query()
+                ->where('task_list_id', $list->id)
+                ->where('user_id', $list->user_id)
+                ->sole();
 
-            $this->assertSame($list->user_id, $member->user_id);
-            $this->assertSame('accepted', $member->status);
+            $this->assertSame('accepted', $ownerMembership->status);
         });
+    }
+
+    /**
+     * F23 (Plan 1, "Shared Lists and Collaboration", Step 10): the seeder
+     * must produce at least one genuine cross-user share and a guaranteed
+     * pending invitation for demo1@example.com, or the notification center
+     * and share dialog have nothing to render for a fresh local database.
+     */
+    public function test_seeding_produces_a_real_cross_user_share_and_a_pending_invitation_for_demo1(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        $crossUserShare = TaskListMember::query()
+            ->join('task_lists', 'task_lists.id', '=', 'task_list_members.task_list_id')
+            ->where('task_list_members.status', 'accepted')
+            ->whereColumn('task_list_members.user_id', '!=', 'task_lists.user_id')
+            ->exists();
+
+        $this->assertTrue($crossUserShare, 'Expected at least one accepted membership belonging to someone other than the list owner.');
+
+        $demo1 = User::query()->where('email', 'demo1@example.com')->firstOrFail();
+
+        $hasPendingInvitation = TaskListMember::query()
+            ->where('user_id', $demo1->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        $this->assertTrue($hasPendingInvitation, 'Expected demo1@example.com to have at least one pending invitation.');
     }
 
     private function membershipFor(TaskList $list, User $user): TaskListMember

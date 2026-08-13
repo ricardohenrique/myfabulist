@@ -465,6 +465,90 @@ it('marks an unshared list as not shared', function () {
         ->assertInertia(fn (Assert $page) => $page->where('workspace.currentList.isShared', false));
 });
 
+// -- currentList: pendingInvitations (Plan 1, Step 10) -----------------------
+
+it('renders pending invitations on currentList for the owner with email visible', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    $invitation = TaskListMember::factory()->forTaskList($list, $invitee)
+        ->pending()
+        ->create(['invited_by_user_id' => $owner->id]);
+
+    $this->actingAs($owner)->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('workspace.currentList.pendingInvitations', 1)
+            ->where('workspace.currentList.pendingInvitations.0.id', $invitation->id)
+            ->where('workspace.currentList.pendingInvitations.0.userId', $invitee->id)
+            ->where('workspace.currentList.pendingInvitations.0.email', 'invitee@example.com'));
+});
+
+it('hides pending invitations entirely from a non owner member on currentList', function () {
+    // Plan 1, Step 10 code review: a pending invitee isn't a member yet and
+    // may still decline — a non-owner sees an empty array, not a redacted
+    // one, since an empty list would itself imply "nobody's been invited".
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+    TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
+
+    $this->actingAs($member)->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('workspace.currentList.pendingInvitations', 0));
+});
+
+// -- Sidebar rows: isOwner / isShared (Plan 1, Step 10) -----------------------
+
+it('marks the owner and a non owner member differently in the sidebar navigation rows', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($list, $member)->create();
+
+    $this->actingAs($owner)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where(
+            'workspace.ungroupedLists',
+            fn (Collection $lists) => $lists->firstWhere('id', $list->id)['isOwner'] === true,
+        ));
+
+    $this->actingAs($member)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where(
+            'workspace.ungroupedLists',
+            fn (Collection $lists) => $lists->firstWhere('id', $list->id)['isOwner'] === false,
+        ));
+});
+
+it('marks a shared list as shared and an unshared list as not shared in the sidebar navigation rows', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $sharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+    TaskListMember::factory()->forTaskList($sharedList, $member)->create();
+    $unsharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where(
+            'workspace.ungroupedLists',
+            function (Collection $lists) use ($sharedList, $unsharedList): bool {
+                return $lists->firstWhere('id', $sharedList->id)['isShared'] === true
+                    && $lists->firstWhere('id', $unsharedList->id)['isShared'] === false;
+            },
+        ));
+
+    $this->actingAs($member)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where(
+            'workspace.ungroupedLists',
+            fn (Collection $lists) => $lists->firstWhere('id', $sharedList->id)['isShared'] === true,
+        ));
+});
+
 // -- N+1 guard (N4) ------------------------------------------------------------
 
 it('renders a shared lists workspace page in a bounded number of queries', function () {
