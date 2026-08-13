@@ -47,6 +47,7 @@ class EloquentTaskListRepository implements TaskListRepositoryInterface
             ->with('folder')
             ->withCount('tasks')
             ->withCount(['tasks as active_tasks_count' => fn (Builder $query) => $query->where('is_completed', false)])
+            ->withCount(['members as accepted_members_count' => fn (Builder $query) => $query->where('status', 'accepted')])
             ->orderBy('task_list_members.position')
             ->orderBy('task_lists.id')
             ->get();
@@ -122,6 +123,15 @@ class EloquentTaskListRepository implements TaskListRepositoryInterface
         }
 
         return $query->find($taskListId);
+    }
+
+    /**
+     * See the interface docblock for why this is deliberately not folded
+     * into `findForRouteBinding()`.
+     */
+    public function withAcceptedMemberCount(TaskList $taskList): TaskList
+    {
+        return $taskList->loadCount(['members as accepted_members_count' => fn (Builder $query) => $query->where('status', 'accepted')]);
     }
 
     public function createDefaultFor(User $user): TaskList

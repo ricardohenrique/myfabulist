@@ -212,6 +212,56 @@ class TaskListTest extends TestCase
         $this->assertSame(1, $this->positionFor($b, $user));
     }
 
+    // -- is_owner / is_shared / member_count (Plan 1, Step 7) -----------------
+
+    public function test_an_unshared_list_reports_owner_only_on_the_index(): void
+    {
+        $owner = User::factory()->create();
+        TaskList::factory()->create(['user_id' => $owner->id]);
+
+        $response = $this->actingAs($owner)->getJson('/api/v1/lists');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.is_owner', true);
+        $response->assertJsonPath('data.0.is_shared', false);
+        $response->assertJsonPath('data.0.member_count', 1);
+    }
+
+    public function test_a_shared_list_reports_correctly_for_the_owner_and_a_member_on_the_index(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($list, $member)->create();
+
+        $ownerResponse = $this->actingAs($owner)->getJson('/api/v1/lists');
+        $ownerResponse->assertOk();
+        $ownerResponse->assertJsonPath('data.0.is_owner', true);
+        $ownerResponse->assertJsonPath('data.0.is_shared', true);
+        $ownerResponse->assertJsonPath('data.0.member_count', 2);
+
+        $memberResponse = $this->actingAs($member)->getJson('/api/v1/lists');
+        $memberResponse->assertOk();
+        $memberResponse->assertJsonPath('data.0.is_owner', false);
+        $memberResponse->assertJsonPath('data.0.is_shared', true);
+        $memberResponse->assertJsonPath('data.0.member_count', 2);
+    }
+
+    public function test_is_owner_is_shared_and_member_count_are_also_present_on_show(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($list, $member)->create();
+
+        $response = $this->actingAs($member)->getJson("/api/v1/lists/{$list->id}");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.is_owner', false);
+        $response->assertJsonPath('data.is_shared', true);
+        $response->assertJsonPath('data.member_count', 2);
+    }
+
     private function positionFor(TaskList $list, User $user): int
     {
         return TaskListMember::query()

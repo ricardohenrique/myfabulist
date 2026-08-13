@@ -42,6 +42,17 @@ class TaskListService
     }
 
     /**
+     * Attach `accepted_members_count` onto a single, already-resolved list
+     * (Plan 1, Step 7) — the single-list counterpart to `allFor()`, used by
+     * `TaskListController::show()` so `TaskListResource`'s `is_shared`/
+     * `member_count` are available there too, not just on the index.
+     */
+    public function withMemberCount(TaskList $taskList): TaskList
+    {
+        return $this->taskLists->withAcceptedMemberCount($taskList);
+    }
+
+    /**
      * Create a list, in a folder or ungrouped (M2). The folder reference
      * arrives as an id and is resolved here, scoped to the owner (D3) —
      * a missing or foreign folder id throws regardless of which delivery

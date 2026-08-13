@@ -19,7 +19,25 @@ interface TaskListMemberRepositoryInterface
     public function findMembership(TaskList $taskList, User $user): ?TaskListMember;
 
     /**
-     * Every accepted member of the list, with `user` eager-loaded.
+     * Resolve an invitation/membership by id for implicit route-model-
+     * binding (`App\Providers\AppServiceProvider::configureRouteBindings()`),
+     * requiring its list to still exist — `whereHas('taskList')` excludes a
+     * row whose list has since been soft-deleted (a legitimate invitee can
+     * still hold a `pending` row for a list the owner deleted in the
+     * meantime), mirroring `pendingFor()`'s own guard below for the same
+     * reason. `taskList` is always eager-loaded here so no downstream caller
+     * (`ListSharingService`, `TaskListMemberResource`) can ever dereference a
+     * null relation. Not scoped to any particular viewer on purpose — this
+     * only decides the target (together with a still-existing list) exists
+     * at all; `TaskListMemberPolicy::respond()` decides who may act on it.
+     */
+    public function findForRouteBinding(int $id): ?TaskListMember;
+
+    /**
+     * Every accepted member of the list, with `user` and `taskList`
+     * eager-loaded — `TaskListMemberResource` needs the list's `user_id` to
+     * decide email visibility and the `is_owner` flag for each row (Plan 1,
+     * Step 7).
      *
      * @return Collection<int, TaskListMember>
      */
@@ -33,6 +51,11 @@ interface TaskListMemberRepositoryInterface
      */
     public function pendingFor(User $user): Collection;
 
+    /**
+     * Excludes invitations to a since soft-deleted list, same as
+     * `pendingFor()` — the bell notification badge count (Step 8) must never
+     * disagree with `pendingFor()`'s own list.
+     */
     public function pendingCountFor(User $user): int;
 
     /**

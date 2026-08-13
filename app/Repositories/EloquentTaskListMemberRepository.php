@@ -22,17 +22,30 @@ class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterf
             ->first();
     }
 
+    public function findForRouteBinding(int $id): ?TaskListMember
+    {
+        return TaskListMember::query()
+            ->whereHas('taskList')
+            ->with('taskList')
+            ->find($id);
+    }
+
     /**
      * @return Collection<int, TaskListMember>
      */
     public function acceptedMembersFor(TaskList $taskList): Collection
     {
+        // $taskList is already the exact instance every returned row
+        // belongs to — attach it as each row's `taskList` relation instead
+        // of an eager-loaded `with('taskList')`, which would re-query for
+        // something already in hand.
         return TaskListMember::query()
             ->where('task_list_id', $taskList->id)
             ->where('status', 'accepted')
             ->with('user')
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->each(fn (TaskListMember $member) => $member->setRelation('taskList', $taskList));
     }
 
     /**
@@ -54,9 +67,15 @@ class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterf
 
     public function pendingCountFor(User $user): int
     {
+        // Same whereHas('taskList') guard as pendingFor() above, for the
+        // same reason: without it, this count would include invitations to
+        // a since-deleted list that GET /invitations (pendingFor()) itself
+        // already excludes — Step 8's bell badge would show a number that
+        // doesn't match the list underneath it.
         return TaskListMember::query()
             ->where('user_id', $user->id)
             ->where('status', 'pending')
+            ->whereHas('taskList')
             ->count();
     }
 

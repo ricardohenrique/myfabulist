@@ -26,6 +26,28 @@ class TaskListResource extends JsonResource
             'is_default' => $this->is_default,
             'position' => $this->position,
             'tasks_count' => $this->whenCounted('tasks'),
+            // Plan 1 ("Shared Lists and Collaboration"), Step 7:
+            // `accepted_members_count` is attached on the three read paths a
+            // client actually uses to decide whether to render a
+            // share-management affordance: the list index (`allForUser()`),
+            // single-list `show()`, and `GET lists/{list}/tasks`
+            // (`TaskListTaskController::index()`, via `withMemberCount()`) —
+            // the endpoint a client sits on while viewing a list's contents.
+            // It is gracefully absent (both keys omitted, same as
+            // `tasks_count` already behaves inconsistently across read paths
+            // today) everywhere else: `store()`/`update()`'s return paths
+            // (a freshly built TaskList instance, not one resolved through a
+            // counted query), `GET /inbox` (the Inbox can never be shared —
+            // F9 — so the value would always be false/1 there anyway), the
+            // nested `list` inside `TaskResource`, and the nested `lists`
+            // inside `FolderResource`. These are a documented, deliberate
+            // gap, not an oversight — revisit before Steps 9-10 need them.
+            'member_count' => $this->whenCounted('accepted_members'),
+            'is_shared' => $this->when(
+                $this->accepted_members_count !== null,
+                fn () => $this->accepted_members_count > 1,
+            ),
+            'is_owner' => $this->user_id === $request->user()?->id,
             'folder' => $this->whenLoaded('folder', fn () => $this->folder === null ? null : [
                 'id' => $this->folder->id,
                 'name' => $this->folder->name,

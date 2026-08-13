@@ -13,8 +13,10 @@ interface TaskListRepositoryInterface
 {
     /**
      * All of the user's lists, with folder eager-loaded and tasks counted.
-     * Each list carries both `tasks_count` (all tasks) and
-     * `active_tasks_count` (incomplete tasks only — used for sidebar badges).
+     * Each list carries `tasks_count` (all tasks), `active_tasks_count`
+     * (incomplete tasks only — used for sidebar badges), and
+     * `accepted_members_count` (Plan 1, Step 7 — `TaskListResource`'s
+     * `member_count`/`is_shared`).
      *
      * @return Collection<int, TaskList>
      */
@@ -63,6 +65,20 @@ interface TaskListRepositoryInterface
      * must never be called from application code.
      */
     public function findForRouteBinding(int $taskListId, ?User $viewer): ?TaskList;
+
+    /**
+     * Load `accepted_members_count` onto a single, already-resolved list —
+     * the single-list counterpart to `allForUser()`'s `withCount()` (Plan 1,
+     * Step 7). Used by `TaskListController::show()` so `is_shared`/
+     * `member_count` are also available on the single-list read path, the
+     * other place (besides the index) a client decides whether to render a
+     * share-management affordance. Not applied to `findForRouteBinding()`
+     * itself on purpose — that resolver backs every route with a `{list}`
+     * segment, including task/subtask/comment sub-resources that never read
+     * `member_count`, so attaching the count there would add an unused
+     * subquery to requests that have nothing to do with sharing.
+     */
+    public function withAcceptedMemberCount(TaskList $taskList): TaskList;
 
     /**
      * Create the user's default Inbox list. The sole creation point for the

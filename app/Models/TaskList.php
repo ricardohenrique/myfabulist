@@ -48,6 +48,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, TaskListMember> $members
  * @property-read int|null $tasks_count
  * @property-read int|null $active_tasks_count
+ * @property-read int|null $accepted_members_count
  */
 #[Fillable(['name', 'is_default'])]
 class TaskList extends Model

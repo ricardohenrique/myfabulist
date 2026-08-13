@@ -46,7 +46,9 @@ class TaskListController extends Controller
     {
         $this->authorize('view', $list);
 
-        return TaskListResource::make($list->load('folder'))->response();
+        $list = $this->taskLists->withMemberCount($list->load('folder'));
+
+        return TaskListResource::make($list)->response();
     }
 
     public function update(UpdateTaskListRequest $request, TaskList $list): JsonResponse

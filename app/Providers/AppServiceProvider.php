@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
+use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use Carbon\CarbonImmutable;
@@ -66,6 +68,15 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', fn (Request $request): Limit => Limit::perMinute(60)->by(
             $request->user()?->id ?: $request->ip(),
         ));
+
+        // Plan 1 ("Shared Lists and Collaboration"), Step 7 (N8/R8): a
+        // tighter limit than the general "api" limiter above, applied only
+        // to the invite-creation route — invitation creation is the
+        // abuse-sensitive endpoint (email enumeration, spam invites), not
+        // every API call.
+        RateLimiter::for('invite', fn (Request $request): Limit => Limit::perMinute(10)->by(
+            $request->user()?->id ?: $request->ip(),
+        ));
     }
 
     /**
@@ -104,6 +115,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->configureTaskRouteBinding();
+        $this->configureInvitationRouteBinding();
     }
 
     /**
@@ -129,6 +141,34 @@ class AppServiceProvider extends ServiceProvider
             return app(TaskRepositoryInterface::class)
                 ->findForRouteBinding((int) $value, request()->user())
                 ?? throw (new ModelNotFoundException)->setModel(Task::class, [$value]);
+        });
+    }
+
+    /**
+     * Explicit route-model-binding for `{invitation}` (Plan 1, Step 7
+     * code-review follow-up), registered here for the same reason `{list}`/
+     * `{task}` are above — but for a different guarantee: an invitation's
+     * list can be soft-deleted out from under a still-`pending`
+     * `task_list_members` row (the owner deleted the shared list before the
+     * invitee responded). Plain implicit binding would resolve the row with
+     * `taskList` null-able via a `belongsTo` that picks up `SoftDeletes`'
+     * global scope, and every downstream consumer
+     * (`ListSharingService::{accept,decline}()`, `TaskListMemberResource`)
+     * assumes it is never null — that mismatch is exactly what produced a
+     * 500 before this binding existed.
+     * `TaskListMemberRepositoryInterface::findForRouteBinding()` excludes a
+     * row whose list is gone and eager-loads `taskList` so nothing
+     * downstream can hit that null. Not scoped to the viewer on purpose —
+     * `TaskListMemberPolicy::respond()` is what decides whether this
+     * particular caller may act on the result; a stranger's request should
+     * 403, not 404, exactly like `{list}`/`{task}` above.
+     */
+    protected function configureInvitationRouteBinding(): void
+    {
+        Route::bind('invitation', function (string $value): TaskListMember {
+            return app(TaskListMemberRepositoryInterface::class)
+                ->findForRouteBinding((int) $value)
+                ?? throw (new ModelNotFoundException)->setModel(TaskListMember::class, [$value]);
         });
     }
 }

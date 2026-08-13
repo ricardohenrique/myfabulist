@@ -63,6 +63,24 @@ class EloquentTaskListMemberRepositoryTest extends TestCase
         $this->assertTrue($members->first()->relationLoaded('user'));
     }
 
+    /**
+     * Plan 1 ("Shared Lists and Collaboration"), Step 7 code-review
+     * follow-up: `acceptedMembersFor()` also attaches `taskList` now
+     * (`TaskListMemberResource` needs the list's `user_id` for email
+     * visibility and `is_owner`) — previously only covered transitively
+     * through the API tests, not pinned at the layer that owns the
+     * guarantee.
+     */
+    public function test_accepted_members_for_also_attaches_task_list(): void
+    {
+        $list = TaskList::factory()->create();
+
+        $members = $this->repository->acceptedMembersFor($list);
+
+        $this->assertTrue($members->first()->relationLoaded('taskList'));
+        $this->assertTrue($members->first()->taskList->is($list));
+    }
+
     public function test_pending_for_returns_only_this_users_pending_invitations(): void
     {
         $user = User::factory()->create();
