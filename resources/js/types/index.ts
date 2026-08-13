@@ -107,7 +107,9 @@ export type SharedPageProps = {
     notifications: {
         pendingInvitationCount: number;
         // Absent unless explicitly requested via Inertia::optional() — a
-        // partial reload naming 'notifications.invitations' (Step 9).
+        // partial reload naming 'notifications' (the parent prop key, not
+        // the leaf 'notifications.invitations' path) — see
+        // `app-shell.tsx`'s `openNotifications` (Step 9).
         invitations?: PendingInvitationSummary[];
     };
 };

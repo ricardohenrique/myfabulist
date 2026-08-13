@@ -2,13 +2,14 @@ import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/rea
 import { isSortable, useSortable } from '@dnd-kit/react/sortable';
 import { Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { NotificationCenter } from '@/components/navigation/notification-center';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Logo } from '@/components/ui/logo';
 import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
 import { inbox as inboxRoute, logout, starred } from '@/routes';
 import { show as showList } from '@/routes/lists';
-import type { NavigationFolder, NavigationList, UserSummary, WorkspaceView } from '@/types';
+import type { NavigationFolder, NavigationList, PendingInvitationSummary, UserSummary, WorkspaceView } from '@/types';
 
 type SidebarProps = {
     user: UserSummary;
@@ -20,6 +21,10 @@ type SidebarProps = {
     currentListId: number | null;
     mobileOpen: boolean;
     reorderPending?: boolean;
+    pendingInvitationCount: number;
+    invitations: PendingInvitationSummary[] | undefined;
+    respondingInvitationIds: number[];
+    notificationsOpen: boolean;
     onCloseMobile: () => void;
     onOpenCreate: (kind: 'folder' | 'list') => void;
     onEditFolder: (folder: NavigationFolder) => void;
@@ -28,6 +33,10 @@ type SidebarProps = {
     onEditList: (list: NavigationList) => void;
     onDeleteList: (list: NavigationList) => void;
     onReorderList: (folderId: number | null, taskListIds: number[]) => void;
+    onToggleNotifications: () => void;
+    onCloseNotifications: () => void;
+    onAcceptInvitation: (invitationId: number) => void;
+    onDeclineInvitation: (invitationId: number) => void;
 };
 
 type SortableListRowProps = {
@@ -294,6 +303,10 @@ export function Sidebar({
     currentListId,
     mobileOpen,
     reorderPending = false,
+    pendingInvitationCount,
+    invitations,
+    respondingInvitationIds,
+    notificationsOpen,
     onCloseMobile,
     onOpenCreate,
     onEditFolder,
@@ -302,6 +315,10 @@ export function Sidebar({
     onEditList,
     onDeleteList,
     onReorderList,
+    onToggleNotifications,
+    onCloseNotifications,
+    onAcceptInvitation,
+    onDeclineInvitation,
 }: SidebarProps) {
     const [orderedFolders, setOrderedFolders] = useState(folders);
     const [orderedUngroupedLists, setOrderedUngroupedLists] = useState(ungroupedLists);
@@ -404,7 +421,16 @@ export function Sidebar({
                         <Icon className="account-chevron" name="chevron-down" size={16} />
                     </button>
                     <div className="account-actions">
-                        <button aria-label="Notifications (not available yet)" className="icon-button" disabled type="button"><Icon name="bell" size={18} /></button>
+                        <NotificationCenter
+                            invitations={invitations}
+                            onAccept={onAcceptInvitation}
+                            onClose={onCloseNotifications}
+                            onDecline={onDeclineInvitation}
+                            onToggle={onToggleNotifications}
+                            open={notificationsOpen}
+                            pendingCount={pendingInvitationCount}
+                            respondingIds={respondingInvitationIds}
+                        />
                         <button aria-label="Search tasks (not available yet)" className="icon-button" disabled type="button"><Icon name="search" size={18} /></button>
                     </div>
                     {profileOpen && (

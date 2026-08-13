@@ -5,6 +5,7 @@ use App\Models\TaskList;
 use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -102,6 +103,31 @@ it('accepts and declines invitations through web routes with flash and disappear
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('notifications.pendingInvitationCount', 0));
+});
+
+it('shows the newly accepted list ungrouped in the navigation tree on the next page load', function () {
+    $owner = User::factory()->create();
+    $invitee = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $owner->id, 'name' => 'Website launch']);
+    $invitation = TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
+
+    $this->actingAs($invitee)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where(
+            'workspace.ungroupedLists',
+            fn (Collection $ungroupedLists) => $ungroupedLists->doesntContain(fn (array $item) => $item['id'] === $list->id),
+        ));
+
+    $this->actingAs($invitee)->post(route('invitations.accept', $invitation))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $this->actingAs($invitee)->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where(
+            'workspace.ungroupedLists',
+            fn (Collection $ungroupedLists) => $ungroupedLists->contains(fn (array $item) => $item['id'] === $list->id),
+        ));
 });
 
 it('declines an invitation through the web route', function () {

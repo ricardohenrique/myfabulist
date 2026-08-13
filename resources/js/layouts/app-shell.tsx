@@ -10,6 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
 import * as folderRoutes from '@/routes/folders';
+import * as invitationRoutes from '@/routes/invitations';
 import * as listRoutes from '@/routes/lists';
 import { store as storeTask } from '@/routes/lists/tasks';
 import * as taskRoutes from '@/routes/tasks';
@@ -19,6 +20,7 @@ import * as subtaskRoutes from '@/routes/subtasks';
 import type {
     NavigationFolder,
     NavigationList,
+    PendingInvitationSummary,
     SharedPageProps,
     SubtaskSummary,
     TaskSummary,
@@ -72,6 +74,12 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [entityProcessing, setEntityProcessing] = useState(false);
     const [notice, setNotice] = useState('');
     const [undo, setUndo] = useState<UndoState | null>(null);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [respondingInvitationIds, setRespondingInvitationIds] = useState<number[]>([]);
+    // Always starts `undefined` — `notifications.invitations` is `Inertia::optional()`
+    // and is never present on the initial page load, only after the partial
+    // reload `openNotifications` triggers below.
+    const [invitations, setInvitations] = useState<PendingInvitationSummary[] | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
     const quickAdd = useForm({ title: '' });
 
@@ -103,6 +111,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
             setNotice(page.props.errors.domain);
         }
     }, [page.props.errors, page.props.flash]);
+
+    // `notifications.invitations` is `Inertia::optional()` on the server, so
+    // it is only present on the response that follows a partial reload
+    // naming `notifications` (see `openNotifications` below). Every other
+    // visit — including the plain `back()` redirect after accept/decline —
+    // omits the key entirely, so this only re-seeds local state when a fresh
+    // list actually arrives; it never resets `invitations` back to
+    // `undefined` on an unrelated navigation.
+    useEffect(() => {
+        if (page.props.notifications.invitations !== undefined) {
+            setInvitations(page.props.notifications.invitations);
+        }
+    }, [page.props.notifications.invitations]);
 
     const setTaskPending = (taskId: number, pending: boolean) => {
         setPendingTaskIds((current) => pending
@@ -393,6 +414,67 @@ export function AppShell({ workspace, user }: AppShellProps) {
         });
     };
 
+    const setInvitationResponding = (invitationId: number, responding: boolean) => {
+        setRespondingInvitationIds((current) => responding
+            ? [...new Set([...current, invitationId])]
+            : current.filter((id) => id !== invitationId));
+    };
+
+    const openNotifications = () => {
+        setNotificationsOpen(true);
+
+        // Nothing pending — skip the round trip and the "Loading…" flash for
+        // what's the overwhelmingly common case.
+        if (page.props.notifications.pendingInvitationCount === 0) {
+            setInvitations([]);
+            return;
+        }
+
+        router.reload({
+            only: ['notifications'],
+            onError: () => setNotice('Notifications could not be loaded.'),
+            // If the reload never resolves into a fresh `invitations` array
+            // (a network error, not a validation error `onError` already
+            // handles), fall back to the empty state instead of leaving the
+            // panel stuck on "Loading…" forever. A no-op once the prop-sync
+            // effect above has already populated a real list.
+            onFinish: () => setInvitations((current) => current ?? []),
+        });
+    };
+
+    const closeNotifications = () => {
+        setNotificationsOpen(false);
+        // Every open should be a genuinely fresh load — otherwise a stale
+        // row (e.g. one the owner already revoked) could sit in the panel
+        // and surface as a raw Inertia error on Accept/Decline instead of
+        // the normal notice/flash path.
+        setInvitations(undefined);
+    };
+
+    const toggleNotifications = () => {
+        if (notificationsOpen) {
+            closeNotifications();
+        } else {
+            openNotifications();
+        }
+    };
+
+    const respondToInvitation = (invitationId: number, accepting: boolean) => {
+        setInvitationResponding(invitationId, true);
+        const route = accepting ? invitationRoutes.accept(invitationId) : invitationRoutes.decline(invitationId);
+
+        router.post(route, {}, {
+            preserveScroll: true,
+            onSuccess: () => setInvitations((current) => current?.filter((invitation) => invitation.id !== invitationId)),
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'That invitation could not be updated.'),
+            onFinish: () => setInvitationResponding(invitationId, false),
+        });
+    };
+
+    const acceptInvitation = (invitationId: number) => respondToInvitation(invitationId, true);
+
+    const declineInvitation = (invitationId: number) => respondToInvitation(invitationId, false);
+
     return (
         <div className="app-frame">
             <Head title={`${workspace.heading} · My Fabulist`} />
@@ -401,8 +483,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 currentListId={workspace.currentList?.id ?? null}
                 folders={workspace.folders}
                 inbox={workspace.inbox}
+                invitations={invitations}
                 mobileOpen={mobileNavOpen}
+                notificationsOpen={notificationsOpen}
+                onAcceptInvitation={acceptInvitation}
                 onCloseMobile={() => setMobileNavOpen(false)}
+                onCloseNotifications={closeNotifications}
+                onDeclineInvitation={declineInvitation}
                 onDeleteFolder={(folder) => { setEntityError(''); setDeleteDialog({ kind: 'folder', item: folder }); }}
                 onDeleteList={(list) => { setEntityError(''); setDeleteDialog({ kind: 'list', item: list }); }}
                 onEditFolder={openEditFolder}
@@ -410,7 +497,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onOpenCreate={openCreate}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
+                onToggleNotifications={toggleNotifications}
+                pendingInvitationCount={page.props.notifications.pendingInvitationCount}
                 reorderPending={reorderPending}
+                respondingInvitationIds={respondingInvitationIds}
                 starredCount={workspace.starredCount}
                 ungroupedLists={workspace.ungroupedLists}
                 user={user}
