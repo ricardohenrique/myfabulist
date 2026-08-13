@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\DefaultTaskListCannotBeDeletedException;
 use App\Exceptions\FolderNotFoundException;
+use App\Exceptions\NotListOwnerException;
 use App\Models\Folder;
 use App\Models\TaskList;
 use App\Models\User;
@@ -72,11 +73,28 @@ class TaskListService
 
     /**
      * Delete a list (M2). The default (Inbox) list can never be deleted (D5).
+     *
+     * `$user` is required and re-checked against ownership here as defence
+     * in depth (F10/F12, Plan 1, Step 6) — both web and API controllers
+     * already call `$this->authorize('delete', $list)` (owner-only,
+     * `TaskListPolicy::delete()`) immediately before reaching this method,
+     * but the Service must never trust that alone, matching
+     * `EloquentTaskListRepository::update()`'s own membership re-check and
+     * `ListSharingService::revoke()`'s own ownership re-check. A non-owner —
+     * even an accepted member — can never delete a shared list outright,
+     * only leave it (`ListSharingService::leave()`). The `is_default` check
+     * runs first, mirroring `TaskListPolicy::delete()`'s own check order: the
+     * Inbox can never be deleted regardless of who is asking, so that
+     * structural fact is the more fundamental failure to surface first.
      */
-    public function delete(TaskList $taskList): void
+    public function delete(TaskList $taskList, User $user): void
     {
         if ($taskList->is_default) {
             throw DefaultTaskListCannotBeDeletedException::for($taskList);
+        }
+
+        if ($user->id !== $taskList->user_id) {
+            throw NotListOwnerException::forDelete($taskList, $user);
         }
 
         $this->taskLists->delete($taskList);

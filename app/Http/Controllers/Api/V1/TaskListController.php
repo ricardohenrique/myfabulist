@@ -61,11 +61,11 @@ class TaskListController extends Controller
         return TaskListResource::make($list)->response();
     }
 
-    public function destroy(TaskList $list): Response
+    public function destroy(Request $request, TaskList $list): Response
     {
         $this->authorize('delete', $list);
 
-        $this->taskLists->delete($list);
+        $this->taskLists->delete($list, $request->user());
 
         return response()->noContent();
     }

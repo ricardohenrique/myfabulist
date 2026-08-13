@@ -7,6 +7,7 @@ namespace Tests\Feature\Api\V1;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -140,6 +141,35 @@ class FolderTest extends TestCase
         $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
         $this->assertDatabaseMissing('task_lists', ['id' => $list->id]);
         $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
+    }
+
+    /**
+     * F11 (Plan 1, Step 6), proven end-to-end through the real
+     * request/service chain (`DestroyFolderRequest`'s 'delete' strategy),
+     * not just the repository/service in isolation: a member destroying
+     * their own folder must never destroy another user's shared list.
+     */
+    public function test_deleting_with_delete_strategy_never_destroys_a_shared_list_the_actor_does_not_own(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+        $task = Task::factory()->forTaskList($sharedList)->create();
+        $memberFolder = Folder::factory()->for($member)->create();
+        TaskListMember::factory()->forTaskList($sharedList, $member)->create(['folder_id' => $memberFolder->id]);
+
+        $response = $this->actingAs($member)->deleteJson("/api/v1/folders/{$memberFolder->id}?lists=delete");
+
+        $response->assertNoContent();
+        $this->assertDatabaseMissing('folders', ['id' => $memberFolder->id]);
+        $this->assertDatabaseHas('task_lists', ['id' => $sharedList->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $sharedList->id,
+            'user_id' => $member->id,
+            'status' => 'accepted',
+            'folder_id' => null,
+        ]);
     }
 
     public function test_a_user_cannot_access_another_users_folder(): void

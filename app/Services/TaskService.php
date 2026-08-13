@@ -6,10 +6,12 @@ namespace App\Services;
 
 use App\Exceptions\InvalidTaskTitleException;
 use App\Exceptions\TaskCannotBeUndeletedException;
+use App\Exceptions\TaskCannotCrossSharingBoundaryException;
 use App\Exceptions\TaskListNotFoundException;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
+use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Data\ListedTasks;
@@ -21,6 +23,7 @@ class TaskService
     public function __construct(
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskListRepositoryInterface $taskLists,
+        private readonly TaskListMemberRepositoryInterface $taskListMembers,
     ) {}
 
     /**
@@ -121,11 +124,54 @@ class TaskService
      * membership on, only one they own — `findOwnedBy()`, not
      * `findAccessibleFor()`, is what keeps that boundary intact even after
      * Step 5 ships real invitations.
+     *
+     * Ownership of the target (and source) list is not, by itself, enough:
+     * Step 6/Q8 disallows any move where *either side* is a shared list, for
+     * every actor including the owner — e.g. a non-owner member moving a
+     * task out of a shared list into a private list they own, or the owner
+     * of a shared list moving a task out of it into one of their own private
+     * lists. `findOwnedBy()` alone would let both of those through, since
+     * the mover owns the list on each side of the move; this guard is what
+     * actually closes the boundary. `loadMissing('taskList')`, not the bare
+     * accessor, because `$task` may reach here without it eager-loaded and
+     * this must stay safe under `Model::preventLazyLoading()` — mirrors
+     * `TaskPolicy::view()`/`ListSharingService::accept()`.
+     *
+     * A same-list "move" (repositioning within the task's current list) is
+     * short-circuited before either boundary check runs: it never actually
+     * crosses anything, so it must stay valid even for the owner of a
+     * shared list, exactly like `Actions\Tasks\UpdateTask::handle()`
+     * already treats an unchanged target list id as "not actually a move"
+     * and skips calling this method entirely. Without the short-circuit,
+     * both `countAcceptedFor()` checks below would fire on what is really a
+     * harmless no-op for a shared list's owner.
      */
     public function move(Task $task, User $user, int $targetListId, ?int $position): Task
     {
         $targetList = $this->taskLists->findOwnedBy($targetListId, $user)
             ?? throw TaskListNotFoundException::forId($targetListId);
+
+        if ($targetList->id === $task->task_list_id) {
+            return $this->tasks->moveToList($task, $targetList, $position);
+        }
+
+        // A task whose list has itself been soft-deleted between the
+        // policy check and this call resolves taskList to null — not
+        // reachable over HTTP today (TaskPolicy::update() already denies
+        // first), but this is a public Service method, so it must fail with
+        // a named exception rather than a raw TypeError from
+        // countAcceptedFor(null), mirroring undelete()'s equivalent guard
+        // below.
+        $sourceList = $task->loadMissing('taskList')->taskList
+            ?? throw TaskListNotFoundException::forId($task->task_list_id);
+
+        if ($this->taskListMembers->countAcceptedFor($sourceList) > 1) {
+            throw TaskCannotCrossSharingBoundaryException::becauseListIsShared($sourceList);
+        }
+
+        if ($this->taskListMembers->countAcceptedFor($targetList) > 1) {
+            throw TaskCannotCrossSharingBoundaryException::becauseListIsShared($targetList);
+        }
 
         return $this->tasks->moveToList($task, $targetList, $position);
     }

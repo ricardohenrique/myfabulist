@@ -7,6 +7,7 @@ namespace Tests\Feature\Api\V1;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -260,6 +261,56 @@ class TaskTest extends TestCase
 
         $response->assertStatus(422);
         $this->assertSame($sourceList->id, $task->fresh()->task_list_id);
+    }
+
+    /**
+     * Plan 1 ("Shared Lists and Collaboration"), Step 6/Q8: pins the new
+     * `task_cannot_cross_sharing_boundary` error code at the HTTP layer,
+     * matching how every other domain error on this surface
+     * (`task_reorder_mismatch` etc.) is asserted by `error_code`, not just by
+     * exception class in a Service-level test.
+     */
+    public function test_move_out_of_a_shared_list_is_rejected_with_a_stable_error_code(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($sharedList, $member)->create();
+        $ownerPrivateList = TaskList::factory()->create(['user_id' => $owner->id]);
+        $task = Task::factory()->forTaskList($sharedList)->create();
+
+        $response = $this->actingAs($owner)->postJson("/api/v1/tasks/{$task->id}/move", [
+            'task_list_id' => $ownerPrivateList->id,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('error_code', 'task_cannot_cross_sharing_boundary');
+        $this->assertSame($sharedList->id, $task->fresh()->task_list_id);
+    }
+
+    /**
+     * Regression: repositioning a task within its *current* list (target
+     * list id equal to the task's own) must stay a harmless no-op even for
+     * the owner of a shared list — TaskService::move()'s sharing-boundary
+     * guard must never fire on a same-list "move".
+     */
+    public function test_move_within_the_same_shared_list_still_succeeds_for_the_owner(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($sharedList, $member)->create();
+        $task = Task::factory()->forTaskList($sharedList)->create(['position' => 0]);
+
+        $response = $this->actingAs($owner)->postJson("/api/v1/tasks/{$task->id}/move", [
+            'task_list_id' => $sharedList->id,
+            'position' => 3,
+        ]);
+
+        $response->assertOk();
+        $task->refresh();
+        $this->assertSame($sharedList->id, $task->task_list_id);
+        $this->assertSame(3, $task->position);
     }
 
     public function test_task_order_rewrites_positions(): void

@@ -35,14 +35,30 @@ interface FolderRepositoryInterface
     public function delete(Folder $folder): void;
 
     /**
-     * Delete the folder and every list (and, transitively, task) inside it,
-     * atomically.
+     * Delete the folder and destroy the lists placed inside it, atomically —
+     * scoped strictly to the folder owner's *own* placements (Plan 1, Step
+     * 6/F11): a list placed here that the folder's owner does not own (an
+     * accepted membership on someone else's shared list) is never touched —
+     * only the owner's own membership placement for it is detached to
+     * ungrouped, exactly like `detachLists()`.
+     *
+     * F12: even an *owned* list is not unconditionally destroyed. An owned,
+     * unshared list is hard-deleted (and, transitively, its tasks). An
+     * owned list that is shared (more than one accepted member) is
+     * soft-deleted instead — the same recoverable outcome
+     * `TaskListService::delete()` guarantees a shared list on the
+     * single-list deletion path, reached here via the folder-bulk path.
      */
     public function deleteWithLists(Folder $folder): void;
 
     /**
      * Move every list out of the folder (folder_id = null), then delete it,
-     * atomically.
+     * atomically. This only ever nulls the folder owner's *own*
+     * `task_list_members.folder_id` — it never inspects or depends on who
+     * owns each list, so it needs no ownership scoping: a list this folder's
+     * owner merely has accepted membership on (someone else's shared list)
+     * is ungrouped for them exactly like one they own, and neither the list
+     * nor any other member's row is ever touched.
      */
     public function detachLists(Folder $folder): void;
 

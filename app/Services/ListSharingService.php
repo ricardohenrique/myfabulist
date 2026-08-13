@@ -173,7 +173,7 @@ class ListSharingService
     public function revoke(TaskList $taskList, User $actor, User $member): void
     {
         if ($actor->id !== $taskList->user_id) {
-            throw NotListOwnerException::for($taskList, $actor);
+            throw NotListOwnerException::forManageMembers($taskList, $actor);
         }
 
         // A single delete write — no transaction needed for one statement.

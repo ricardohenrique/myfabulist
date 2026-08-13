@@ -47,9 +47,10 @@ class SoftDeleteVisibilityTest extends TestCase
      */
     public function test_a_deleted_list_is_recoverable_not_destroyed(): void
     {
-        $list = TaskList::factory()->create();
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
 
-        app(TaskListService::class)->delete($list);
+        app(TaskListService::class)->delete($list, $user);
 
         $this->assertSoftDeleted('task_lists', ['id' => $list->id]);
     }
@@ -124,7 +125,7 @@ class SoftDeleteVisibilityTest extends TestCase
         $user = User::factory()->create();
         $list = TaskList::factory()->create(['user_id' => $user->id]);
 
-        app(TaskListService::class)->delete($list);
+        app(TaskListService::class)->delete($list, $user);
 
         $this->assertFalse(app(TaskListRepositoryInterface::class)->allForUser($user)->contains(fn (TaskList $l): bool => $l->is($list)));
     }
@@ -134,7 +135,7 @@ class SoftDeleteVisibilityTest extends TestCase
         $user = User::factory()->create();
         $list = TaskList::factory()->create(['user_id' => $user->id]);
 
-        app(TaskListService::class)->delete($list);
+        app(TaskListService::class)->delete($list, $user);
 
         $this->actingAs($user)->getJson('/api/v1/lists')->assertJsonMissing(['id' => $list->id]);
     }
@@ -144,7 +145,7 @@ class SoftDeleteVisibilityTest extends TestCase
         $user = User::factory()->create();
         $list = TaskList::factory()->create(['user_id' => $user->id]);
 
-        app(TaskListService::class)->delete($list);
+        app(TaskListService::class)->delete($list, $user);
 
         $this->actingAs($user)->getJson("/api/v1/lists/{$list->id}")->assertNotFound();
     }
@@ -156,7 +157,7 @@ class SoftDeleteVisibilityTest extends TestCase
         $deletedList = TaskList::factory()->create(['user_id' => $user->id]);
         $task = Task::factory()->forTaskList($sourceList)->create();
 
-        app(TaskListService::class)->delete($deletedList);
+        app(TaskListService::class)->delete($deletedList, $user);
 
         $this->actingAs($user)->postJson("/api/v1/tasks/{$task->id}/move", [
             'task_list_id' => $deletedList->id,
@@ -169,7 +170,7 @@ class SoftDeleteVisibilityTest extends TestCase
         $keep = TaskList::factory()->atPosition(0)->create(['user_id' => $user->id]);
         $deletedList = TaskList::factory()->atPosition(1)->create(['user_id' => $user->id]);
 
-        app(TaskListService::class)->delete($deletedList);
+        app(TaskListService::class)->delete($deletedList, $user);
 
         $this->actingAs($user)->putJson('/api/v1/lists/order', [
             'folder_id' => null,
@@ -187,7 +188,7 @@ class SoftDeleteVisibilityTest extends TestCase
         $list = TaskList::factory()->create(['user_id' => $user->id]);
         $starredTask = Task::factory()->forTaskList($list)->starred()->create();
 
-        app(TaskListService::class)->delete($list);
+        app(TaskListService::class)->delete($list, $user);
 
         $this->assertFalse(app(TaskService::class)->starredFor($user)->contains(fn (Task $t): bool => $t->is($starredTask)));
         $this->actingAs($user)->getJson('/api/v1/starred')->assertJsonMissing(['id' => $starredTask->id]);
@@ -200,7 +201,7 @@ class SoftDeleteVisibilityTest extends TestCase
 
         $this->expectException(DefaultTaskListCannotBeDeletedException::class);
 
-        app(TaskListService::class)->delete($inbox);
+        app(TaskListService::class)->delete($inbox, $user);
     }
 
     public function test_the_inbox_cannot_be_deleted_through_the_api(): void

@@ -10,6 +10,7 @@ use App\Http\Requests\Web\UpdateTaskListRequest;
 use App\Models\TaskList;
 use App\Services\TaskListService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class TaskListController extends Controller
 {
@@ -40,10 +41,10 @@ class TaskListController extends Controller
         return back()->with('success', "List “{$list->name}” updated.");
     }
 
-    public function destroy(TaskList $list): RedirectResponse
+    public function destroy(Request $request, TaskList $list): RedirectResponse
     {
         $this->authorize('delete', $list);
-        $this->taskLists->delete($list);
+        $this->taskLists->delete($list, $request->user());
 
         return redirect()->route('inbox')->with('success', "List “{$list->name}” deleted.");
     }

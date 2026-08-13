@@ -9,6 +9,7 @@ use App\Exceptions\TaskListNotFoundException;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
+use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\TaskService;
@@ -19,6 +20,17 @@ use PHPUnit\Framework\TestCase;
  * Pure unit tests (mocked repositories, no database) for the trim/blank-
  * title invariant (M3) and the target-list resolution invariant (D7),
  * proving these rules live in the Service and not in a delivery mechanism.
+ *
+ * `move()`'s success path and its Step 6/Q8 sharing-boundary guard are
+ * deliberately *not* unit-tested here any more: both require
+ * `Task::loadMissing('taskList')`, and Eloquent's `loadMissing()`
+ * unconditionally builds a query object (to introspect eager-load keys)
+ * before it ever checks whether the relation is already loaded — so it
+ * needs a real, bootstrapped DB connection resolver even when the relation
+ * was pre-set via `setRelation()`. This plain `PHPUnit\Framework\TestCase`
+ * boots no Laravel app at all. Those cases are covered, more realistically,
+ * as Feature tests against a real database in
+ * `Tests\Feature\Services\TaskServiceTest`.
  */
 class TaskServiceTest extends TestCase
 {
@@ -41,7 +53,11 @@ class TaskServiceTest extends TestCase
             ->with($user, $taskList, 'Buy milk', 0)
             ->andReturn(new Task(['title' => 'Buy milk']));
 
-        $service = new TaskService($tasks, Mockery::mock(TaskListRepositoryInterface::class));
+        $service = new TaskService(
+            $tasks,
+            Mockery::mock(TaskListRepositoryInterface::class),
+            Mockery::mock(TaskListMemberRepositoryInterface::class),
+        );
 
         $task = $service->create($user, $taskList, '  Buy milk  ');
 
@@ -53,6 +69,7 @@ class TaskServiceTest extends TestCase
         $service = new TaskService(
             Mockery::mock(TaskRepositoryInterface::class),
             Mockery::mock(TaskListRepositoryInterface::class),
+            Mockery::mock(TaskListMemberRepositoryInterface::class),
         );
 
         $this->expectException(InvalidTaskTitleException::class);
@@ -65,6 +82,7 @@ class TaskServiceTest extends TestCase
         $service = new TaskService(
             Mockery::mock(TaskRepositoryInterface::class),
             Mockery::mock(TaskListRepositoryInterface::class),
+            Mockery::mock(TaskListMemberRepositoryInterface::class),
         );
 
         $this->expectException(InvalidTaskTitleException::class);
@@ -80,30 +98,16 @@ class TaskServiceTest extends TestCase
         $taskLists = Mockery::mock(TaskListRepositoryInterface::class);
         $taskLists->shouldReceive('findOwnedBy')->once()->with(99, $user)->andReturnNull();
 
-        $service = new TaskService(Mockery::mock(TaskRepositoryInterface::class), $taskLists);
+        // The guard's countAcceptedFor() checks are never reached — target
+        // resolution fails first — so this mock has no expectations set.
+        $service = new TaskService(
+            Mockery::mock(TaskRepositoryInterface::class),
+            $taskLists,
+            Mockery::mock(TaskListMemberRepositoryInterface::class),
+        );
 
         $this->expectException(TaskListNotFoundException::class);
 
         $service->move($task, $user, 99, null);
-    }
-
-    public function test_move_delegates_to_the_repository_when_the_target_list_is_found(): void
-    {
-        $user = new User;
-        $task = new Task;
-        $targetList = new TaskList;
-        $movedTask = new Task(['task_list_id' => 5]);
-
-        $taskLists = Mockery::mock(TaskListRepositoryInterface::class);
-        $taskLists->shouldReceive('findOwnedBy')->once()->with(5, $user)->andReturn($targetList);
-
-        $tasks = Mockery::mock(TaskRepositoryInterface::class);
-        $tasks->shouldReceive('moveToList')->once()->with($task, $targetList, null)->andReturn($movedTask);
-
-        $service = new TaskService($tasks, $taskLists);
-
-        $result = $service->move($task, $user, 5, null);
-
-        $this->assertSame($movedTask, $result);
     }
 }

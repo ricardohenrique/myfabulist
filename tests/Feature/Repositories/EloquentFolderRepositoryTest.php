@@ -8,6 +8,7 @@ use App\Exceptions\FolderReorderMismatchException;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -111,6 +112,107 @@ class EloquentFolderRepositoryTest extends TestCase
             'task_list_id' => $list->id,
             'user_id' => $user->id,
             'folder_id' => null,
+        ]);
+    }
+
+    /**
+     * F11 (Plan 1, Step 6): `deleteWithLists()` must only ever force-delete
+     * lists the folder's owner actually owns. A shared list they merely
+     * hold an accepted membership on, filed into the same folder, is left
+     * completely untouched — only their own membership placement is
+     * ungrouped, exactly like `detachLists()`.
+     */
+    public function test_delete_with_lists_never_destroys_a_list_the_actor_does_not_own(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+        $task = Task::factory()->forTaskList($sharedList)->create();
+        $memberFolder = Folder::factory()->for($member)->create();
+        TaskListMember::factory()->forTaskList($sharedList, $member)->create(['folder_id' => $memberFolder->id]);
+
+        $this->repository->deleteWithLists($memberFolder);
+
+        $this->assertDatabaseMissing('folders', ['id' => $memberFolder->id]);
+        $this->assertDatabaseHas('task_lists', ['id' => $sharedList->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $sharedList->id,
+            'user_id' => $member->id,
+            'status' => 'accepted',
+            'folder_id' => null,
+        ]);
+    }
+
+    /**
+     * The mixed case: a folder holding both a list the actor owns and a
+     * shared list they do not. The owned one is destroyed exactly as
+     * before; the shared one is left alone and only ungrouped for the actor.
+     */
+    public function test_delete_with_lists_force_deletes_only_the_owned_list_alongside_a_shared_one(): void
+    {
+        $actor = User::factory()->create();
+        $otherOwner = User::factory()->create();
+        $folder = Folder::factory()->for($actor)->create();
+        $ownedList = TaskList::factory()->inFolder($folder)->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $otherOwner->id]);
+        TaskListMember::factory()->forTaskList($sharedList, $actor)->create(['folder_id' => $folder->id]);
+
+        $this->repository->deleteWithLists($folder);
+
+        $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
+        $this->assertDatabaseMissing('task_lists', ['id' => $ownedList->id]);
+        $this->assertDatabaseHas('task_lists', ['id' => $sharedList->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $sharedList->id,
+            'user_id' => $actor->id,
+            'status' => 'accepted',
+            'folder_id' => null,
+        ]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $sharedList->id,
+            'user_id' => $otherOwner->id,
+            'status' => 'accepted',
+        ]);
+    }
+
+    /**
+     * `detachLists()` under the same shared-list-in-folder setup: an owned
+     * list and a shared-but-not-owned list both get ungrouped, neither is
+     * destroyed, and no other member's data is touched. Confirms
+     * `detachLists()` needed no code change under sharing — it already
+     * only ever nulls the actor's own membership `folder_id`, regardless of
+     * who owns the list.
+     */
+    public function test_detach_lists_ungroups_an_owned_and_a_shared_but_not_owned_list_without_destroying_either(): void
+    {
+        $actor = User::factory()->create();
+        $otherOwner = User::factory()->create();
+        $folder = Folder::factory()->for($actor)->create();
+        $ownedList = TaskList::factory()->inFolder($folder)->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $otherOwner->id]);
+        TaskListMember::factory()->forTaskList($sharedList, $actor)->create(['folder_id' => $folder->id]);
+
+        $this->repository->detachLists($folder);
+
+        $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
+        $this->assertDatabaseHas('task_lists', ['id' => $ownedList->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('task_lists', ['id' => $sharedList->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $ownedList->id,
+            'user_id' => $actor->id,
+            'folder_id' => null,
+        ]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $sharedList->id,
+            'user_id' => $actor->id,
+            'folder_id' => null,
+        ]);
+        // The other owner's own membership row is untouched.
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $sharedList->id,
+            'user_id' => $otherOwner->id,
+            'status' => 'accepted',
         ]);
     }
 
