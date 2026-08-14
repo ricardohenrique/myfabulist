@@ -324,10 +324,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
         }
     };
 
-    const openCreate = (kind: 'folder' | 'list') => {
+    const openCreate = (kind: 'folder' | 'list', folderId?: number) => {
         setEntityDialog({ kind, mode: 'create' });
         setEntityName('');
-        setEntityFolderId(null);
+        setEntityFolderId(kind === 'list' ? (folderId ?? null) : null);
         setEntityError('');
     };
 

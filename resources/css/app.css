@@ -903,6 +903,17 @@ button:disabled {
     box-shadow: var(--shadow-md);
 }
 
+.navigation-menu--overlay {
+    position: fixed;
+    top: 0;
+    right: auto;
+    visibility: hidden;
+}
+
+.navigation-menu--overlay[style] {
+    visibility: visible;
+}
+
 .navigation-menu button {
     width: 100%;
     display: block;
