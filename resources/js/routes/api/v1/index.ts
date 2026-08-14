@@ -3,8 +3,9 @@ import folders from './folders'
 import lists from './lists'
 import tasks from './tasks'
 import subtasks from './subtasks'
+import invitations from './invitations'
 /**
-* @see routes/api.php:41
+* @see routes/api.php:44
 * @route '/api/v1/user'
 */
 export const user = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -18,7 +19,7 @@ user.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/api.php:41
+* @see routes/api.php:44
 * @route '/api/v1/user'
 */
 user.url = (options?: RouteQueryOptions) => {
@@ -26,7 +27,7 @@ user.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/api.php:41
+* @see routes/api.php:44
 * @route '/api/v1/user'
 */
 user.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +36,7 @@ user.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/api.php:41
+* @see routes/api.php:44
 * @route '/api/v1/user'
 */
 user.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -139,6 +140,7 @@ const v1 = {
     tasks: Object.assign(tasks, tasks),
     subtasks: Object.assign(subtasks, subtasks),
     starred: Object.assign(starred, starred),
+    invitations: Object.assign(invitations, invitations),
 }
 
 export default v1

@@ -13,12 +13,50 @@ export type NavigationList = {
     folderId: number | null;
     isDefault: boolean;
     activeTaskCount: number;
+    isShared: boolean;
+    isOwner: boolean;
 };
 
 export type NavigationFolder = {
     id: number;
     name: string;
     lists: NavigationList[];
+};
+
+export type ListMemberSummary = {
+    id: number;
+    userId: number;
+    name: string;
+    avatarUrl: string | null;
+    email: string | null;
+    isOwner: boolean;
+};
+
+// Distinct from `PendingInvitationSummary` below, which is shaped for the
+// invitee's own notification-center view ("what have I been invited to").
+// This is the owner-facing shape used by the share dialog's roster
+// ("who have I invited to this list").
+export type PendingListInvitationSummary = {
+    id: number;
+    userId: number;
+    name: string;
+    avatarUrl: string | null;
+    email: string | null;
+    invitedAt: string | null;
+};
+
+export type CurrentListDetails = NavigationList & {
+    members: ListMemberSummary[];
+    pendingInvitations: PendingListInvitationSummary[];
+    isOwner: boolean;
+    canManageSharing: boolean;
+};
+
+export type PendingInvitationSummary = {
+    id: number;
+    list: { id: number; name: string };
+    invitedBy: { id: number; name: string; avatarUrl: string | null } | null;
+    invitedAt: string | null;
 };
 
 export type DueDateStatus = 'overdue' | 'today' | 'upcoming' | null;
@@ -63,7 +101,7 @@ export type WorkspaceData = {
     starredCount: number;
     folders: NavigationFolder[];
     ungroupedLists: NavigationList[];
-    currentList: NavigationList | null;
+    currentList: CurrentListDetails | null;
     heading: string;
     eyebrow: string;
     canAddTask: boolean;
@@ -81,6 +119,14 @@ export type SharedPageProps = {
         error: string | null;
     };
     errors: Record<string, string>;
+    notifications: {
+        pendingInvitationCount: number;
+        // Absent unless explicitly requested via Inertia::optional() — a
+        // partial reload naming 'notifications' (the parent prop key, not
+        // the leaf 'notifications.invitations' path) — see
+        // `app-shell.tsx`'s `openNotifications` (Step 9).
+        invitations?: PendingInvitationSummary[];
+    };
 };
 
 export type IconName =

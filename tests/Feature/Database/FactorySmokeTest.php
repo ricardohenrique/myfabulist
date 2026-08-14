@@ -38,8 +38,12 @@ class FactorySmokeTest extends TestCase
 
         $this->assertDatabaseHas('task_lists', [
             'id' => $list->id,
-            'folder_id' => $folder->id,
             'user_id' => $folder->user_id,
+        ]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $folder->user_id,
+            'folder_id' => $folder->id,
         ]);
     }
 
@@ -51,8 +55,57 @@ class FactorySmokeTest extends TestCase
             'id' => $list->id,
             'name' => 'Inbox',
             'is_default' => true,
+        ]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
             'folder_id' => null,
         ]);
+    }
+
+    public function test_task_list_factory_in_folder_state_accepts_an_explicit_position(): void
+    {
+        $folder = Folder::factory()->create();
+        $list = TaskList::factory()->inFolder($folder, 3)->create();
+
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'folder_id' => $folder->id,
+            'position' => 3,
+        ]);
+    }
+
+    public function test_task_list_factory_at_position_state(): void
+    {
+        $list = TaskList::factory()->atPosition(2)->create();
+
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'folder_id' => null,
+            'position' => 2,
+        ]);
+    }
+
+    /**
+     * Regression: inFolder()'s implicit default position (0, when no
+     * explicit position is passed) must never clobber an explicitly-set
+     * atPosition() value, regardless of which is chained first.
+     */
+    public function test_in_folder_and_at_position_compose_regardless_of_chain_order(): void
+    {
+        $folder = Folder::factory()->create();
+
+        $atPositionThenFolder = TaskList::factory()->atPosition(5)->inFolder($folder)->create();
+        $folderThenAtPosition = TaskList::factory()->inFolder($folder)->atPosition(5)->create();
+
+        foreach ([$atPositionThenFolder, $folderThenAtPosition] as $list) {
+            $this->assertSame($folder->id, $list->folder_id);
+            $this->assertSame(5, $list->position);
+            $this->assertDatabaseHas('task_list_members', [
+                'task_list_id' => $list->id,
+                'folder_id' => $folder->id,
+                'position' => 5,
+            ]);
+        }
     }
 
     public function test_task_factory_produces_a_valid_persisted_row(): void
@@ -121,7 +174,16 @@ class FactorySmokeTest extends TestCase
     {
         $task = Task::factory()->starred()->create();
 
-        $this->assertTrue($task->is_starred);
+        $this->assertDatabaseHas('task_stars', ['task_id' => $task->id, 'user_id' => $task->user_id]);
+    }
+
+    public function test_task_factory_starred_state_accepts_an_explicit_user(): void
+    {
+        $starringUser = User::factory()->create();
+        $task = Task::factory()->starred($starringUser)->create();
+
+        $this->assertDatabaseHas('task_stars', ['task_id' => $task->id, 'user_id' => $starringUser->id]);
+        $this->assertDatabaseMissing('task_stars', ['task_id' => $task->id, 'user_id' => $task->user_id]);
     }
 
     public function test_task_factory_with_note_state(): void

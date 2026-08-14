@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -92,7 +94,8 @@ class TaskTest extends TestCase
     public function test_complete_sets_is_completed_and_completed_at_and_is_idempotent(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create(['user_id' => $user->id]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
 
         $response = $this->actingAs($user)->postJson("/api/v1/tasks/{$task->id}/complete");
         $response->assertOk();
@@ -108,7 +111,8 @@ class TaskTest extends TestCase
     public function test_restore_clears_is_completed_and_completed_at(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->completed()->create(['user_id' => $user->id]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->completed()->create();
 
         $response = $this->actingAs($user)->postJson("/api/v1/tasks/{$task->id}/restore");
 
@@ -120,11 +124,10 @@ class TaskTest extends TestCase
     public function test_update_replaces_note_due_date_and_star_and_clears_them_when_null(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create([
-            'user_id' => $user->id,
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->starred($user)->create([
             'note' => 'Old note',
             'due_date' => now()->addDay()->toDateString(),
-            'is_starred' => true,
         ]);
 
         $response = $this->actingAs($user)->putJson("/api/v1/tasks/{$task->id}", [
@@ -135,17 +138,68 @@ class TaskTest extends TestCase
         ]);
 
         $response->assertOk();
+        $response->assertJsonPath('data.is_starred', false);
         $task->refresh();
         $this->assertSame('Updated title', $task->title);
         $this->assertNull($task->note);
         $this->assertNull($task->due_date);
-        $this->assertFalse($task->is_starred);
+        $this->assertDatabaseMissing('task_stars', ['task_id' => $task->id, 'user_id' => $user->id]);
+    }
+
+    /**
+     * The empirical proof that the `{task}` route-binding fix (Plan 1,
+     * Step 3) works end-to-end: a real HTTP round trip through
+     * `PUT /api/v1/tasks/{task}`, reading `is_starred` back out of the
+     * response body — not off a freshly re-queried model, which is exactly
+     * what would hide a broken binding.
+     */
+    public function test_update_toggles_only_the_callers_own_star(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+
+        $response = $this->actingAs($owner)->putJson("/api/v1/tasks/{$task->id}", [
+            'title' => $task->title,
+            'is_starred' => true,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.is_starred', true);
+        $this->assertDatabaseHas('task_stars', ['task_id' => $task->id, 'user_id' => $owner->id]);
+        $this->assertDatabaseMissing('task_stars', ['task_id' => $task->id, 'user_id' => $other->id]);
+    }
+
+    /**
+     * Regression (Plan 1, Step 3 review): `TaskController::show()`'s
+     * embedded `list` must carry the viewer's *real* placement —
+     * `Task::taskList(): BelongsTo` never chains
+     * `TaskList::scopeJoinMemberPlacement()` on its own, so before
+     * `EloquentTaskRepository::loadDetails()` resolved this explicitly,
+     * this endpoint silently emitted `folder_id`/`position: null` for a
+     * task genuinely filed in a folder — the same class of bug Step 2's
+     * review caught for `GET /api/v1/inbox`.
+     */
+    public function test_show_embeds_the_tasks_list_with_its_real_placement(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $list = TaskList::factory()->inFolder($folder, 2)->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
+
+        $response = $this->actingAs($user)->getJson("/api/v1/tasks/{$task->id}");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.list.folder_id', $folder->id);
+        $response->assertJsonPath('data.list.position', 2);
     }
 
     public function test_delete_removes_the_task_which_is_distinct_from_completing_it(): void
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create(['user_id' => $user->id]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $task = Task::factory()->forTaskList($list)->create();
 
         $response = $this->actingAs($user)->deleteJson("/api/v1/tasks/{$task->id}");
 
@@ -207,6 +261,56 @@ class TaskTest extends TestCase
 
         $response->assertStatus(422);
         $this->assertSame($sourceList->id, $task->fresh()->task_list_id);
+    }
+
+    /**
+     * Plan 1 ("Shared Lists and Collaboration"), Step 6/Q8: pins the new
+     * `task_cannot_cross_sharing_boundary` error code at the HTTP layer,
+     * matching how every other domain error on this surface
+     * (`task_reorder_mismatch` etc.) is asserted by `error_code`, not just by
+     * exception class in a Service-level test.
+     */
+    public function test_move_out_of_a_shared_list_is_rejected_with_a_stable_error_code(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($sharedList, $member)->create();
+        $ownerPrivateList = TaskList::factory()->create(['user_id' => $owner->id]);
+        $task = Task::factory()->forTaskList($sharedList)->create();
+
+        $response = $this->actingAs($owner)->postJson("/api/v1/tasks/{$task->id}/move", [
+            'task_list_id' => $ownerPrivateList->id,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('error_code', 'task_cannot_cross_sharing_boundary');
+        $this->assertSame($sharedList->id, $task->fresh()->task_list_id);
+    }
+
+    /**
+     * Regression: repositioning a task within its *current* list (target
+     * list id equal to the task's own) must stay a harmless no-op even for
+     * the owner of a shared list — TaskService::move()'s sharing-boundary
+     * guard must never fire on a same-list "move".
+     */
+    public function test_move_within_the_same_shared_list_still_succeeds_for_the_owner(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $sharedList = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($sharedList, $member)->create();
+        $task = Task::factory()->forTaskList($sharedList)->create(['position' => 0]);
+
+        $response = $this->actingAs($owner)->postJson("/api/v1/tasks/{$task->id}/move", [
+            'task_list_id' => $sharedList->id,
+            'position' => 3,
+        ]);
+
+        $response->assertOk();
+        $task->refresh();
+        $this->assertSame($sharedList->id, $task->task_list_id);
+        $this->assertSame(3, $task->position);
     }
 
     public function test_task_order_rewrites_positions(): void

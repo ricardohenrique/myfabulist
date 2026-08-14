@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\DefaultTaskListCannotBeDeletedException;
 use App\Exceptions\FolderNotFoundException;
+use App\Exceptions\NotListOwnerException;
 use App\Models\Folder;
 use App\Models\TaskList;
 use App\Models\User;
@@ -41,6 +42,17 @@ class TaskListService
     }
 
     /**
+     * Attach `accepted_members_count` onto a single, already-resolved list
+     * (Plan 1, Step 7) — the single-list counterpart to `allFor()`, used by
+     * `TaskListController::show()` so `TaskListResource`'s `is_shared`/
+     * `member_count` are available there too, not just on the index.
+     */
+    public function withMemberCount(TaskList $taskList): TaskList
+    {
+        return $this->taskLists->withAcceptedMemberCount($taskList);
+    }
+
+    /**
      * Create a list, in a folder or ungrouped (M2). The folder reference
      * arrives as an id and is resolved here, scoped to the owner (D3) —
      * a missing or foreign folder id throws regardless of which delivery
@@ -67,16 +79,33 @@ class TaskListService
             ? $taskList->position
             : $this->taskLists->nextPosition($user, $folder?->id);
 
-        return $this->taskLists->update($taskList, trim($name), $folder, $position);
+        return $this->taskLists->update($taskList, $user, trim($name), $folder, $position);
     }
 
     /**
      * Delete a list (M2). The default (Inbox) list can never be deleted (D5).
+     *
+     * `$user` is required and re-checked against ownership here as defence
+     * in depth (F10/F12, Plan 1, Step 6) — both web and API controllers
+     * already call `$this->authorize('delete', $list)` (owner-only,
+     * `TaskListPolicy::delete()`) immediately before reaching this method,
+     * but the Service must never trust that alone, matching
+     * `EloquentTaskListRepository::update()`'s own membership re-check and
+     * `ListSharingService::revoke()`'s own ownership re-check. A non-owner —
+     * even an accepted member — can never delete a shared list outright,
+     * only leave it (`ListSharingService::leave()`). The `is_default` check
+     * runs first, mirroring `TaskListPolicy::delete()`'s own check order: the
+     * Inbox can never be deleted regardless of who is asking, so that
+     * structural fact is the more fundamental failure to surface first.
      */
-    public function delete(TaskList $taskList): void
+    public function delete(TaskList $taskList, User $user): void
     {
         if ($taskList->is_default) {
             throw DefaultTaskListCannotBeDeletedException::for($taskList);
+        }
+
+        if ($user->id !== $taskList->user_id) {
+            throw NotListOwnerException::forDelete($taskList, $user);
         }
 
         $this->taskLists->delete($taskList);

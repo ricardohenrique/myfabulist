@@ -87,7 +87,11 @@ class SeedDemoDatabaseCommandTest extends TestCase
             $this->assertDatabaseHas('task_lists', [
                 'user_id' => $user->id,
                 'is_default' => true,
+            ]);
+            $this->assertDatabaseHas('task_list_members', [
+                'user_id' => $user->id,
                 'folder_id' => null,
+                'position' => 0,
             ]);
         });
     }

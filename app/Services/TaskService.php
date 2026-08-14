@@ -6,10 +6,12 @@ namespace App\Services;
 
 use App\Exceptions\InvalidTaskTitleException;
 use App\Exceptions\TaskCannotBeUndeletedException;
+use App\Exceptions\TaskCannotCrossSharingBoundaryException;
 use App\Exceptions\TaskListNotFoundException;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
+use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\Data\ListedTasks;
@@ -21,18 +23,21 @@ class TaskService
     public function __construct(
         private readonly TaskRepositoryInterface $tasks,
         private readonly TaskListRepositoryInterface $taskLists,
+        private readonly TaskListMemberRepositoryInterface $taskListMembers,
     ) {}
 
     /**
      * The M4/M6 read model for a list: active tasks before completed tasks,
-     * completed tasks most-recently-completed first, plus a completed count.
+     * completed tasks most-recently-completed first, plus a completed
+     * count. `$viewer` is whose star state is aliased onto each task as
+     * `is_starred` (Plan 1, Step 3).
      */
-    public function tasksFor(TaskList $taskList): ListedTasks
+    public function tasksFor(TaskList $taskList, User $viewer): ListedTasks
     {
-        $completed = $this->tasks->completedForList($taskList);
+        $completed = $this->tasks->completedForList($taskList, $viewer);
 
         return new ListedTasks(
-            active: $this->tasks->activeForList($taskList),
+            active: $this->tasks->activeForList($taskList, $viewer),
             completed: $completed,
             completedCount: $completed->count(),
         );
@@ -53,17 +58,24 @@ class TaskService
 
     /**
      * Replace a task's title/note/due date/star state in one call (D4).
+     * `$user` is the acting user, whose own `task_stars` row is what
+     * `$data->isStarred` toggles (Plan 1, Step 3) — this never touches
+     * another user's star.
      */
-    public function update(Task $task, TaskDetailsData $data): Task
+    public function update(Task $task, User $user, TaskDetailsData $data): Task
     {
         $title = $this->requireNonBlankTitle($data->title);
 
-        return $this->tasks->update($task, $title, $data->note, $data->dueDate, $data->isStarred);
+        return $this->tasks->update($task, $user, $title, $data->note, $data->dueDate, $data->isStarred);
     }
 
-    public function details(Task $task): Task
+    /**
+     * `$viewer` resolves the embedded `taskList`'s placement for the
+     * caller — see `TaskRepositoryInterface::loadDetails()`.
+     */
+    public function details(Task $task, User $viewer): Task
     {
-        return $this->tasks->loadDetails($task);
+        return $this->tasks->loadDetails($task, $viewer);
     }
 
     public function rename(Task $task, string $title): Task
@@ -91,22 +103,75 @@ class TaskService
         return $this->tasks->markActive($task);
     }
 
-    public function setStarred(Task $task, bool $isStarred): Task
+    /**
+     * Star or unstar a task on behalf of `$user` — always their own star,
+     * never another list member's (Plan 1, Step 3).
+     */
+    public function setStarred(Task $task, User $user, bool $isStarred): Task
     {
-        return $this->tasks->setStarred($task, $isStarred);
+        return $isStarred ? $this->tasks->star($task, $user) : $this->tasks->unstar($task, $user);
     }
 
     /**
      * Move a task to another of the user's lists (S6). The target list
-     * reference arrives as an id and is resolved here, scoped to the
-     * owner (D3) — a missing or foreign list id throws, preserving D7's
-     * "a task can only move between lists belonging to the same user"
-     * invariant regardless of caller.
+     * reference arrives as an id and is resolved here, scoped strictly to
+     * ownership via `findOwnedBy()` (D3) — a missing or foreign list id
+     * throws, preserving D7's "a task can only move between lists
+     * belonging to the same user" invariant regardless of caller.
+     *
+     * Deliberately *not* widened to membership (Plan 1, Step 4/Q8): a task
+     * can never move into a list the acting user merely has an accepted
+     * membership on, only one they own — `findOwnedBy()`, not
+     * `findAccessibleFor()`, is what keeps that boundary intact even after
+     * Step 5 ships real invitations.
+     *
+     * Ownership of the target (and source) list is not, by itself, enough:
+     * Step 6/Q8 disallows any move where *either side* is a shared list, for
+     * every actor including the owner — e.g. a non-owner member moving a
+     * task out of a shared list into a private list they own, or the owner
+     * of a shared list moving a task out of it into one of their own private
+     * lists. `findOwnedBy()` alone would let both of those through, since
+     * the mover owns the list on each side of the move; this guard is what
+     * actually closes the boundary. `loadMissing('taskList')`, not the bare
+     * accessor, because `$task` may reach here without it eager-loaded and
+     * this must stay safe under `Model::preventLazyLoading()` — mirrors
+     * `TaskPolicy::view()`/`ListSharingService::accept()`.
+     *
+     * A same-list "move" (repositioning within the task's current list) is
+     * short-circuited before either boundary check runs: it never actually
+     * crosses anything, so it must stay valid even for the owner of a
+     * shared list, exactly like `Actions\Tasks\UpdateTask::handle()`
+     * already treats an unchanged target list id as "not actually a move"
+     * and skips calling this method entirely. Without the short-circuit,
+     * both `countAcceptedFor()` checks below would fire on what is really a
+     * harmless no-op for a shared list's owner.
      */
     public function move(Task $task, User $user, int $targetListId, ?int $position): Task
     {
-        $targetList = $this->taskLists->findForUser($targetListId, $user)
+        $targetList = $this->taskLists->findOwnedBy($targetListId, $user)
             ?? throw TaskListNotFoundException::forId($targetListId);
+
+        if ($targetList->id === $task->task_list_id) {
+            return $this->tasks->moveToList($task, $targetList, $position);
+        }
+
+        // A task whose list has itself been soft-deleted between the
+        // policy check and this call resolves taskList to null — not
+        // reachable over HTTP today (TaskPolicy::update() already denies
+        // first), but this is a public Service method, so it must fail with
+        // a named exception rather than a raw TypeError from
+        // countAcceptedFor(null), mirroring undelete()'s equivalent guard
+        // below.
+        $sourceList = $task->loadMissing('taskList')->taskList
+            ?? throw TaskListNotFoundException::forId($task->task_list_id);
+
+        if ($this->taskListMembers->countAcceptedFor($sourceList) > 1) {
+            throw TaskCannotCrossSharingBoundaryException::becauseListIsShared($sourceList);
+        }
+
+        if ($this->taskListMembers->countAcceptedFor($targetList) > 1) {
+            throw TaskCannotCrossSharingBoundaryException::becauseListIsShared($targetList);
+        }
 
         return $this->tasks->moveToList($task, $targetList, $position);
     }
@@ -122,14 +187,17 @@ class TaskService
      * touches `is_completed`/`completed_at`.
      *
      * The acting user is required (D6) to resolve the task's parent list
-     * through the already user-scoped, trashed-blind
-     * `TaskListRepositoryInterface::findForUser()` — a task whose list is
-     * itself deleted cannot be un-deleted, or "Undo" would report success
-     * while hiding the task somewhere the user can no longer reach it.
+     * through the already access-scoped, trashed-blind
+     * `TaskListRepositoryInterface::findAccessibleFor()` — a task whose list
+     * is itself deleted cannot be un-deleted, or "Undo" would report success
+     * while hiding the task somewhere the user can no longer reach it. Any
+     * accepted member can undelete a task in a list they can access (Plan
+     * 1, Step 4), not just the list's owner — consistent with
+     * `TaskPolicy`'s fully-collaborative task-level delegation.
      */
     public function undelete(Task $task, User $user): Task
     {
-        $this->taskLists->findForUser($task->task_list_id, $user)
+        $this->taskLists->findAccessibleFor($task->task_list_id, $user)
             ?? throw TaskCannotBeUndeletedException::becauseItsListIsDeleted($task);
 
         return $this->tasks->undelete($task);

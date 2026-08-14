@@ -7,8 +7,10 @@ namespace Tests\Feature\Architecture;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use App\Repositories\Contracts\SubtaskRepositoryInterface;
 use App\Repositories\Contracts\TaskCommentRepositoryInterface;
+use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
 use Tests\TestCase;
@@ -59,6 +61,23 @@ class LayeringTest extends TestCase
         );
     }
 
+    /**
+     * Plan 1 ("Shared Lists and Collaboration"), Step 4 code-review
+     * follow-up: this step is what turned Policies into a layer that reaches
+     * for data — `TaskListPolicy` does it correctly, through
+     * `TaskListMemberRepositoryInterface`, not a raw query. Nothing
+     * previously stopped a future policy from inlining one instead (the same
+     * blind-spot class Step 2's review flagged for `app/Models`).
+     */
+    public function test_policies_never_build_eloquent_queries_directly(): void
+    {
+        $this->assertNoneContain(
+            app_path('Policies'),
+            ['DB::', '::query(', '->where('],
+            'must not build Eloquent queries directly — policies call repositories (D1).',
+        );
+    }
+
     public function test_every_eloquent_repository_implements_a_contract(): void
     {
         $contracts = [
@@ -67,6 +86,8 @@ class LayeringTest extends TestCase
             TaskCommentRepositoryInterface::class,
             TaskRepositoryInterface::class,
             SubtaskRepositoryInterface::class,
+            TaskListMemberRepositoryInterface::class,
+            UserRepositoryInterface::class,
         ];
 
         $repositoriesDirectory = app_path('Repositories');

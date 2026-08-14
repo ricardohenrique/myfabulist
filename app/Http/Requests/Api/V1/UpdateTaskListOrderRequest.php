@@ -29,12 +29,26 @@ class UpdateTaskListOrderRequest extends FormRequest
             'task_list_ids.*' => [
                 'required',
                 'integer',
-                // `exists` queries the table directly, bypassing TaskList's
-                // soft-delete global scope — whereNull keeps a trashed list
-                // id out of a valid reorder payload (R4/Plan 4).
-                Rule::exists('task_lists', 'id')
+                // Scoped to the acting user's accepted membership, not
+                // ownership (Plan 1, Step 4 code-review follow-up) —
+                // allForUser() (which now includes shared lists, not just
+                // owned ones) feeds the very tree this reorders, so an
+                // ownership-only rule would reject a shared list's id from
+                // every non-owner member's reorder payload while the
+                // repository's "complete id set" validation simultaneously
+                // rejects *omitting* it, making that container permanently
+                // unreorderable for anyone but the owner. A trashed list's
+                // membership row still exists (soft-deleting a list never
+                // touches task_list_members), so the trashed-list exclusion
+                // this rule used to provide directly (R4/Plan 4) is now
+                // enforced one layer down, by applyOrder()'s own
+                // whereHas('taskList', ...) — which already excludes a
+                // trashed list from the "current ids" set and rejects the
+                // payload as a mismatch (TaskListReorderMismatchException)
+                // instead, still surfacing as a 422.
+                Rule::exists('task_list_members', 'task_list_id')
                     ->where('user_id', $this->user()?->id)
-                    ->whereNull('deleted_at'),
+                    ->where('status', 'accepted'),
             ],
         ];
     }

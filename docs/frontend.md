@@ -293,3 +293,33 @@ order, disables further drops while saving, and reconciles from returned
 Inertia props. Active tasks are sortable; completed tasks remain ordered by
 completion time. Inbox and Starred are fixed navigation items rather than
 sortable user lists.
+
+## Sharing and notification components
+
+`resources/js/components/navigation/notification-center.tsx` implements the
+sidebar bell. It is a lightweight anchored popover (not `components/ui/dialog.tsx`)
+following the existing account-menu pattern in `sidebar.tsx`, since a short,
+low-stakes list of pending invitations does not need a full modal. Opening it
+triggers a partial Inertia reload (`router.reload({ only: ['notifications'] })`)
+that hydrates `notifications.invitations`, an `Inertia::optional()` prop that is
+otherwise absent from the page. Each row shows the inviter's name and avatar,
+the list name, a relative "invited X ago" label, and per-row Accept/Decline
+buttons with independent pending state. The panel traps and restores focus,
+closes on Escape or an outside click, and reports its pending count through an
+accessible label on the trigger button.
+
+`resources/js/components/lists/share-dialog.tsx` implements the list-level
+sharing UI, opened from the "Share" action in the workspace header (visible
+whenever the current list is a real, non-Inbox list). Unlike the notification
+center, this uses `components/ui/dialog.tsx` directly — managing a list's full
+member roster, pending invitations, and an invite form is a genuinely modal,
+higher-stakes interaction with more content than an anchored popover suits. It
+renders the accepted member list (avatar, name, an "Owner" label, and email
+visible only to the owner per F18) and the pending-invitations list in the same
+shape, each with its own relative "invited X ago" label. The list owner
+additionally sees Remove/Revoke actions on every non-owner row and an
+invite-by-email form; a non-owner accepted member sees the same rosters
+read-only. All mutations (`inviteMember`, `revokeMembership`, `leaveList`) are
+owned by `app-shell.tsx`, following the same `router.post`/`router.delete` plus
+local pending-state pattern as every other mutation on that layout — the
+dialog itself is presentational.

@@ -34,8 +34,8 @@ class NavigationServiceTest extends TestCase
         TaskList::factory()->inbox()->create(['user_id' => $user->id]);
         $second = Folder::factory()->for($user)->create(['position' => 1]);
         $first = Folder::factory()->for($user)->create(['position' => 0]);
-        $secondList = TaskList::factory()->inFolder($first)->create(['position' => 1]);
-        $firstList = TaskList::factory()->inFolder($first)->create(['position' => 0]);
+        $secondList = TaskList::factory()->inFolder($first, 1)->create();
+        $firstList = TaskList::factory()->inFolder($first, 0)->create();
 
         $tree = app(NavigationService::class)->treeFor($user);
 

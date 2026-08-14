@@ -2,6 +2,7 @@ import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/rea
 import { isSortable } from '@dnd-kit/react/sortable';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { ShareDialog } from '@/components/lists/share-dialog';
 import { Sidebar } from '@/components/navigation/sidebar';
 import { TaskDetails } from '@/components/tasks/task-details';
 import { TaskRow } from '@/components/tasks/task-row';
@@ -10,7 +11,10 @@ import { Dialog } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
 import * as folderRoutes from '@/routes/folders';
+import * as invitationRoutes from '@/routes/invitations';
 import * as listRoutes from '@/routes/lists';
+import * as listMemberRoutes from '@/routes/lists/members';
+import * as listMembershipRoutes from '@/routes/lists/membership';
 import { store as storeTask } from '@/routes/lists/tasks';
 import * as taskRoutes from '@/routes/tasks';
 import { store as storeTaskComment } from '@/routes/tasks/comments';
@@ -19,6 +23,7 @@ import * as subtaskRoutes from '@/routes/subtasks';
 import type {
     NavigationFolder,
     NavigationList,
+    PendingInvitationSummary,
     SharedPageProps,
     SubtaskSummary,
     TaskSummary,
@@ -72,6 +77,16 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [entityProcessing, setEntityProcessing] = useState(false);
     const [notice, setNotice] = useState('');
     const [undo, setUndo] = useState<UndoState | null>(null);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [respondingInvitationIds, setRespondingInvitationIds] = useState<number[]>([]);
+    const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const [shareInviteError, setShareInviteError] = useState('');
+    const [shareInviteProcessing, setShareInviteProcessing] = useState(false);
+    const [revokingMemberIds, setRevokingMemberIds] = useState<number[]>([]);
+    // Always starts `undefined` — `notifications.invitations` is `Inertia::optional()`
+    // and is never present on the initial page load, only after the partial
+    // reload `openNotifications` triggers below.
+    const [invitations, setInvitations] = useState<PendingInvitationSummary[] | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
     const quickAdd = useForm({ title: '' });
 
@@ -103,6 +118,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
             setNotice(page.props.errors.domain);
         }
     }, [page.props.errors, page.props.flash]);
+
+    // `notifications.invitations` is `Inertia::optional()` on the server, so
+    // it is only present on the response that follows a partial reload
+    // naming `notifications` (see `openNotifications` below). Every other
+    // visit — including the plain `back()` redirect after accept/decline —
+    // omits the key entirely, so this only re-seeds local state when a fresh
+    // list actually arrives; it never resets `invitations` back to
+    // `undefined` on an unrelated navigation.
+    useEffect(() => {
+        if (page.props.notifications.invitations !== undefined) {
+            setInvitations(page.props.notifications.invitations);
+        }
+    }, [page.props.notifications.invitations]);
 
     const setTaskPending = (taskId: number, pending: boolean) => {
         setPendingTaskIds((current) => pending
@@ -393,6 +421,123 @@ export function AppShell({ workspace, user }: AppShellProps) {
         });
     };
 
+    const setInvitationResponding = (invitationId: number, responding: boolean) => {
+        setRespondingInvitationIds((current) => responding
+            ? [...new Set([...current, invitationId])]
+            : current.filter((id) => id !== invitationId));
+    };
+
+    const openNotifications = () => {
+        setNotificationsOpen(true);
+
+        // Nothing pending — skip the round trip and the "Loading…" flash for
+        // what's the overwhelmingly common case.
+        if (page.props.notifications.pendingInvitationCount === 0) {
+            setInvitations([]);
+            return;
+        }
+
+        router.reload({
+            only: ['notifications'],
+            onError: () => setNotice('Notifications could not be loaded.'),
+            // If the reload never resolves into a fresh `invitations` array
+            // (a network error, not a validation error `onError` already
+            // handles), fall back to the empty state instead of leaving the
+            // panel stuck on "Loading…" forever. A no-op once the prop-sync
+            // effect above has already populated a real list.
+            onFinish: () => setInvitations((current) => current ?? []),
+        });
+    };
+
+    const closeNotifications = () => {
+        setNotificationsOpen(false);
+        // Every open should be a genuinely fresh load — otherwise a stale
+        // row (e.g. one the owner already revoked) could sit in the panel
+        // and surface as a raw Inertia error on Accept/Decline instead of
+        // the normal notice/flash path.
+        setInvitations(undefined);
+    };
+
+    const toggleNotifications = () => {
+        if (notificationsOpen) {
+            closeNotifications();
+        } else {
+            openNotifications();
+        }
+    };
+
+    const respondToInvitation = (invitationId: number, accepting: boolean) => {
+        setInvitationResponding(invitationId, true);
+        const route = accepting ? invitationRoutes.accept(invitationId) : invitationRoutes.decline(invitationId);
+
+        router.post(route, {}, {
+            preserveScroll: true,
+            onSuccess: () => setInvitations((current) => current?.filter((invitation) => invitation.id !== invitationId)),
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'That invitation could not be updated.'),
+            onFinish: () => setInvitationResponding(invitationId, false),
+        });
+    };
+
+    const acceptInvitation = (invitationId: number) => respondToInvitation(invitationId, true);
+
+    const declineInvitation = (invitationId: number) => respondToInvitation(invitationId, false);
+
+    const openShareDialog = () => {
+        setShareInviteError('');
+        setShareDialogOpen(true);
+    };
+
+    const closeShareDialog = () => {
+        setShareDialogOpen(false);
+        setShareInviteError('');
+    };
+
+    const inviteMember = (email: string) => {
+        if (!workspace.currentList) return;
+
+        setShareInviteProcessing(true);
+        setShareInviteError('');
+        router.post(listMemberRoutes.store(workspace.currentList.id), { email }, {
+            preserveScroll: true,
+            onError: (errors) => setShareInviteError(errors.email ?? errors.domain ?? 'That invitation could not be sent.'),
+            onFinish: () => setShareInviteProcessing(false),
+        });
+    };
+
+    const setMemberRevoking = (userId: number, revoking: boolean) => {
+        setRevokingMemberIds((current) => revoking
+            ? [...new Set([...current, userId])]
+            : current.filter((id) => id !== userId));
+    };
+
+    // The same underlying route (DELETE lists/{list}/members/{user}) revokes
+    // both an accepted member and a still-pending invitation — the backend
+    // doesn't distinguish, so this one handler serves both
+    // ShareDialog callbacks (`onRevokeMember`/`onRevokeInvitation`).
+    const revokeMembership = (userId: number) => {
+        if (!workspace.currentList) return;
+
+        setMemberRevoking(userId, true);
+        router.delete(listMemberRoutes.destroy([workspace.currentList.id, userId]), {
+            preserveScroll: true,
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'That member could not be removed.'),
+            onFinish: () => setMemberRevoking(userId, false),
+        });
+    };
+
+    // TaskListMembershipController::destroy() (web) redirects to the inbox
+    // route on success, and Inertia's router.delete() follows that redirect
+    // as part of the same visit — no extra client-side navigation is needed
+    // here on top of it.
+    const leaveList = (list: NavigationList) => {
+        // No preserveScroll — a successful leave redirects to a different
+        // page entirely (the inbox), so there is no scroll position on this
+        // page worth preserving into it.
+        router.delete(listMembershipRoutes.destroy(list.id), {
+            onError: (errors) => setNotice(Object.values(errors)[0] ?? 'You could not leave this list.'),
+        });
+    };
+
     return (
         <div className="app-frame">
             <Head title={`${workspace.heading} · My Fabulist`} />
@@ -401,16 +546,25 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 currentListId={workspace.currentList?.id ?? null}
                 folders={workspace.folders}
                 inbox={workspace.inbox}
+                invitations={invitations}
                 mobileOpen={mobileNavOpen}
+                notificationsOpen={notificationsOpen}
+                onAcceptInvitation={acceptInvitation}
                 onCloseMobile={() => setMobileNavOpen(false)}
+                onCloseNotifications={closeNotifications}
+                onDeclineInvitation={declineInvitation}
                 onDeleteFolder={(folder) => { setEntityError(''); setDeleteDialog({ kind: 'folder', item: folder }); }}
                 onDeleteList={(list) => { setEntityError(''); setDeleteDialog({ kind: 'list', item: list }); }}
                 onEditFolder={openEditFolder}
                 onEditList={openEditList}
+                onLeaveList={leaveList}
                 onOpenCreate={openCreate}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
+                onToggleNotifications={toggleNotifications}
+                pendingInvitationCount={page.props.notifications.pendingInvitationCount}
                 reorderPending={reorderPending}
+                respondingInvitationIds={respondingInvitationIds}
                 starredCount={workspace.starredCount}
                 ungroupedLists={workspace.ungroupedLists}
                 user={user}
@@ -427,7 +581,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     </div>
                     <div className="workspace-actions">
                         <button aria-label="Search is not available yet" disabled type="button"><Icon name="search" size={19} /><span>Search</span></button>
-                        <button aria-label="More list options are available in the sidebar" disabled type="button"><Icon name="more" size={19} /><span>More</span></button>
+                        {workspace.currentList && !workspace.currentList.isDefault ? (
+                            <button aria-label={`Share “${workspace.currentList.name}”`} onClick={openShareDialog} type="button">
+                                <Icon name="user" size={19} /><span>Share</span>
+                            </button>
+                        ) : (
+                            <button aria-label="More list options are available in the sidebar" disabled type="button"><Icon name="more" size={19} /><span>More</span></button>
+                        )}
                     </div>
                 </header>
 
@@ -591,6 +751,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     <Button disabled={entityProcessing} onClick={confirmDelete} variant="danger">{entityProcessing ? 'Deleting…' : 'Delete'}</Button>
                 </div>
             </Dialog>
+
+            <ShareDialog
+                inviteError={shareInviteError}
+                inviteProcessing={shareInviteProcessing}
+                list={workspace.currentList}
+                onClose={closeShareDialog}
+                onInvite={inviteMember}
+                onRevokeInvitation={revokeMembership}
+                onRevokeMember={revokeMembership}
+                open={shareDialogOpen}
+                revokingIds={revokingMemberIds}
+                viewerId={user.id}
+            />
 
         </div>
     );

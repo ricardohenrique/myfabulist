@@ -21,7 +21,7 @@ class InboxController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $inbox = $this->taskListService->inboxFor($request->user());
-        $tasks = $this->taskService->tasksFor($inbox);
+        $tasks = $this->taskService->tasksFor($inbox, $request->user());
 
         return response()->json([
             'data' => TaskListResource::withTasks($inbox, $tasks),

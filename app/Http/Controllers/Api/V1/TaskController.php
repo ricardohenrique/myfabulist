@@ -10,6 +10,7 @@ use App\Http\Resources\Api\V1\TaskResource;
 use App\Models\Task;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class TaskController extends Controller
@@ -18,18 +19,18 @@ class TaskController extends Controller
         private readonly TaskService $tasks,
     ) {}
 
-    public function show(Task $task): JsonResponse
+    public function show(Request $request, Task $task): JsonResponse
     {
         $this->authorize('view', $task);
 
-        return TaskResource::make($this->tasks->details($task))->response();
+        return TaskResource::make($this->tasks->details($task, $request->user()))->response();
     }
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse
     {
-        $task = $this->tasks->update($task, $request->toData());
+        $task = $this->tasks->update($task, $request->user(), $request->toData());
 
-        return TaskResource::make($this->tasks->details($task))->response();
+        return TaskResource::make($this->tasks->details($task, $request->user()))->response();
     }
 
     public function destroy(Task $task): Response

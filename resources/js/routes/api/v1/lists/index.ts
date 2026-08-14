@@ -1,5 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../wayfinder'
 import tasks from './tasks'
+import members from './members'
+import membership from './membership'
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListOrderController::__invoke
 * @see app/Http/Controllers/Api/V1/TaskListOrderController.php:18
@@ -182,7 +184,7 @@ show.head = (args: { list: number | { id: number } } | [list: number | { id: num
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListController::update
-* @see app/Http/Controllers/Api/V1/TaskListController.php:52
+* @see app/Http/Controllers/Api/V1/TaskListController.php:54
 * @route '/api/v1/lists/{list}'
 */
 export const update = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -197,7 +199,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListController::update
-* @see app/Http/Controllers/Api/V1/TaskListController.php:52
+* @see app/Http/Controllers/Api/V1/TaskListController.php:54
 * @route '/api/v1/lists/{list}'
 */
 update.url = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -230,7 +232,7 @@ update.url = (args: { list: number | { id: number } } | [list: number | { id: nu
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListController::update
-* @see app/Http/Controllers/Api/V1/TaskListController.php:52
+* @see app/Http/Controllers/Api/V1/TaskListController.php:54
 * @route '/api/v1/lists/{list}'
 */
 update.put = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -240,7 +242,7 @@ update.put = (args: { list: number | { id: number } } | [list: number | { id: nu
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListController::update
-* @see app/Http/Controllers/Api/V1/TaskListController.php:52
+* @see app/Http/Controllers/Api/V1/TaskListController.php:54
 * @route '/api/v1/lists/{list}'
 */
 update.patch = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -250,7 +252,7 @@ update.patch = (args: { list: number | { id: number } } | [list: number | { id: 
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListController::destroy
-* @see app/Http/Controllers/Api/V1/TaskListController.php:64
+* @see app/Http/Controllers/Api/V1/TaskListController.php:66
 * @route '/api/v1/lists/{list}'
 */
 export const destroy = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -265,7 +267,7 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListController::destroy
-* @see app/Http/Controllers/Api/V1/TaskListController.php:64
+* @see app/Http/Controllers/Api/V1/TaskListController.php:66
 * @route '/api/v1/lists/{list}'
 */
 destroy.url = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -298,7 +300,7 @@ destroy.url = (args: { list: number | { id: number } } | [list: number | { id: n
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskListController::destroy
-* @see app/Http/Controllers/Api/V1/TaskListController.php:64
+* @see app/Http/Controllers/Api/V1/TaskListController.php:66
 * @route '/api/v1/lists/{list}'
 */
 destroy.delete = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -373,6 +375,8 @@ const lists = {
     destroy: Object.assign(destroy, destroy),
     tasks: Object.assign(tasks, tasks),
     taskOrder: Object.assign(taskOrder, taskOrder),
+    members: Object.assign(members, members),
+    membership: Object.assign(membership, membership),
 }
 
 export default lists

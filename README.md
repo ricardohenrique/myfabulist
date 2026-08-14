@@ -116,12 +116,15 @@ Guests can register and sign in. Authenticated users can:
 - create, rename, move, reorder, and delete folders/lists within their rules;
 - quickly add, edit, complete/restore, star, move, reorder, and delete tasks;
 - edit task title, note, due date, starred state, and destination list;
-- add plain-text comments with author attribution from task details; and
+- add plain-text comments with author attribution from task details;
+- share a list by inviting a registered user's email, and accept, decline,
+  revoke, or leave a share, with a notification center for pending
+  invitations and a share dialog for managing a list's members; and
 - undo the latest completion, star change, or task move.
 
 Email verification, password reset, 2FA, passkeys, account settings, search,
-reminders, sharing, and NativePHP screens are intentionally outside the current
-web release.
+reminders, and NativePHP screens are intentionally outside the current web
+release.
 
 Production pages are rendered by Inertia from `resources/js/pages`; the shared
 shell lives in `resources/js/layouts/app-shell.tsx`.

@@ -218,6 +218,13 @@ Add tasks.
 Edit tasks.
 Complete tasks.
 Wunderlist’s list sharing was an important feature for households and small teams.
+Implemented: list sharing shipped as invite-by-email of a registered user,
+with accept, decline, revoke, and leave. An accepted member sees and edits
+the same canonical tasks, subtasks, and comments as the owner — one row, one
+set of child records, identical for everyone. Only a list's placement
+(folder and sidebar position) and starring stay per-member, and there is no
+live sync; see development/scope.md for the full boundary. Task assignment
+(C6, below) did not ship with it.
 
 C6. Task assignment
 In shared lists, assign a task to one collaborator.

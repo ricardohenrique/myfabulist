@@ -46,7 +46,9 @@ class TaskListController extends Controller
     {
         $this->authorize('view', $list);
 
-        return TaskListResource::make($list->load('folder'))->response();
+        $list = $this->taskLists->withMemberCount($list->load('folder'));
+
+        return TaskListResource::make($list)->response();
     }
 
     public function update(UpdateTaskListRequest $request, TaskList $list): JsonResponse
@@ -61,11 +63,11 @@ class TaskListController extends Controller
         return TaskListResource::make($list)->response();
     }
 
-    public function destroy(TaskList $list): Response
+    public function destroy(Request $request, TaskList $list): Response
     {
         $this->authorize('delete', $list);
 
-        $this->taskLists->delete($list);
+        $this->taskLists->delete($list, $request->user());
 
         return response()->noContent();
     }

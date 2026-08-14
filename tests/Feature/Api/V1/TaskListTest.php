@@ -7,6 +7,7 @@ namespace Tests\Feature\Api\V1;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -74,7 +75,7 @@ class TaskListTest extends TestCase
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $list = TaskList::factory()->create(['user_id' => $user->id, 'folder_id' => null]);
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
         Task::factory()->forTaskList($list)->count(3)->create();
 
         $response = $this->actingAs($user)->putJson("/api/v1/lists/{$list->id}", [
@@ -163,8 +164,8 @@ class TaskListTest extends TestCase
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
-        $deleted = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $a = TaskList::factory()->inFolder($folder, 0)->create();
+        $deleted = TaskList::factory()->inFolder($folder, 1)->create();
         $deleted->delete();
 
         $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
@@ -173,15 +174,15 @@ class TaskListTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $this->assertSame(0, $a->fresh()->position);
+        $this->assertSame(0, $this->positionFor($a, $user));
     }
 
     public function test_put_lists_order_reorders_lists_within_a_folder(): void
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
-        $b = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $a = TaskList::factory()->inFolder($folder, 0)->create();
+        $b = TaskList::factory()->inFolder($folder, 1)->create();
 
         $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
             'folder_id' => $folder->id,
@@ -189,16 +190,16 @@ class TaskListTest extends TestCase
         ]);
 
         $response->assertNoContent();
-        $this->assertSame(0, $b->fresh()->position);
-        $this->assertSame(1, $a->fresh()->position);
+        $this->assertSame(0, $this->positionFor($b, $user));
+        $this->assertSame(1, $this->positionFor($a, $user));
     }
 
     public function test_put_lists_order_rejects_a_stale_incomplete_set(): void
     {
         $user = User::factory()->create();
         $folder = Folder::factory()->for($user)->create();
-        $a = TaskList::factory()->inFolder($folder)->create(['position' => 0]);
-        $b = TaskList::factory()->inFolder($folder)->create(['position' => 1]);
+        $a = TaskList::factory()->inFolder($folder, 0)->create();
+        $b = TaskList::factory()->inFolder($folder, 1)->create();
 
         $response = $this->actingAs($user)->putJson('/api/v1/lists/order', [
             'folder_id' => $folder->id,
@@ -207,7 +208,65 @@ class TaskListTest extends TestCase
 
         $response->assertUnprocessable()
             ->assertJsonPath('error_code', 'task_list_reorder_mismatch');
-        $this->assertSame(0, $a->fresh()->position);
-        $this->assertSame(1, $b->fresh()->position);
+        $this->assertSame(0, $this->positionFor($a, $user));
+        $this->assertSame(1, $this->positionFor($b, $user));
+    }
+
+    // -- is_owner / is_shared / member_count (Plan 1, Step 7) -----------------
+
+    public function test_an_unshared_list_reports_owner_only_on_the_index(): void
+    {
+        $owner = User::factory()->create();
+        TaskList::factory()->create(['user_id' => $owner->id]);
+
+        $response = $this->actingAs($owner)->getJson('/api/v1/lists');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.is_owner', true);
+        $response->assertJsonPath('data.0.is_shared', false);
+        $response->assertJsonPath('data.0.member_count', 1);
+    }
+
+    public function test_a_shared_list_reports_correctly_for_the_owner_and_a_member_on_the_index(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($list, $member)->create();
+
+        $ownerResponse = $this->actingAs($owner)->getJson('/api/v1/lists');
+        $ownerResponse->assertOk();
+        $ownerResponse->assertJsonPath('data.0.is_owner', true);
+        $ownerResponse->assertJsonPath('data.0.is_shared', true);
+        $ownerResponse->assertJsonPath('data.0.member_count', 2);
+
+        $memberResponse = $this->actingAs($member)->getJson('/api/v1/lists');
+        $memberResponse->assertOk();
+        $memberResponse->assertJsonPath('data.0.is_owner', false);
+        $memberResponse->assertJsonPath('data.0.is_shared', true);
+        $memberResponse->assertJsonPath('data.0.member_count', 2);
+    }
+
+    public function test_is_owner_is_shared_and_member_count_are_also_present_on_show(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $owner->id]);
+        TaskListMember::factory()->forTaskList($list, $member)->create();
+
+        $response = $this->actingAs($member)->getJson("/api/v1/lists/{$list->id}");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.is_owner', false);
+        $response->assertJsonPath('data.is_shared', true);
+        $response->assertJsonPath('data.member_count', 2);
+    }
+
+    private function positionFor(TaskList $list, User $user): int
+    {
+        return TaskListMember::query()
+            ->where('task_list_id', $list->id)
+            ->where('user_id', $user->id)
+            ->value('position');
     }
 }

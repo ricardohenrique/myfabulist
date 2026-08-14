@@ -3,7 +3,7 @@ import comments from './comments'
 import subtasks from './subtasks'
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::show
-* @see app/Http/Controllers/Api/V1/TaskController.php:21
+* @see app/Http/Controllers/Api/V1/TaskController.php:22
 * @route '/api/v1/tasks/{task}'
 */
 export const show = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -18,7 +18,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::show
-* @see app/Http/Controllers/Api/V1/TaskController.php:21
+* @see app/Http/Controllers/Api/V1/TaskController.php:22
 * @route '/api/v1/tasks/{task}'
 */
 show.url = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -51,7 +51,7 @@ show.url = (args: { task: number | { id: number } } | [task: number | { id: numb
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::show
-* @see app/Http/Controllers/Api/V1/TaskController.php:21
+* @see app/Http/Controllers/Api/V1/TaskController.php:22
 * @route '/api/v1/tasks/{task}'
 */
 show.get = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -61,7 +61,7 @@ show.get = (args: { task: number | { id: number } } | [task: number | { id: numb
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::show
-* @see app/Http/Controllers/Api/V1/TaskController.php:21
+* @see app/Http/Controllers/Api/V1/TaskController.php:22
 * @route '/api/v1/tasks/{task}'
 */
 show.head = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -71,7 +71,7 @@ show.head = (args: { task: number | { id: number } } | [task: number | { id: num
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::update
-* @see app/Http/Controllers/Api/V1/TaskController.php:28
+* @see app/Http/Controllers/Api/V1/TaskController.php:29
 * @route '/api/v1/tasks/{task}'
 */
 export const update = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -86,7 +86,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::update
-* @see app/Http/Controllers/Api/V1/TaskController.php:28
+* @see app/Http/Controllers/Api/V1/TaskController.php:29
 * @route '/api/v1/tasks/{task}'
 */
 update.url = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -119,7 +119,7 @@ update.url = (args: { task: number | { id: number } } | [task: number | { id: nu
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::update
-* @see app/Http/Controllers/Api/V1/TaskController.php:28
+* @see app/Http/Controllers/Api/V1/TaskController.php:29
 * @route '/api/v1/tasks/{task}'
 */
 update.put = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -129,7 +129,7 @@ update.put = (args: { task: number | { id: number } } | [task: number | { id: nu
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::destroy
-* @see app/Http/Controllers/Api/V1/TaskController.php:35
+* @see app/Http/Controllers/Api/V1/TaskController.php:36
 * @route '/api/v1/tasks/{task}'
 */
 export const destroy = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -144,7 +144,7 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::destroy
-* @see app/Http/Controllers/Api/V1/TaskController.php:35
+* @see app/Http/Controllers/Api/V1/TaskController.php:36
 * @route '/api/v1/tasks/{task}'
 */
 destroy.url = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -177,7 +177,7 @@ destroy.url = (args: { task: number | { id: number } } | [task: number | { id: n
 
 /**
 * @see \App\Http\Controllers\Api\V1\TaskController::destroy
-* @see app/Http/Controllers/Api/V1/TaskController.php:35
+* @see app/Http/Controllers/Api/V1/TaskController.php:36
 * @route '/api/v1/tasks/{task}'
 */
 destroy.delete = (args: { task: number | { id: number } } | [task: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
