@@ -27,6 +27,7 @@ export function TaskRow({
     pending = false,
 }: TaskRowProps) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const hasMetadata = Boolean(task.dueDateLabel || task.note || task.taskListName !== 'Inbox');
     const sortable = useSortable({
         id: `task-${task.id}`,
         index: sortableIndex,
@@ -54,15 +55,17 @@ export function TaskRow({
             </button>
             <button className="task-body" onClick={() => onSelect(task)} type="button">
                 <span className="task-title">{task.title}</span>
-                <span className="task-meta">
-                    {task.dueDateLabel && (
-                        <span className={`due-label due-label--${task.dueDateStatus ?? 'none'}`}>
-                            <Icon name="calendar" size={13} />{task.dueDateLabel}
-                        </span>
-                    )}
-                    {task.note && <span aria-label="Has a note" className="note-indicator"><Icon name="note" size={13} /></span>}
-                    {task.taskListName !== 'Inbox' && <span>{task.taskListName}</span>}
-                </span>
+                {hasMetadata && (
+                    <span className="task-meta">
+                        {task.dueDateLabel && (
+                            <span className={`due-label due-label--${task.dueDateStatus ?? 'none'}`}>
+                                <Icon name="calendar" size={13} />{task.dueDateLabel}
+                            </span>
+                        )}
+                        {task.note && <span aria-label="Has a note" className="note-indicator"><Icon name="note" size={13} /></span>}
+                        {task.taskListName !== 'Inbox' && <span>{task.taskListName}</span>}
+                    </span>
+                )}
             </button>
             <button
                 aria-label={task.isStarred ? `Unstar ${task.title}` : `Star ${task.title}`}

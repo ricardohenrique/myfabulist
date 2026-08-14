@@ -1152,6 +1152,10 @@ button:disabled {
     color: rgba(255,255,255,0.72);
 }
 
+.task-composer input:focus-visible {
+    box-shadow: none;
+}
+
 .task-composer button {
     min-height: 35px;
     display: flex;
