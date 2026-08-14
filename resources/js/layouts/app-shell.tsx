@@ -54,9 +54,7 @@ type AppShellProps = {
 
 export function AppShell({ workspace, user }: AppShellProps) {
     const page = usePage<SharedPageProps>();
-    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(() =>
-        window.matchMedia('(min-width: 981px)').matches ? (workspace.tasks[0]?.id ?? null) : null,
-    );
+    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
     const [completedOpen, setCompletedOpen] = useState(true);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [entityDialog, setEntityDialog] = useState<EntityDialog | null>(null);
@@ -571,6 +569,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onEditFolder={openEditFolder}
                 onEditList={openEditList}
                 onLeaveList={leaveList}
+                onNavigate={() => setSelectedTaskId(null)}
                 onOpenCreate={openCreate}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}

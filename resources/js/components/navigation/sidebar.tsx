@@ -27,6 +27,7 @@ type SidebarProps = {
     respondingInvitationIds: number[];
     notificationsOpen: boolean;
     onCloseMobile: () => void;
+    onNavigate: () => void;
     onOpenCreate: (kind: 'folder' | 'list', folderId?: number) => void;
     onEditFolder: (folder: NavigationFolder) => void;
     onDeleteFolder: (folder: NavigationFolder) => void;
@@ -389,6 +390,7 @@ export function Sidebar({
     respondingInvitationIds,
     notificationsOpen,
     onCloseMobile,
+    onNavigate,
     onOpenCreate,
     onEditFolder,
     onDeleteFolder,
@@ -431,6 +433,11 @@ export function Sidebar({
 
     const toggleMenu = (menuKey: string) => {
         setOpenMenu((current) => current === menuKey ? null : menuKey);
+    };
+
+    const navigate = () => {
+        onNavigate();
+        onCloseMobile();
     };
 
     const editFolder = (folder: NavigationFolder) => {
@@ -535,12 +542,12 @@ export function Sidebar({
 
                 <nav className="sidebar-nav">
                     <div className="smart-list-group">
-                        <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={inboxRoute()} onClick={onCloseMobile}>
+                        <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={inboxRoute()} onClick={navigate}>
                             <Icon className="nav-icon nav-icon--inbox" name="inbox" size={18} />
                             <span>Inbox</span>
                             <Count value={inbox.activeTaskCount} />
                         </Link>
-                        <Link className={`nav-row ${activeView === 'starred' ? 'is-active' : ''}`} href={starred()} onClick={onCloseMobile}>
+                        <Link className={`nav-row ${activeView === 'starred' ? 'is-active' : ''}`} href={starred()} onClick={navigate}>
                             <Icon className="nav-icon nav-icon--star" fill name="star" size={18} />
                             <span>Starred</span>
                             <Count value={starredCount} />
@@ -567,7 +574,7 @@ export function Sidebar({
                                     itemCount={orderedFolders.length}
                                     key={folder.id}
                                     onCloseMenu={() => setOpenMenu(null)}
-                                    onCloseMobile={onCloseMobile}
+                                    onCloseMobile={navigate}
                                     onCreateList={createListInFolder}
                                     onDeleteFolder={deleteFolder}
                                     onDeleteList={deleteList}
@@ -588,7 +595,7 @@ export function Sidebar({
                             currentListId={currentListId}
                             lists={orderedUngroupedLists}
                             onCloseMenu={() => setOpenMenu(null)}
-                            onCloseMobile={onCloseMobile}
+                            onCloseMobile={navigate}
                             onDelete={deleteList}
                             onEdit={editList}
                             onLeave={leaveList}
