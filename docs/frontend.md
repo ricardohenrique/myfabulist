@@ -164,15 +164,19 @@ editing its title saves on Enter or blur, and its row action deletes it.
 The task creation date appears directly above the footer actions. Recent dates
 use relative language, while older dates use a localized calendar date.
 The task-details footer uses an icon-only close action on the left, a slightly
-larger blue Save button in the center, and an icon-only delete action on the
+larger purple Save button in the center, and an icon-only delete action on the
 right.
-Task-detail form controls use a soft leaf-green focus ring and warm-neutral
-focused surface so keyboard focus stays visible without introducing a separate
-blue accent.
+Task-detail form controls use a soft purple focus ring and neutral-lilac focused
+surface so keyboard focus stays visible while matching the product identity.
 
 ## Visual style
 
 Use a friendly, lightweight visual style inspired by classic productivity applications.
+
+The primary identity color is light purple `#8B6FD6`. It is used for the logo,
+favicons, stars, selected navigation, focus treatments, progress feedback, and
+non-destructive primary actions. Red remains reserved for destructive actions,
+validation errors, and overdue states.
 
 The interface should feel:
 

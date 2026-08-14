@@ -202,9 +202,9 @@ that materially expand the boilerplate's stack or maintenance burden.
   motion, sufficient contrast, and usable touch targets.
 - Keep Tailwind CSS 4 configuration CSS-first in `resources/css/app.css` and
   express reusable visual decisions as design tokens.
-- Use the project's coral accent and warm-neutral identity consistently. Avoid
-  dense dashboards, large data tables, Kanban-first layouts, and ornamental UI
-  that slows down capture.
+- Use the project's light-purple `#8B6FD6` accent and neutral-lilac identity
+  consistently. Avoid dense dashboards, large data tables, Kanban-first
+  layouts, and ornamental UI that slows down capture.
 - Do not add another component library or state-management framework without a
   demonstrated need and explicit approval.
 

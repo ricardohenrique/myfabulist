@@ -106,9 +106,9 @@ field. Lists may also remain ungrouped.
 
 - Use a responsive application shell with a folder/list sidebar and main task
   area. On narrow screens, navigation opens from a menu control.
-- Keep the interface calm, friendly, spacious, and minimal. Use warm neutral
-  surfaces, the coral product accent, clear typography, subtle motion, and
-  muted completed work.
+- Keep the interface calm, friendly, spacious, and minimal. Use neutral-lilac
+  surfaces, the light-purple `#8B6FD6` product accent, clear typography,
+  subtle motion, and muted completed work.
 - Pressing Enter in quick-add creates the task, clears the field, and keeps it
   focused after success. Failed saves retain enough context to recover.
 - Reordering should feel immediate. If persistence rejects stale state, the UI
