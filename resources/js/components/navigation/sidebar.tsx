@@ -28,6 +28,7 @@ type SidebarProps = {
     notificationsOpen: boolean;
     onCloseMobile: () => void;
     onNavigate: () => void;
+    onOpenProfile: () => void;
     onOpenCreate: (kind: 'folder' | 'list', folderId?: number) => void;
     onEditFolder: (folder: NavigationFolder) => void;
     onDeleteFolder: (folder: NavigationFolder) => void;
@@ -391,6 +392,7 @@ export function Sidebar({
     notificationsOpen,
     onCloseMobile,
     onNavigate,
+    onOpenProfile,
     onOpenCreate,
     onEditFolder,
     onDeleteFolder,
@@ -535,6 +537,7 @@ export function Sidebar({
                     {profileOpen && (
                         <div className="account-menu">
                             <p>Account</p>
+                            <button onClick={() => { setProfileOpen(false); onOpenProfile(); }} type="button">Profile settings</button>
                             <Link as="button" href={logout()} method="post">Sign out</Link>
                         </div>
                     )}

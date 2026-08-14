@@ -10,6 +10,8 @@ use App\Http\Controllers\Web\FolderController;
 use App\Http\Controllers\Web\FolderOrderController;
 use App\Http\Controllers\Web\ListInvitationController;
 use App\Http\Controllers\Web\MoveTaskController;
+use App\Http\Controllers\Web\PasswordController;
+use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\RestoreSubtaskController;
 use App\Http\Controllers\Web\RestoreTaskController;
 use App\Http\Controllers\Web\StarTaskController;
@@ -41,6 +43,8 @@ Route::get('/', HomeController::class)->name('home');
 
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password.update');
     Route::get('inbox', InboxController::class)->name('inbox');
     Route::get('starred', StarredController::class)->name('starred');
     Route::get('lists/{list}', TaskListController::class)->whereNumber('list')->name('lists.show');

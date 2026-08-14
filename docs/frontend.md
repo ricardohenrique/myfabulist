@@ -18,6 +18,13 @@ The main area displays the currently selected list and its tasks.
 
 On mobile, the sidebar should open from a menu button.
 
+The account menu opens a large profile settings modal over the current
+workspace, preserving the user's list and task context behind it. The initial
+profile surface stays deliberately small: users can update their name and
+email, or change their password after confirming the current password. It does
+not include avatars, account deletion, verification, password reset, 2FA, or
+passkeys.
+
 ## Organization structure
 
 The application uses this structure:

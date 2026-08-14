@@ -34,8 +34,9 @@ field. Lists may also remain ungrouped.
 ### Accounts and ownership
 
 - Authentication is required for product data.
-- Users may register, sign in, and sign out. Email verification, password
-  reset, two-factor authentication, passkeys, and account settings are
+- Users may register, sign in, sign out, and update their name, email, and
+  password from a basic in-app profile modal. Email verification, password reset,
+  two-factor authentication, passkeys, and expanded account settings are
   intentionally excluded from the current release.
 - A user may only view or mutate folders and tasks they own, and lists they
   own or hold an accepted membership on. Only a list's owner may invite or
@@ -167,6 +168,7 @@ field. Lists may also remain ungrouped.
 The current product slice includes:
 
 - authenticated, user-isolated folders, lists, and tasks;
+- basic profile management for name, email, and password;
 - permanent Inbox creation and navigation;
 - Starred smart view;
 - quick task creation, rename, completion/restoration, notes, due dates,

@@ -10,6 +10,13 @@ use Illuminate\Support\Str;
 
 class EloquentUserRepository implements UserRepositoryInterface
 {
+    public function save(User $user): User
+    {
+        $user->save();
+
+        return $user->refresh();
+    }
+
     /**
      * Case-insensitive lookup, done here rather than trusted to whatever the
      * caller happened to normalize. Q3 requires "exact lowercase email

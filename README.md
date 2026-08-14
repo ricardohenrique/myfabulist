@@ -120,11 +120,13 @@ Guests can register and sign in. Authenticated users can:
 - share a list by inviting a registered user's email, and accept, decline,
   revoke, or leave a share, with a notification center for pending
   invitations and a share dialog for managing a list's members; and
+- update the signed-in user's name, email address, and password from the
+  account menu; and
 - undo the latest completion, star change, or task move.
 
-Email verification, password reset, 2FA, passkeys, account settings, search,
-reminders, and NativePHP screens are intentionally outside the current web
-release.
+Email verification, password reset, 2FA, passkeys, expanded account settings,
+search, reminders, and NativePHP screens are intentionally outside the current
+web release.
 
 Production pages are rendered by Inertia from `resources/js/pages`; the shared
 shell lives in `resources/js/layouts/app-shell.tsx`.

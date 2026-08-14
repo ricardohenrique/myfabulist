@@ -87,6 +87,5 @@ class AuthenticationTest extends TestCase
         $this->assertFalse(Route::has('password.confirmation'));
         $this->assertFalse(Route::has('two-factor.login'));
         $this->assertFalse(Route::has('passkey.login'));
-        $this->assertFalse(Route::has('profile.edit'));
     }
 }
