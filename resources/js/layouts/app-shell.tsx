@@ -45,6 +45,8 @@ type UndoState = {
     execute: () => void;
 };
 
+const NOTIFICATION_TIMEOUT_MS = 5_000;
+
 type AppShellProps = {
     workspace: WorkspaceData;
     user: UserSummary;
@@ -118,6 +120,17 @@ export function AppShell({ workspace, user }: AppShellProps) {
             setNotice(page.props.errors.domain);
         }
     }, [page.props.errors, page.props.flash]);
+
+    useEffect(() => {
+        if (!undo && !notice) return;
+
+        const timeoutId = window.setTimeout(() => {
+            setUndo(null);
+            setNotice('');
+        }, NOTIFICATION_TIMEOUT_MS);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [notice, undo]);
 
     // `notifications.invitations` is `Inertia::optional()` on the server, so
     // it is only present on the response that follows a partial reload
@@ -700,7 +713,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 <div className="undo-bar" role="status">
                     <span>{undo?.message ?? notice}</span>
                     <button onClick={() => { setUndo(null); setNotice(''); }} type="button">Dismiss</button>
-                    {undo && <button onClick={() => { undo.execute(); setUndo(null); }} type="button">Undo</button>}
+                    {undo && <button onClick={() => { undo.execute(); setUndo(null); setNotice(''); }} type="button">Undo</button>}
                 </div>
             )}
 
