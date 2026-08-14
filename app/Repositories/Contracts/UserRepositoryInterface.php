@@ -16,6 +16,8 @@ use App\Models\User;
  */
 interface UserRepositoryInterface
 {
+    public function save(User $user): User;
+
     /**
      * Case-insensitive lookup by email (Q3: "exact lowercase email match").
      * Case-folding happens in the query itself — see the Eloquent

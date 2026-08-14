@@ -16,6 +16,8 @@ import * as listRoutes from '@/routes/lists';
 import * as listMemberRoutes from '@/routes/lists/members';
 import * as listMembershipRoutes from '@/routes/lists/membership';
 import { store as storeTask } from '@/routes/lists/tasks';
+import { update as updatePassword } from '@/routes/profile/password';
+import { update as updateProfile } from '@/routes/profile';
 import * as taskRoutes from '@/routes/tasks';
 import { store as storeTaskComment } from '@/routes/tasks/comments';
 import { store as storeSubtask } from '@/routes/tasks/subtasks';
@@ -45,6 +47,8 @@ type UndoState = {
     execute: () => void;
 };
 
+const NOTIFICATION_TIMEOUT_MS = 5_000;
+
 type AppShellProps = {
     workspace: WorkspaceData;
     user: UserSummary;
@@ -52,11 +56,11 @@ type AppShellProps = {
 
 export function AppShell({ workspace, user }: AppShellProps) {
     const page = usePage<SharedPageProps>();
-    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(() =>
-        window.matchMedia('(min-width: 981px)').matches ? (workspace.tasks[0]?.id ?? null) : null,
-    );
+    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
     const [completedOpen, setCompletedOpen] = useState(true);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+    const [profileSuccess, setProfileSuccess] = useState('');
     const [entityDialog, setEntityDialog] = useState<EntityDialog | null>(null);
     const [entityName, setEntityName] = useState('');
     const [entityFolderId, setEntityFolderId] = useState<number | null>(null);
@@ -89,6 +93,12 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [invitations, setInvitations] = useState<PendingInvitationSummary[] | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
     const quickAdd = useForm({ title: '' });
+    const profileForm = useForm({ name: user.name, email: user.email });
+    const passwordForm = useForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+    });
 
     const tasks = workspace.tasks;
     const activeTasks = orderByIds(tasks.filter((task) => !task.completedAt), taskOrder);
@@ -118,6 +128,17 @@ export function AppShell({ workspace, user }: AppShellProps) {
             setNotice(page.props.errors.domain);
         }
     }, [page.props.errors, page.props.flash]);
+
+    useEffect(() => {
+        if (!undo && !notice) return;
+
+        const timeoutId = window.setTimeout(() => {
+            setUndo(null);
+            setNotice('');
+        }, NOTIFICATION_TIMEOUT_MS);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [notice, undo]);
 
     // `notifications.invitations` is `Inertia::optional()` on the server, so
     // it is only present on the response that follows a partial reload
@@ -324,11 +345,49 @@ export function AppShell({ workspace, user }: AppShellProps) {
         }
     };
 
-    const openCreate = (kind: 'folder' | 'list') => {
+    const openCreate = (kind: 'folder' | 'list', folderId?: number) => {
         setEntityDialog({ kind, mode: 'create' });
         setEntityName('');
-        setEntityFolderId(null);
+        setEntityFolderId(kind === 'list' ? (folderId ?? null) : null);
         setEntityError('');
+    };
+
+    const openProfile = () => {
+        profileForm.setData({ name: user.name, email: user.email });
+        profileForm.clearErrors();
+        passwordForm.reset();
+        passwordForm.clearErrors();
+        setProfileSuccess('');
+        setProfileDialogOpen(true);
+    };
+
+    const closeProfile = () => {
+        if (profileForm.processing || passwordForm.processing) return;
+
+        setProfileDialogOpen(false);
+        setProfileSuccess('');
+    };
+
+    const saveProfile = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setProfileSuccess('');
+        profileForm.patch(updateProfile.url(), {
+            preserveScroll: true,
+            onSuccess: () => setProfileSuccess('Profile updated.'),
+        });
+    };
+
+    const savePassword = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setProfileSuccess('');
+        passwordForm.put(updatePassword.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                passwordForm.reset();
+                setProfileSuccess('Password updated.');
+            },
+            onFinish: () => passwordForm.reset('current_password', 'password', 'password_confirmation'),
+        });
     };
 
     const openEditFolder = (folder: NavigationFolder) => {
@@ -558,7 +617,9 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onEditFolder={openEditFolder}
                 onEditList={openEditList}
                 onLeaveList={leaveList}
+                onNavigate={() => setSelectedTaskId(null)}
                 onOpenCreate={openCreate}
+                onOpenProfile={openProfile}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
                 onToggleNotifications={toggleNotifications}
@@ -700,9 +761,109 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 <div className="undo-bar" role="status">
                     <span>{undo?.message ?? notice}</span>
                     <button onClick={() => { setUndo(null); setNotice(''); }} type="button">Dismiss</button>
-                    {undo && <button onClick={() => { undo.execute(); setUndo(null); }} type="button">Undo</button>}
+                    {undo && <button onClick={() => { undo.execute(); setUndo(null); setNotice(''); }} type="button">Undo</button>}
                 </div>
             )}
+
+            <Dialog
+                description="Update your account details without leaving your tasks."
+                onClose={closeProfile}
+                open={profileDialogOpen}
+                panelClassName="dialog-panel--profile"
+                title="Profile settings"
+            >
+                {profileSuccess && <p className="profile-modal__success" role="status">{profileSuccess}</p>}
+
+                <div className="profile-modal__sections">
+                    <section className="profile-modal__section" aria-labelledby="profile-details-heading">
+                        <div className="profile-modal__section-heading">
+                            <h3 id="profile-details-heading">Personal details</h3>
+                            <p>Change the name and email used for your account.</p>
+                        </div>
+
+                        <form className="profile-modal__form" noValidate onSubmit={saveProfile}>
+                            <label className="field-label" htmlFor="profile-name">Name</label>
+                            <input
+                                aria-invalid={Boolean(profileForm.errors.name)}
+                                autoComplete="name"
+                                className="text-field"
+                                id="profile-name"
+                                onChange={(event) => profileForm.setData('name', event.target.value)}
+                                value={profileForm.data.name}
+                            />
+                            {profileForm.errors.name && <p className="field-error">{profileForm.errors.name}</p>}
+
+                            <label className="field-label" htmlFor="profile-email">Email address</label>
+                            <input
+                                aria-invalid={Boolean(profileForm.errors.email)}
+                                autoComplete="email"
+                                className="text-field"
+                                id="profile-email"
+                                onChange={(event) => profileForm.setData('email', event.target.value)}
+                                type="email"
+                                value={profileForm.data.email}
+                            />
+                            {profileForm.errors.email && <p className="field-error">{profileForm.errors.email}</p>}
+
+                            <div className="profile-modal__actions">
+                                <Button disabled={profileForm.processing} type="submit" variant="primary">
+                                    {profileForm.processing ? 'Saving…' : 'Save profile'}
+                                </Button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section className="profile-modal__section" aria-labelledby="profile-password-heading">
+                        <div className="profile-modal__section-heading">
+                            <h3 id="profile-password-heading">Change password</h3>
+                            <p>Confirm your current password before choosing a new one.</p>
+                        </div>
+
+                        <form className="profile-modal__form" noValidate onSubmit={savePassword}>
+                            <label className="field-label" htmlFor="current-password">Current password</label>
+                            <input
+                                aria-invalid={Boolean(passwordForm.errors.current_password)}
+                                autoComplete="current-password"
+                                className="text-field"
+                                id="current-password"
+                                onChange={(event) => passwordForm.setData('current_password', event.target.value)}
+                                type="password"
+                                value={passwordForm.data.current_password}
+                            />
+                            {passwordForm.errors.current_password && <p className="field-error">{passwordForm.errors.current_password}</p>}
+
+                            <label className="field-label" htmlFor="new-password">New password</label>
+                            <input
+                                aria-invalid={Boolean(passwordForm.errors.password)}
+                                autoComplete="new-password"
+                                className="text-field"
+                                id="new-password"
+                                onChange={(event) => passwordForm.setData('password', event.target.value)}
+                                placeholder="At least 8 characters"
+                                type="password"
+                                value={passwordForm.data.password}
+                            />
+                            {passwordForm.errors.password && <p className="field-error">{passwordForm.errors.password}</p>}
+
+                            <label className="field-label" htmlFor="new-password-confirmation">Confirm new password</label>
+                            <input
+                                autoComplete="new-password"
+                                className="text-field"
+                                id="new-password-confirmation"
+                                onChange={(event) => passwordForm.setData('password_confirmation', event.target.value)}
+                                type="password"
+                                value={passwordForm.data.password_confirmation}
+                            />
+
+                            <div className="profile-modal__actions">
+                                <Button disabled={passwordForm.processing} type="submit" variant="primary">
+                                    {passwordForm.processing ? 'Updating…' : 'Update password'}
+                                </Button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </Dialog>
 
             <Dialog
                 description={entityDialog?.kind === 'list' ? 'Lists can stay ungrouped or live inside a folder.' : 'Folders keep related lists together.'}

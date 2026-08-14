@@ -1,7 +1,8 @@
 import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/react';
 import { isSortable, useSortable } from '@dnd-kit/react/sortable';
 import { Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { NotificationCenter } from '@/components/navigation/notification-center';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -26,7 +27,9 @@ type SidebarProps = {
     respondingInvitationIds: number[];
     notificationsOpen: boolean;
     onCloseMobile: () => void;
-    onOpenCreate: (kind: 'folder' | 'list') => void;
+    onNavigate: () => void;
+    onOpenProfile: () => void;
+    onOpenCreate: (kind: 'folder' | 'list', folderId?: number) => void;
     onEditFolder: (folder: NavigationFolder) => void;
     onDeleteFolder: (folder: NavigationFolder) => void;
     onReorderFolder: (folderIds: number[]) => void;
@@ -59,6 +62,60 @@ function Count({ value }: { value: number }) {
     return value > 0 ? <span className="nav-count">{value}</span> : null;
 }
 
+type NavigationMenuProps = {
+    anchorRef: RefObject<HTMLButtonElement | null>;
+    children: ReactNode;
+};
+
+function NavigationMenu({ anchorRef, children }: NavigationMenuProps) {
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+
+    useLayoutEffect(() => {
+        const updatePosition = () => {
+            const anchor = anchorRef.current;
+            const menu = menuRef.current;
+
+            if (!anchor || !menu) return;
+
+            const viewportPadding = 8;
+            const gap = 4;
+            const anchorRect = anchor.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const left = Math.min(
+                window.innerWidth - menuRect.width - viewportPadding,
+                Math.max(viewportPadding, anchorRect.right - menuRect.width),
+            );
+            const fitsBelow = anchorRect.bottom + gap + menuRect.height <= window.innerHeight - viewportPadding;
+            const top = fitsBelow
+                ? anchorRect.bottom + gap
+                : Math.max(viewportPadding, anchorRect.top - menuRect.height - gap);
+
+            setPosition({ left, top });
+        };
+
+        updatePosition();
+        window.addEventListener('resize', updatePosition);
+        window.addEventListener('scroll', updatePosition, true);
+
+        return () => {
+            window.removeEventListener('resize', updatePosition);
+            window.removeEventListener('scroll', updatePosition, true);
+        };
+    }, [anchorRef]);
+
+    return createPortal(
+        <div
+            className="navigation-menu navigation-menu--overlay"
+            ref={menuRef}
+            style={position ? { left: position.left, top: position.top } : undefined}
+        >
+            {children}
+        </div>,
+        document.body,
+    );
+}
+
 function SortableListRow({
     list,
     index,
@@ -73,6 +130,7 @@ function SortableListRow({
     onLeave,
     onToggleMenu,
 }: SortableListRowProps) {
+    const menuTriggerRef = useRef<HTMLButtonElement>(null);
     const sortable = useSortable({
         id: `list-${list.id}`,
         index,
@@ -111,19 +169,20 @@ function SortableListRow({
                 aria-label={`More options for ${list.name}`}
                 className="row-more nav-item-more"
                 onClick={onToggleMenu}
+                ref={menuTriggerRef}
                 type="button"
             >
                 <Icon name="more" size={17} />
             </button>
             {menuOpen && (
-                <div className="navigation-menu">
+                <NavigationMenu anchorRef={menuTriggerRef}>
                     <button onClick={() => onEdit(list)} type="button">Rename or move…</button>
                     {list.isOwner ? (
                         <button className="is-danger" onClick={() => onDelete(list)} type="button">Delete list</button>
                     ) : (
                         <button className="is-danger" onClick={() => onLeave(list)} type="button">Leave list</button>
                     )}
-                </div>
+                </NavigationMenu>
             )}
         </div>
     );
@@ -219,6 +278,7 @@ type SortableFolderProps = {
     openMenu: string | null;
     onCloseMobile: () => void;
     onCloseMenu: () => void;
+    onCreateList: (folder: NavigationFolder) => void;
     onDeleteFolder: (folder: NavigationFolder) => void;
     onDeleteList: (list: NavigationList) => void;
     onEditFolder: (folder: NavigationFolder) => void;
@@ -240,6 +300,7 @@ function SortableFolder({
     openMenu,
     onCloseMobile,
     onCloseMenu,
+    onCreateList,
     onDeleteFolder,
     onDeleteList,
     onEditFolder,
@@ -249,6 +310,7 @@ function SortableFolder({
     onToggle,
     onToggleMenu,
 }: SortableFolderProps) {
+    const menuTriggerRef = useRef<HTMLButtonElement>(null);
     const sortable = useSortable({
         id: `folder-${folder.id}`,
         index,
@@ -278,15 +340,17 @@ function SortableFolder({
                     aria-label={`More options for ${folder.name}`}
                     className="row-more"
                     onClick={() => onToggleMenu(menuKey)}
+                    ref={menuTriggerRef}
                     type="button"
                 >
                     <Icon name="more" size={17} />
                 </button>
                 {openMenu === menuKey && (
-                    <div className="navigation-menu">
+                    <NavigationMenu anchorRef={menuTriggerRef}>
+                        <button onClick={() => onCreateList(folder)} type="button">Add list…</button>
                         <button onClick={() => onEditFolder(folder)} type="button">Rename folder…</button>
                         <button className="is-danger" onClick={() => onDeleteFolder(folder)} type="button">Delete folder</button>
-                    </div>
+                    </NavigationMenu>
                 )}
             </div>
             {expanded && folder.lists.length > 0 && (
@@ -327,6 +391,8 @@ export function Sidebar({
     respondingInvitationIds,
     notificationsOpen,
     onCloseMobile,
+    onNavigate,
+    onOpenProfile,
     onOpenCreate,
     onEditFolder,
     onDeleteFolder,
@@ -371,8 +437,18 @@ export function Sidebar({
         setOpenMenu((current) => current === menuKey ? null : menuKey);
     };
 
+    const navigate = () => {
+        onNavigate();
+        onCloseMobile();
+    };
+
     const editFolder = (folder: NavigationFolder) => {
         onEditFolder(folder);
+        setOpenMenu(null);
+    };
+
+    const createListInFolder = (folder: NavigationFolder) => {
+        onOpenCreate('list', folder.id);
         setOpenMenu(null);
     };
 
@@ -461,6 +537,7 @@ export function Sidebar({
                     {profileOpen && (
                         <div className="account-menu">
                             <p>Account</p>
+                            <button onClick={() => { setProfileOpen(false); onOpenProfile(); }} type="button">Profile settings</button>
                             <Link as="button" href={logout()} method="post">Sign out</Link>
                         </div>
                     )}
@@ -468,12 +545,12 @@ export function Sidebar({
 
                 <nav className="sidebar-nav">
                     <div className="smart-list-group">
-                        <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={inboxRoute()} onClick={onCloseMobile}>
+                        <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={inboxRoute()} onClick={navigate}>
                             <Icon className="nav-icon nav-icon--inbox" name="inbox" size={18} />
                             <span>Inbox</span>
                             <Count value={inbox.activeTaskCount} />
                         </Link>
-                        <Link className={`nav-row ${activeView === 'starred' ? 'is-active' : ''}`} href={starred()} onClick={onCloseMobile}>
+                        <Link className={`nav-row ${activeView === 'starred' ? 'is-active' : ''}`} href={starred()} onClick={navigate}>
                             <Icon className="nav-icon nav-icon--star" fill name="star" size={18} />
                             <span>Starred</span>
                             <Count value={starredCount} />
@@ -500,7 +577,8 @@ export function Sidebar({
                                     itemCount={orderedFolders.length}
                                     key={folder.id}
                                     onCloseMenu={() => setOpenMenu(null)}
-                                    onCloseMobile={onCloseMobile}
+                                    onCloseMobile={navigate}
+                                    onCreateList={createListInFolder}
                                     onDeleteFolder={deleteFolder}
                                     onDeleteList={deleteList}
                                     onEditFolder={editFolder}
@@ -520,7 +598,7 @@ export function Sidebar({
                             currentListId={currentListId}
                             lists={orderedUngroupedLists}
                             onCloseMenu={() => setOpenMenu(null)}
-                            onCloseMobile={onCloseMobile}
+                            onCloseMobile={navigate}
                             onDelete={deleteList}
                             onEdit={editList}
                             onLeave={leaveList}

@@ -8,9 +8,10 @@ type DialogProps = {
     description?: string;
     children: ReactNode;
     onClose: () => void;
+    panelClassName?: string;
 };
 
-export function Dialog({ open, title, description, children, onClose }: DialogProps) {
+export function Dialog({ open, title, description, children, onClose, panelClassName = '' }: DialogProps) {
     const titleId = useId();
     const descriptionId = useId();
     const panelRef = useRef<HTMLDivElement>(null);
@@ -52,7 +53,7 @@ export function Dialog({ open, title, description, children, onClose }: DialogPr
                 aria-describedby={description ? descriptionId : undefined}
                 aria-labelledby={titleId}
                 aria-modal="true"
-                className="dialog-panel"
+                className={`dialog-panel ${panelClassName}`}
                 ref={panelRef}
                 role="dialog"
                 tabIndex={-1}
