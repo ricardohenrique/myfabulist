@@ -8,7 +8,7 @@ createInertiaApp({
         lazy: true,
     },
     progress: {
-        color: '#f04438',
+        color: '#8b6fd6',
     },
     strictMode: true,
 });

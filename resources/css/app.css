@@ -4,13 +4,12 @@
 
 @theme {
     --font-sans: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
-    --color-brand: #f04438;
-    --color-brand-dark: #d9362c;
-    --color-warm-white: #fff9f5;
+    --color-brand: #8b6fd6;
+    --color-brand-dark: #7659c4;
+    --color-warm-white: #f7f4fc;
     --color-ink: #27313c;
     --color-muted: #71808f;
-    --color-selection: #dcecf8;
-    --color-selection-blue: #2f93df;
+    --color-selection: #eeeaf8;
 }
 
 :root {
@@ -25,14 +24,13 @@
     --line: #dfe3e6;
     --muted: #71808f;
     --ink: #27313c;
-    --brand: #f04438;
-    --brand-dark: #d9362c;
-    --warm-white: #fff9f5;
-    --blue: #2f93df;
-    --selection: #dcecf8;
+    --brand: #8b6fd6;
+    --brand-dark: #7659c4;
+    --warm-white: #f7f4fc;
+    --selection: #eeeaf8;
     --green: #72b58f;
     --green-dark: #4d9674;
-    --focus: 0 0 0 3px rgba(47, 147, 223, 0.32);
+    --focus: 0 0 0 3px rgba(139, 111, 214, 0.3);
     --shadow-sm: 0 1px 2px rgba(37, 49, 61, 0.14);
     --shadow-md: 0 16px 44px rgba(37, 49, 61, 0.2);
 }
@@ -111,7 +109,7 @@ button:disabled {
     color: #fff;
     background: var(--brand);
     border-color: var(--brand);
-    box-shadow: 0 7px 20px rgba(240, 68, 56, 0.21);
+    box-shadow: 0 7px 20px rgba(139, 111, 214, 0.24);
 }
 
 .ui-button--primary:hover:not(:disabled) {
@@ -217,9 +215,9 @@ button:disabled {
     padding: 40px 52px 34px;
     color: #fff;
     background:
-        radial-gradient(circle at 84% 16%, rgba(255, 242, 182, 0.5), transparent 30%),
-        radial-gradient(circle at 12% 84%, rgba(54, 125, 100, 0.62), transparent 35%),
-        linear-gradient(145deg, #4f9e79 0%, #78ba93 48%, #d6c875 100%);
+        radial-gradient(circle at 84% 16%, rgba(238, 231, 252, 0.52), transparent 30%),
+        radial-gradient(circle at 12% 84%, rgba(104, 71, 182, 0.56), transparent 35%),
+        linear-gradient(145deg, #6847b6 0%, #8b6fd6 50%, #b6a4e7 100%);
 }
 
 .auth-story__wash {
@@ -248,7 +246,7 @@ button:disabled {
 
 .auth-brand svg,
 .auth-form-card__brand svg {
-    filter: drop-shadow(0 7px 16px rgba(37, 61, 48, 0.16));
+    filter: drop-shadow(0 7px 16px rgba(65, 43, 117, 0.2));
 }
 
 .auth-story__content {
@@ -291,7 +289,7 @@ button:disabled {
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 15px;
     background: rgba(255, 255, 255, 0.87);
-    box-shadow: 0 26px 65px rgba(48, 86, 68, 0.26);
+    box-shadow: 0 26px 65px rgba(67, 47, 116, 0.28);
     backdrop-filter: blur(14px);
     transform: rotate(-1.2deg);
 }
@@ -301,7 +299,7 @@ button:disabled {
     justify-content: space-between;
     padding: 15px 18px;
     color: #fff;
-    background: rgba(63, 141, 103, 0.92);
+    background: rgba(118, 89, 196, 0.94);
     font-size: 0.82rem;
     font-weight: 700;
 }
@@ -501,7 +499,7 @@ button:disabled {
     border: 2px solid #fff;
     border-radius: 50%;
     color: #fff;
-    background: linear-gradient(145deg, #7189d2, #9c78b9);
+    background: linear-gradient(145deg, #7659c4, #a58dde);
     box-shadow: 0 1px 4px rgba(44, 54, 65, 0.22);
     font-size: 0.76rem;
     font-weight: 750;
@@ -804,7 +802,7 @@ button:disabled {
 }
 
 .nav-row.is-active {
-    border-left-color: var(--blue);
+    border-left-color: var(--brand);
     background: var(--selection);
 }
 
@@ -829,7 +827,7 @@ button:disabled {
 }
 
 .nav-icon--star {
-    color: #e16d64;
+    color: var(--brand);
 }
 
 .nav-count {
@@ -971,8 +969,8 @@ button:disabled {
 
 .folder-group.is-drop-target > .folder-row,
 .nav-item-wrap.is-drop-target {
-    background: #e8f2f8;
-    box-shadow: inset 3px 0 0 var(--blue);
+    background: #f1edfa;
+    box-shadow: inset 3px 0 0 var(--brand);
 }
 
 .folder-toggle span {
@@ -984,7 +982,7 @@ button:disabled {
 }
 
 .folder-icon {
-    color: #68a9d6;
+    color: #9380ca;
 }
 
 .row-more {
@@ -1215,14 +1213,14 @@ button:disabled {
 .task-row.is-dragging {
     z-index: 60;
     opacity: 0.92;
-    border-color: rgba(71, 142, 178, 0.5);
+    border-color: rgba(139, 111, 214, 0.52);
     box-shadow: 0 12px 30px rgba(39, 49, 60, 0.24);
     cursor: grabbing;
 }
 
 .task-row.is-drop-target {
-    border-color: var(--blue);
-    box-shadow: 0 0 0 2px rgba(71, 142, 178, 0.16), var(--shadow-sm);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px rgba(139, 111, 214, 0.18), var(--shadow-sm);
 }
 
 .task-check {
@@ -1313,12 +1311,12 @@ button:disabled {
 }
 
 .task-star:hover {
-    color: #de7b72;
-    background: #fff4f2;
+    color: #9b82de;
+    background: #f5f1fc;
 }
 
 .task-star.is-starred {
-    color: #e1584d;
+    color: var(--brand);
 }
 
 .task-more-wrap {
@@ -1426,9 +1424,9 @@ button:disabled {
 
 /* Task details */
 .task-details {
-    --details-focus-border: #72b58f;
-    --details-focus-ring: 0 0 0 3px rgba(77, 150, 116, 0.22);
-    --details-focus-surface: #f4faf6;
+    --details-focus-border: #a18bdd;
+    --details-focus-ring: 0 0 0 3px rgba(139, 111, 214, 0.22);
+    --details-focus-surface: #f7f4fc;
     position: relative;
     z-index: 25;
     width: var(--details-width);
@@ -1564,8 +1562,8 @@ button:disabled {
 }
 
 .detail-field:focus-within:not(.is-disabled) {
-    color: var(--green-dark);
-    background: #fbfdfb;
+    color: var(--brand-dark);
+    background: var(--details-focus-surface);
 }
 
 .task-subtasks {
@@ -1659,9 +1657,9 @@ button:disabled {
 }
 
 .subtask-add:focus-within {
-    color: var(--green-dark);
+    color: var(--brand-dark);
     background: var(--details-focus-surface);
-    box-shadow: inset 3px 0 0 rgba(77, 150, 116, 0.62);
+    box-shadow: inset 3px 0 0 rgba(139, 111, 214, 0.62);
 }
 
 .subtask-add input:focus-visible {
@@ -1670,7 +1668,7 @@ button:disabled {
 
 .subtask-add button {
     color: #fff;
-    background: var(--blue);
+    background: var(--brand);
 }
 
 .subtask-add button:disabled {
@@ -1853,11 +1851,11 @@ button:disabled {
     border: 0;
     border-radius: 5px;
     color: #fff;
-    background: var(--blue);
+    background: var(--brand);
 }
 
 .comment-composer button:hover:not(:disabled) {
-    background: #247fbd;
+    background: var(--brand-dark);
 }
 
 .comment-composer button:disabled {
@@ -1929,15 +1927,15 @@ button:disabled {
     min-height: 44px;
     justify-self: center;
     padding: 0 24px;
-    border-color: var(--blue);
-    background: var(--blue);
-    box-shadow: 0 7px 20px rgba(47, 147, 223, 0.2);
+    border-color: var(--brand);
+    background: var(--brand);
+    box-shadow: 0 7px 20px rgba(139, 111, 214, 0.24);
     font-size: 0.88rem;
 }
 
 .details-save-button.ui-button--primary:hover:not(:disabled) {
-    border-color: #247fbd;
-    background: #247fbd;
+    border-color: var(--brand-dark);
+    background: var(--brand-dark);
 }
 
 .details-error {
@@ -2361,9 +2359,9 @@ button:disabled {
     .auth-form-side {
         padding: 36px 24px;
         background:
-            radial-gradient(circle at 94% 8%, rgba(240,68,56,0.1), transparent 31%),
-            radial-gradient(circle at 8% 94%, rgba(78,158,121,0.11), transparent 34%),
-            #fbfaf8;
+            radial-gradient(circle at 94% 8%, rgba(139,111,214,0.13), transparent 31%),
+            radial-gradient(circle at 8% 94%, rgba(182,164,231,0.17), transparent 34%),
+            #fbfafd;
     }
 
     .auth-form-card__brand {
