@@ -34,6 +34,7 @@ type SidebarProps = {
     onDeleteFolder: (folder: NavigationFolder) => void;
     onReorderFolder: (folderIds: number[]) => void;
     onEditList: (list: NavigationList) => void;
+    onShareList: (list: NavigationList) => void;
     onDeleteList: (list: NavigationList) => void;
     onLeaveList: (list: NavigationList) => void;
     onReorderList: (folderId: number | null, taskListIds: number[]) => void;
@@ -54,6 +55,7 @@ type SortableListRowProps = {
     onCloseMobile: () => void;
     onDelete: (list: NavigationList) => void;
     onEdit: (list: NavigationList) => void;
+    onShare: (list: NavigationList) => void;
     onLeave: (list: NavigationList) => void;
     onToggleMenu: () => void;
 };
@@ -127,6 +129,7 @@ function SortableListRow({
     onCloseMobile,
     onDelete,
     onEdit,
+    onShare,
     onLeave,
     onToggleMenu,
 }: SortableListRowProps) {
@@ -176,6 +179,7 @@ function SortableListRow({
             </button>
             {menuOpen && (
                 <NavigationMenu anchorRef={menuTriggerRef}>
+                    <button onClick={() => onShare(list)} type="button">Share…</button>
                     <button onClick={() => onEdit(list)} type="button">Rename or move…</button>
                     {list.isOwner ? (
                         <button className="is-danger" onClick={() => onDelete(list)} type="button">Delete list</button>
@@ -199,6 +203,7 @@ type SortableListCollectionProps = {
     onCloseMenu: () => void;
     onDelete: (list: NavigationList) => void;
     onEdit: (list: NavigationList) => void;
+    onShare: (list: NavigationList) => void;
     onLeave: (list: NavigationList) => void;
     onReorder: (taskListIds: number[]) => void;
     onToggleMenu: (menuKey: string) => void;
@@ -215,6 +220,7 @@ function SortableListCollection({
     onCloseMenu,
     onDelete,
     onEdit,
+    onShare,
     onLeave,
     onReorder,
     onToggleMenu,
@@ -257,6 +263,7 @@ function SortableListCollection({
                         onCloseMobile={onCloseMobile}
                         onDelete={onDelete}
                         onEdit={onEdit}
+                        onShare={onShare}
                         onLeave={onLeave}
                         onToggleMenu={() => onToggleMenu(menuKey)}
                         reorderPending={reorderPending}
@@ -283,6 +290,7 @@ type SortableFolderProps = {
     onDeleteList: (list: NavigationList) => void;
     onEditFolder: (folder: NavigationFolder) => void;
     onEditList: (list: NavigationList) => void;
+    onShareList: (list: NavigationList) => void;
     onLeaveList: (list: NavigationList) => void;
     onReorderLists: (folderId: number, taskListIds: number[]) => void;
     onToggle: () => void;
@@ -305,6 +313,7 @@ function SortableFolder({
     onDeleteList,
     onEditFolder,
     onEditList,
+    onShareList,
     onLeaveList,
     onReorderLists,
     onToggle,
@@ -364,6 +373,7 @@ function SortableFolder({
                         onCloseMobile={onCloseMobile}
                         onDelete={onDeleteList}
                         onEdit={onEditList}
+                        onShare={onShareList}
                         onLeave={onLeaveList}
                         onReorder={(taskListIds) => onReorderLists(folder.id, taskListIds)}
                         onToggleMenu={onToggleMenu}
@@ -398,6 +408,7 @@ export function Sidebar({
     onDeleteFolder,
     onReorderFolder,
     onEditList,
+    onShareList,
     onDeleteList,
     onLeaveList,
     onReorderList,
@@ -459,6 +470,11 @@ export function Sidebar({
 
     const editList = (list: NavigationList) => {
         onEditList(list);
+        setOpenMenu(null);
+    };
+
+    const shareList = (list: NavigationList) => {
+        onShareList(list);
         setOpenMenu(null);
     };
 
@@ -583,6 +599,7 @@ export function Sidebar({
                                     onDeleteList={deleteList}
                                     onEditFolder={editFolder}
                                     onEditList={editList}
+                                    onShareList={shareList}
                                     onLeaveList={leaveList}
                                     onReorderLists={reorderLists}
                                     onToggle={() => toggleFolder(folder.id)}
@@ -601,6 +618,7 @@ export function Sidebar({
                             onCloseMobile={navigate}
                             onDelete={deleteList}
                             onEdit={editList}
+                            onShare={shareList}
                             onLeave={leaveList}
                             onReorder={(taskListIds) => reorderLists(null, taskListIds)}
                             onToggleMenu={toggleMenu}

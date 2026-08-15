@@ -413,6 +413,38 @@ it('shares the pending invitation count on every request but only the full list 
 
 // -- currentList: roster, sharing flags, F18 email visibility ----------------
 
+it('loads another accessible lists share dialog without replacing the current workspace', function () {
+    $owner = User::factory()->create();
+    $selectedList = TaskList::factory()->create(['user_id' => $owner->id, 'name' => 'Selected list']);
+    $targetList = TaskList::factory()->create(['user_id' => $owner->id, 'name' => 'Target list']);
+    $member = User::factory()->create();
+    $invitee = User::factory()->create();
+    TaskListMember::factory()->forTaskList($targetList, $member)->create();
+    TaskListMember::factory()->forTaskList($targetList, $invitee)->pending()->create();
+
+    $this->actingAs($owner)
+        ->get(route('lists.show', $selectedList).'?sharing_list_id='.$targetList->id)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->reloadOnly('sharingDialog', fn (Assert $page) => $page
+            ->where('sharingDialog.id', $targetList->id)
+            ->where('sharingDialog.name', 'Target list')
+            ->where('sharingDialog.canManageSharing', true)
+            ->has('sharingDialog.members', 2)
+            ->has('sharingDialog.pendingInvitations', 1)));
+});
+
+it('does not expose an inaccessible list through the optional share dialog prop', function () {
+    $user = User::factory()->create();
+    $selectedList = TaskList::factory()->create(['user_id' => $user->id]);
+    $strangersList = TaskList::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('lists.show', $selectedList).'?sharing_list_id='.$strangersList->id)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->reloadOnly('sharingDialog', fn (Assert $page) => $page
+            ->where('sharingDialog', null)));
+});
+
 it('renders currentList with the member roster and sharing flags for the owner', function () {
     $owner = User::factory()->create();
     $member = User::factory()->create();
@@ -567,7 +599,7 @@ it('renders a shared lists workspace page in a bounded number of queries', funct
     $queryCount = count(DB::getQueryLog());
     DB::disableQueryLog();
 
-    // Guards against the member roster (currentList()'s acceptedMembersFor())
+    // Guards against the member roster (sharingDetails()'s acceptedMembersFor())
     // or the notification count/deferred-prop closures turning into a
     // per-member or per-invitation query. Measured at 15 with 2 members and
     // 3 tasks (auth, session, notifications.pendingInvitationCount, the

@@ -7,6 +7,8 @@ import type { CurrentListDetails } from '@/types';
 type ShareDialogProps = {
     open: boolean;
     list: CurrentListDetails | null;
+    detailsLoading: boolean;
+    detailsError: string;
     viewerId: number;
     onClose: () => void;
     onInvite: (email: string) => void;
@@ -45,6 +47,8 @@ function ShareAvatar({ avatarUrl }: { avatarUrl: string | null }) {
 export function ShareDialog({
     open,
     list,
+    detailsLoading,
+    detailsError,
     viewerId,
     onClose,
     onInvite,
@@ -96,95 +100,103 @@ export function ShareDialog({
             open={open}
             title={`Share “${list.name}”`}
         >
-            <section aria-label="Members" className="share-section">
-                <h3 className="share-section__heading">Members</h3>
-                <ul className="share-list">
-                    {list.members.map((member) => (
-                        <li className="share-row" key={member.id}>
-                            <ShareAvatar avatarUrl={member.avatarUrl} />
-                            <div className="share-row__copy">
-                                <p>
-                                    <span>{member.name}{member.userId === viewerId ? ' (you)' : ''}</span>
-                                    {member.isOwner && <span className="share-row__badge">Owner</span>}
-                                </p>
-                                {list.canManageSharing && member.email && <small>{member.email}</small>}
-                            </div>
-                            {list.canManageSharing && !member.isOwner && (
-                                <Button
-                                    disabled={revokingIds.includes(member.userId)}
-                                    onClick={() => onRevokeMember(member.userId)}
-                                    size="sm"
-                                    variant="ghost"
-                                >
-                                    Remove
-                                </Button>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            </section>
-
-            {/*
-              * Pending invitations are owner-only, both server-side
-              * (`WorkspacePresenter::currentList()` sends an empty array to
-              * anyone else) and here: hiding the whole section rather than
-              * rendering it empty for a non-owner, since an empty list would
-              * itself imply "nobody's been invited" — also not something a
-              * non-owner should be told either way (Plan 1, Step 10 code
-              * review).
-              */}
-            {list.canManageSharing && (
-                <section aria-label="Pending invitations" className="share-section">
-                    <h3 className="share-section__heading">Pending invitations</h3>
-                    {list.pendingInvitations.length === 0 ? (
-                        <p className="share-section__empty">No invitations are waiting on a response.</p>
-                    ) : (
+            {detailsLoading ? (
+                <p className="dialog-body-copy" role="status">Loading sharing details…</p>
+            ) : detailsError ? (
+                <p className="field-error" role="alert">{detailsError}</p>
+            ) : (
+                <>
+                    <section aria-label="Members" className="share-section">
+                        <h3 className="share-section__heading">Members</h3>
                         <ul className="share-list">
-                            {list.pendingInvitations.map((invitation) => (
-                                <li className="share-row" key={invitation.id}>
-                                    <ShareAvatar avatarUrl={invitation.avatarUrl} />
+                            {list.members.map((member) => (
+                                <li className="share-row" key={member.id}>
+                                    <ShareAvatar avatarUrl={member.avatarUrl} />
                                     <div className="share-row__copy">
-                                        <p><span>{invitation.name}</span></p>
-                                        <small>
-                                            {invitation.email ? `${invitation.email} · ` : ''}
-                                            {invitation.invitedAt ? `Invited ${formatInvitedAt(invitation.invitedAt)}` : 'Invited'}
-                                        </small>
+                                        <p>
+                                            <span>{member.name}{member.userId === viewerId ? ' (you)' : ''}</span>
+                                            {member.isOwner && <span className="share-row__badge">Owner</span>}
+                                        </p>
+                                        {list.canManageSharing && member.email && <small>{member.email}</small>}
                                     </div>
-                                    <Button
-                                        disabled={revokingIds.includes(invitation.userId)}
-                                        onClick={() => onRevokeInvitation(invitation.userId)}
-                                        size="sm"
-                                        variant="ghost"
-                                    >
-                                        Revoke
-                                    </Button>
+                                    {list.canManageSharing && !member.isOwner && (
+                                        <Button
+                                            disabled={revokingIds.includes(member.userId)}
+                                            onClick={() => onRevokeMember(member.userId)}
+                                            size="sm"
+                                            variant="ghost"
+                                        >
+                                            Remove
+                                        </Button>
+                                    )}
                                 </li>
                             ))}
                         </ul>
-                    )}
-                </section>
-            )}
+                    </section>
 
-            {list.canManageSharing && (
-                <form className="dialog-form share-invite-form" onSubmit={submitInvite}>
-                    <label className="field-label" htmlFor="share-invite-email">Invite by email</label>
-                    <input
-                        aria-describedby={inviteError ? 'share-invite-error' : undefined}
-                        aria-invalid={Boolean(inviteError)}
-                        className="text-field"
-                        id="share-invite-email"
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="name@example.com"
-                        type="email"
-                        value={email}
-                    />
-                    {inviteError && <p className="field-error" id="share-invite-error" role="alert">{inviteError}</p>}
-                    <div className="dialog-actions">
-                        <Button disabled={inviteProcessing || !email.trim()} type="submit" variant="primary">
-                            {inviteProcessing ? 'Sending…' : 'Send invitation'}
-                        </Button>
-                    </div>
-                </form>
+                    {/*
+                      * Pending invitations are owner-only, both server-side
+                      * (`WorkspacePresenter::sharingDetails()` sends an empty array to
+                      * anyone else) and here: hiding the whole section rather than
+                      * rendering it empty for a non-owner, since an empty list would
+                      * itself imply "nobody's been invited" — also not something a
+                      * non-owner should be told either way (Plan 1, Step 10 code
+                      * review).
+                      */}
+                    {list.canManageSharing && (
+                        <section aria-label="Pending invitations" className="share-section">
+                            <h3 className="share-section__heading">Pending invitations</h3>
+                            {list.pendingInvitations.length === 0 ? (
+                                <p className="share-section__empty">No invitations are waiting on a response.</p>
+                            ) : (
+                                <ul className="share-list">
+                                    {list.pendingInvitations.map((invitation) => (
+                                        <li className="share-row" key={invitation.id}>
+                                            <ShareAvatar avatarUrl={invitation.avatarUrl} />
+                                            <div className="share-row__copy">
+                                                <p><span>{invitation.name}</span></p>
+                                                <small>
+                                                    {invitation.email ? `${invitation.email} · ` : ''}
+                                                    {invitation.invitedAt ? `Invited ${formatInvitedAt(invitation.invitedAt)}` : 'Invited'}
+                                                </small>
+                                            </div>
+                                            <Button
+                                                disabled={revokingIds.includes(invitation.userId)}
+                                                onClick={() => onRevokeInvitation(invitation.userId)}
+                                                size="sm"
+                                                variant="ghost"
+                                            >
+                                                Revoke
+                                            </Button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </section>
+                    )}
+
+                    {list.canManageSharing && (
+                        <form className="dialog-form share-invite-form" onSubmit={submitInvite}>
+                            <label className="field-label" htmlFor="share-invite-email">Invite by email</label>
+                            <input
+                                aria-describedby={inviteError ? 'share-invite-error' : undefined}
+                                aria-invalid={Boolean(inviteError)}
+                                className="text-field"
+                                id="share-invite-email"
+                                onChange={(event) => setEmail(event.target.value)}
+                                placeholder="name@example.com"
+                                type="email"
+                                value={email}
+                            />
+                            {inviteError && <p className="field-error" id="share-invite-error" role="alert">{inviteError}</p>}
+                            <div className="dialog-actions">
+                                <Button disabled={inviteProcessing || !email.trim()} type="submit" variant="primary">
+                                    {inviteProcessing ? 'Sending…' : 'Send invitation'}
+                                </Button>
+                            </div>
+                        </form>
+                    )}
+                </>
             )}
         </Dialog>
     );

@@ -32,7 +32,7 @@ class WorkspacePresenter
 
         return [
             ...$this->base($user, $list->is_default ? 'inbox' : 'list'),
-            'currentList' => $this->currentList($user, $list),
+            'currentList' => $this->sharingDetails($user, $list),
             'heading' => $list->name,
             'eyebrow' => $list->is_default
                 ? 'Quick capture'
@@ -111,7 +111,7 @@ class WorkspacePresenter
             // count of 1, hence ">1", not ">0".
             'isShared' => ($list->accepted_members_count ?? 1) > 1,
             // Plan 1, Step 10: lets the sidebar decide Delete-vs-Leave per
-            // row without needing the richer currentList() shape below,
+            // row without needing the richer sharingDetails() shape below,
             // which only ever loads for the one list actually being viewed.
             'isOwner' => $list->user_id === $user->id,
         ];
@@ -138,7 +138,7 @@ class WorkspacePresenter
      *
      * @return array<string, mixed>
      */
-    private function currentList(User $user, TaskList $list): array
+    public function sharingDetails(User $user, TaskList $list): array
     {
         $isOwner = $list->user_id === $user->id;
 

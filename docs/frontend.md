@@ -320,8 +320,11 @@ closes on Escape or an outside click, and reports its pending count through an
 accessible label on the trigger button.
 
 `resources/js/components/lists/share-dialog.tsx` implements the list-level
-sharing UI, opened from the "Share" action in the workspace header (visible
-whenever the current list is a real, non-Inbox list). Unlike the notification
+sharing UI, opened from the "Share" action in the workspace header or any
+non-Inbox list's three-dot menu. A sidebar action requests the optional
+`sharingDialog` prop with a partial Inertia reload and `preserveUrl`, so the
+selected list, workspace content, and URL remain unchanged behind the dialog.
+Unlike the notification
 center, this uses `components/ui/dialog.tsx` directly — managing a list's full
 member roster, pending invitations, and an invite form is a genuinely modal,
 higher-stakes interaction with more content than an anchored popover suits. It
