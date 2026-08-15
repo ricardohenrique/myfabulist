@@ -206,20 +206,27 @@ class EloquentTaskRepository implements TaskRepositoryInterface
 
     public function create(User $user, TaskList $taskList, string $title, int $position): Task
     {
-        $task = new Task;
+        return DB::transaction(function () use ($user, $taskList, $title, $position): Task {
+            Task::query()
+                ->where('task_list_id', $taskList->id)
+                ->where('position', '>=', $position)
+                ->increment('position');
 
-        $task->forceFill([
-            'user_id' => $user->id,
-            'task_list_id' => $taskList->id,
-            'title' => $title,
-            'position' => $position,
-        ])->save();
+            $task = new Task;
 
-        // A freshly created task has no stars yet — attach that explicitly
-        // (Plan 1, Step 3) rather than leaving `is_starred` unset, so a
-        // create response is byte-identical to the old is_starred=false
-        // column default (N6).
-        return $task->withStarred(false);
+            $task->forceFill([
+                'user_id' => $user->id,
+                'task_list_id' => $taskList->id,
+                'title' => $title,
+                'position' => $position,
+            ])->save();
+
+            // A freshly created task has no stars yet — attach that explicitly
+            // (Plan 1, Step 3) rather than leaving `is_starred` unset, so a
+            // create response is byte-identical to the old is_starred=false
+            // column default (N6).
+            return $task->withStarred(false);
+        });
     }
 
     /**

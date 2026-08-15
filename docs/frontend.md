@@ -301,9 +301,12 @@ canonical.
 `@dnd-kit/react` provides sortable pointer, touch, and keyboard interaction.
 Each drop optimistically updates the local collection, submits its complete ID
 order, disables further drops while saving, and reconciles from returned
-Inertia props. Active tasks are sortable; completed tasks remain ordered by
-completion time. Inbox and Starred are fixed navigation items rather than
-sortable user lists.
+Inertia props. Active tasks initially display by `createdAt` descending. The
+workspace Sort menu can switch to a non-persisted alphabetical A–Z view or the
+persisted custom order; dragging from the recent/custom view switches to and
+saves the custom order. Newly created tasks are inserted at its first position.
+Completed tasks remain ordered by completion time. Inbox and Starred are fixed
+navigation items rather than sortable user lists.
 
 ## Sharing and notification components
 

@@ -81,8 +81,11 @@ field. Lists may also remain ungrouped.
   affordance for details or additional actions when applicable.
 - Completion and deletion are distinct. Tasks are soft-deleted and completed
   tasks remain part of the list until explicitly deleted.
-- Active tasks use manual position order. Completed tasks are displayed by
-  most recent completion.
+- Active tasks default to most recently created first. The browser may display
+  them alphabetically without rewriting saved positions, while dragging a task
+  switches the list to its persisted custom order. Newly created tasks are
+  inserted first in that custom order. Completed tasks are displayed by most
+  recent completion.
 - Cross-list movement is explicit and atomic. Reordering is scoped to one list
   and rejects stale, incomplete, duplicate, or foreign ID sets.
 - Users can add chronological plain-text comments to their tasks. Each comment

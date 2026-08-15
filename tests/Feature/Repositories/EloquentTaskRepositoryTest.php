@@ -48,6 +48,24 @@ class EloquentTaskRepositoryTest extends TestCase
         $this->assertTrue($this->repository->activeForList($list, $user)->isEmpty());
     }
 
+    public function test_create_places_the_new_task_first_and_shifts_existing_positions(): void
+    {
+        $user = User::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $first = Task::factory()->forTaskList($list)->create(['position' => 0]);
+        $second = Task::factory()->forTaskList($list)->create(['position' => 1]);
+
+        $created = $this->repository->create($user, $list, 'Newest task', 0);
+
+        $this->assertSame(0, $created->position);
+        $this->assertSame(1, $first->fresh()->position);
+        $this->assertSame(2, $second->fresh()->position);
+        $this->assertSame(
+            [$created->id, $first->id, $second->id],
+            $this->repository->activeForList($list, $user)->pluck('id')->all(),
+        );
+    }
+
     /**
      * Plan 1, Step 3: `is_starred` is aliased for the given viewer, not
      * read off a `tasks` column that no longer exists.

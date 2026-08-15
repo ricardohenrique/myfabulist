@@ -148,6 +148,7 @@ export type IconName =
     | 'note'
     | 'plus'
     | 'search'
+    | 'sort'
     | 'star'
     | 'trash'
     | 'user';
