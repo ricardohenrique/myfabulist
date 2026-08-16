@@ -2456,6 +2456,25 @@ button:disabled {
     }
 }
 
+/* Touch browsers can consume the first tap when :hover reveals a new control.
+   Keep sidebar actions visible and reserve hover feedback for real pointers so
+   created lists navigate on the first tap, just like Inbox and Starred. */
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+    .row-more {
+        opacity: 1;
+    }
+
+    .nav-row:hover,
+    .folder-row:hover {
+        background: transparent;
+    }
+
+    .nav-row.is-active,
+    .nav-row.is-active:hover {
+        background: var(--selection);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

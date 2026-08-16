@@ -306,7 +306,9 @@ new tasks are inserted first without disturbing the existing relative order.
 Completed tasks remain ordered by completion time. Inbox and Starred are fixed
 navigation items rather than sortable user lists. Sortable rows preserve native
 vertical touch scrolling; touch reordering activates after a short stationary
-press rather than intercepting an ordinary swipe.
+press rather than intercepting an ordinary swipe. Sidebar row actions remain
+visible on touch devices so a simulated hover cannot consume the first tap on
+a list link.
 
 ## Sharing and notification components
 
