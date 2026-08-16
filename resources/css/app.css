@@ -1248,8 +1248,8 @@ button:disabled {
 }
 
 .is-completed .task-check {
-    border-color: #69aa88;
-    background: #69aa88;
+    border-color: var(--brand);
+    background: var(--brand);
 }
 
 .task-body {
