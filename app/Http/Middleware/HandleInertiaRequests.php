@@ -38,7 +38,7 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'appName' => config('app.name', 'My Fabulist'),
+            'appName' => config('app.name', 'Purplelist'),
             'auth' => [
                 'user' => fn (): ?array => $request->user() === null ? null : [
                     'id' => $request->user()->id,

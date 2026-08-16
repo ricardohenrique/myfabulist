@@ -681,7 +681,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
     return (
         <div className="app-frame">
-            <Head title={`${workspace.heading} · My Fabulist`} />
+            <Head title={`${workspace.heading} · Purplelist`} />
             <Sidebar
                 activeView={workspace.view}
                 currentListId={workspace.currentList?.id ?? null}

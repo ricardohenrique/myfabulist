@@ -1,4 +1,4 @@
-name: Deploy PurpleList
+name: Deploy Purplelist
 
 on:
   push:

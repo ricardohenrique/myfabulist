@@ -72,7 +72,7 @@ export default function Login() {
             </form>
 
             <p className="auth-switch">
-                New to My Fabulist? <Link href={register()}>Create an account</Link>
+                New to Purplelist? <Link href={register()}>Create an account</Link>
             </p>
         </AuthLayout>
     );

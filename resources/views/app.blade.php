@@ -7,10 +7,10 @@
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
-        <meta name="apple-mobile-web-app-title" content="My Fabulist">
+        <meta name="apple-mobile-web-app-title" content="Purplelist">
         <meta name="format-detection" content="telephone=no">
 
-        <title inertia>{{ config('app.name', 'My Fabulist') }}</title>
+        <title inertia>{{ config('app.name', 'Purplelist') }}</title>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">

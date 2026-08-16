@@ -1,7 +1,7 @@
 {
     "id": "/",
-    "name": "My Fabulist",
-    "short_name": "Fabulist",
+    "name": "Purplelist",
+    "short_name": "Purplelist",
     "description": "A calm, fast task manager for capturing and organizing what matters.",
     "lang": "en",
     "start_url": "/",

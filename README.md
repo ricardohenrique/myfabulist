@@ -1,6 +1,6 @@
-# My Fabulist
+# Purplelist
 
-My Fabulist is a calm, Wunderlist-inspired personal task manager organized as
+Purplelist is a calm, Wunderlist-inspired personal task manager organized as
 **Folder → List → Task**. Every account receives a permanent Inbox, with
 Starred as a focused cross-list view.
 
@@ -144,7 +144,7 @@ shell lives in `resources/js/layouts/app-shell.tsx`.
 
 The browser app includes a web app manifest, install-sized icons, and Apple
 standalone metadata. On a supported mobile browser, use **Add to Home Screen**
-or **Install app** to launch My Fabulist in a standalone window. Production
+or **Install app** to launch Purplelist in a standalone window. Production
 must be served over HTTPS for browser installation. This does not enable
 offline access or offline writes; the Laravel server remains canonical.
 

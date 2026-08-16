@@ -527,7 +527,7 @@ export function Sidebar({
             {mobileOpen && <button aria-label="Close navigation" className="sidebar-scrim" onClick={onCloseMobile} type="button" />}
             <aside aria-label="Task navigation" className={`sidebar ${mobileOpen ? 'is-mobile-open' : ''}`}>
                 <div className="sidebar-mobile-heading">
-                    <div className="sidebar-mobile-brand"><Logo size={32} /><span>My Fabulist</span></div>
+                    <div className="sidebar-mobile-brand"><Logo size={32} /><span>Purplelist</span></div>
                     <Button aria-label="Close navigation" onClick={onCloseMobile} size="sm" variant="ghost"><Icon name="close" /></Button>
                 </div>
 

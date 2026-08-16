@@ -1,4 +1,4 @@
-# MyFabulist
+# Purplelist
 
 Laravel 13, PHP 8.4+, SQLite (default) / MySQL
 Folders -> Lists -> Tasks (Wunderlist-style task manager)

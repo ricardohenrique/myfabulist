@@ -1,6 +1,6 @@
-# My Fabulist Agent Guide
+# Purplelist Agent Guide
 
-My Fabulist is a calm, fast task manager inspired by Wunderlist. Its core
+Purplelist is a calm, fast task manager inspired by Wunderlist. Its core
 hierarchy is **Folder → List → Task**, with a permanent Inbox for quick capture
 and focused views such as Starred. Act as a senior Laravel product engineer:
 protect the simplicity of the task workflow, preserve user ownership and data

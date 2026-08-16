@@ -1,6 +1,6 @@
 # Laravel Rules
 
-Laravel-specific coding standards for the MyFabulist project.
+Laravel-specific coding standards for the Purplelist project.
 
 ---
 

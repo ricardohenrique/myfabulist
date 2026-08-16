@@ -1,8 +1,8 @@
-# My Fabulist product scope
+# Purplelist product scope
 
 ## Product purpose
 
-My Fabulist is a personal task manager inspired by the speed, warmth, and
+Purplelist is a personal task manager inspired by the speed, warmth, and
 simplicity of Wunderlist. It helps people capture tasks quickly, organize them
 into meaningful lists, and review completed work without letting it distract
 from what remains active.

@@ -28,6 +28,7 @@ class WebAppInstallationTest extends TestCase
         );
 
         $this->assertSame('standalone', $manifest['display']);
+        $this->assertSame('Purplelist', $manifest['name']);
         $this->assertSame('/', $manifest['start_url']);
         $this->assertFileExists(public_path('web-app-icon-192.png'));
         $this->assertFileExists(public_path('web-app-icon-512.png'));
