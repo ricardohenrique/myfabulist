@@ -237,8 +237,8 @@ implementation.
 
 ## Data and deletion boundaries
 
-- SQLite is the default local database; deployment database choice remains
-  environment-configurable.
+- MySQL is the application database for local development and deployment;
+  connection credentials remain environment-configurable.
 - Folder, list, task, order, completion, detail, comment, and starred state
   persist on the server.
 - Task and list deletion is soft deletion. Folder deletion follows the explicit
