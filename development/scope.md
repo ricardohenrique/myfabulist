@@ -1,8 +1,8 @@
-# My Fabulist product scope
+# Purplelist product scope
 
 ## Product purpose
 
-My Fabulist is a personal task manager inspired by the speed, warmth, and
+Purplelist is a personal task manager inspired by the speed, warmth, and
 simplicity of Wunderlist. It helps people capture tasks quickly, organize them
 into meaningful lists, and review completed work without letting it distract
 from what remains active.
@@ -81,8 +81,10 @@ field. Lists may also remain ungrouped.
   affordance for details or additional actions when applicable.
 - Completion and deletion are distinct. Tasks are soft-deleted and completed
   tasks remain part of the list until explicitly deleted.
-- Active tasks use manual position order. Completed tasks are displayed by
-  most recent completion.
+- Active tasks use their persisted manual position order. Dragging rewrites
+  that order, and every newly created task is inserted at the first position
+  without disturbing the relative order of the existing tasks. Completed tasks
+  are displayed by most recent completion.
 - Cross-list movement is explicit and atomic. Reordering is scoped to one list
   and rejects stale, incomplete, duplicate, or foreign ID sets.
 - Users can add chronological plain-text comments to their tasks. Each comment
@@ -235,8 +237,8 @@ implementation.
 
 ## Data and deletion boundaries
 
-- SQLite is the default local database; deployment database choice remains
-  environment-configurable.
+- MySQL is the application database for local development and deployment;
+  connection credentials remain environment-configurable.
 - Folder, list, task, order, completion, detail, comment, and starred state
   persist on the server.
 - Task and list deletion is soft deletion. Folder deletion follows the explicit

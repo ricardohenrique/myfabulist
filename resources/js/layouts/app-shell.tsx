@@ -23,6 +23,7 @@ import { store as storeTaskComment } from '@/routes/tasks/comments';
 import { store as storeSubtask } from '@/routes/tasks/subtasks';
 import * as subtaskRoutes from '@/routes/subtasks';
 import type {
+    CurrentListDetails,
     NavigationFolder,
     NavigationList,
     PendingInvitationSummary,
@@ -84,6 +85,9 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [respondingInvitationIds, setRespondingInvitationIds] = useState<number[]>([]);
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const [backgroundShareList, setBackgroundShareList] = useState<CurrentListDetails | null>(null);
+    const [shareDetailsLoading, setShareDetailsLoading] = useState(false);
+    const [shareDetailsError, setShareDetailsError] = useState('');
     const [shareInviteError, setShareInviteError] = useState('');
     const [shareInviteProcessing, setShareInviteProcessing] = useState(false);
     const [revokingMemberIds, setRevokingMemberIds] = useState<number[]>([]);
@@ -92,6 +96,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     // reload `openNotifications` triggers below.
     const [invitations, setInvitations] = useState<PendingInvitationSummary[] | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
+    const shareDetailsRequestId = useRef(0);
     const quickAdd = useForm({ title: '' });
     const profileForm = useForm({ name: user.name, email: user.email });
     const passwordForm = useForm({
@@ -104,6 +109,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const activeTasks = orderByIds(tasks.filter((task) => !task.completedAt), taskOrder);
     const completedTasks = tasks.filter((task) => task.completedAt);
     const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
+    const shareDialogList = backgroundShareList ?? workspace.currentList;
     const destinationLists = useMemo(
         () => [workspace.inbox, ...workspace.folders.flatMap((folder) => folder.lists), ...workspace.ungroupedLists],
         [workspace],
@@ -542,22 +548,97 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const declineInvitation = (invitationId: number) => respondToInvitation(invitationId, false);
 
     const openShareDialog = () => {
+        shareDetailsRequestId.current += 1;
+        setBackgroundShareList(null);
+        setShareDetailsLoading(false);
+        setShareDetailsError('');
         setShareInviteError('');
         setShareDialogOpen(true);
     };
 
+    const loadBackgroundShareList = (list: NavigationList, showLoading: boolean) => {
+        const requestId = shareDetailsRequestId.current + 1;
+        shareDetailsRequestId.current = requestId;
+
+        if (showLoading) {
+            setShareDetailsLoading(true);
+            setShareDetailsError('');
+        }
+
+        const fail = () => {
+            if (shareDetailsRequestId.current === requestId) {
+                setShareDetailsError('That list’s sharing details could not be loaded.');
+            }
+        };
+
+        router.reload({
+            data: { sharing_list_id: list.id },
+            only: ['sharingDialog'],
+            preserveUrl: true,
+            onSuccess: (response) => {
+                const details = response.props.sharingDialog as CurrentListDetails | null | undefined;
+
+                if (shareDetailsRequestId.current !== requestId) return;
+
+                if (!details || details.id !== list.id) {
+                    fail();
+                    return;
+                }
+
+                setBackgroundShareList(details);
+                setShareDetailsError('');
+            },
+            onError: fail,
+            onHttpException: fail,
+            onNetworkError: fail,
+            onFinish: () => {
+                if (shareDetailsRequestId.current === requestId) {
+                    setShareDetailsLoading(false);
+                }
+            },
+        });
+    };
+
+    const refreshBackgroundShareList = () => {
+        if (backgroundShareList) {
+            loadBackgroundShareList(backgroundShareList, false);
+        }
+    };
+
+    const openListShareDialog = (list: NavigationList) => {
+        if (workspace.currentList?.id === list.id) {
+            openShareDialog();
+            return;
+        }
+
+        setBackgroundShareList({
+            ...list,
+            members: [],
+            pendingInvitations: [],
+            canManageSharing: list.isOwner,
+        });
+        setShareInviteError('');
+        setShareDialogOpen(true);
+        loadBackgroundShareList(list, true);
+    };
+
     const closeShareDialog = () => {
+        shareDetailsRequestId.current += 1;
         setShareDialogOpen(false);
+        setBackgroundShareList(null);
+        setShareDetailsLoading(false);
+        setShareDetailsError('');
         setShareInviteError('');
     };
 
     const inviteMember = (email: string) => {
-        if (!workspace.currentList) return;
+        if (!shareDialogList) return;
 
         setShareInviteProcessing(true);
         setShareInviteError('');
-        router.post(listMemberRoutes.store(workspace.currentList.id), { email }, {
+        router.post(listMemberRoutes.store(shareDialogList.id), { email }, {
             preserveScroll: true,
+            onSuccess: refreshBackgroundShareList,
             onError: (errors) => setShareInviteError(errors.email ?? errors.domain ?? 'That invitation could not be sent.'),
             onFinish: () => setShareInviteProcessing(false),
         });
@@ -574,11 +655,12 @@ export function AppShell({ workspace, user }: AppShellProps) {
     // doesn't distinguish, so this one handler serves both
     // ShareDialog callbacks (`onRevokeMember`/`onRevokeInvitation`).
     const revokeMembership = (userId: number) => {
-        if (!workspace.currentList) return;
+        if (!shareDialogList) return;
 
         setMemberRevoking(userId, true);
-        router.delete(listMemberRoutes.destroy([workspace.currentList.id, userId]), {
+        router.delete(listMemberRoutes.destroy([shareDialogList.id, userId]), {
             preserveScroll: true,
+            onSuccess: refreshBackgroundShareList,
             onError: (errors) => setNotice(Object.values(errors)[0] ?? 'That member could not be removed.'),
             onFinish: () => setMemberRevoking(userId, false),
         });
@@ -599,7 +681,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
     return (
         <div className="app-frame">
-            <Head title={`${workspace.heading} · My Fabulist`} />
+            <Head title={`${workspace.heading} · Purplelist`} />
             <Sidebar
                 activeView={workspace.view}
                 currentListId={workspace.currentList?.id ?? null}
@@ -620,6 +702,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onNavigate={() => setSelectedTaskId(null)}
                 onOpenCreate={openCreate}
                 onOpenProfile={openProfile}
+                onShareList={openListShareDialog}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
                 onToggleNotifications={toggleNotifications}
@@ -914,9 +997,11 @@ export function AppShell({ workspace, user }: AppShellProps) {
             </Dialog>
 
             <ShareDialog
+                detailsError={shareDetailsError}
+                detailsLoading={shareDetailsLoading}
                 inviteError={shareInviteError}
                 inviteProcessing={shareInviteProcessing}
-                list={workspace.currentList}
+                list={shareDialogList}
                 onClose={closeShareDialog}
                 onInvite={inviteMember}
                 onRevokeInvitation={revokeMembership}

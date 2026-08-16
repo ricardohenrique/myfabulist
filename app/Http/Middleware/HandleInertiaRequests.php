@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Presenters\WorkspacePresenter;
 use App\Models\TaskListMember;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
+use App\Repositories\Contracts\TaskListRepositoryInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
@@ -20,6 +22,8 @@ class HandleInertiaRequests extends Middleware
 
     public function __construct(
         private readonly TaskListMemberRepositoryInterface $members,
+        private readonly TaskListRepositoryInterface $taskLists,
+        private readonly WorkspacePresenter $workspace,
     ) {}
 
     public function version(Request $request): ?string
@@ -34,7 +38,7 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'appName' => config('app.name', 'My Fabulist'),
+            'appName' => config('app.name', 'Purplelist'),
             'auth' => [
                 'user' => fn (): ?array => $request->user() === null ? null : [
                     'id' => $request->user()->id,
@@ -86,6 +90,21 @@ class HandleInertiaRequests extends Middleware
                         ])
                         ->all()),
             ],
+            // A list row only carries navigation summary data. The complete
+            // share-dialog roster is loaded on demand with a partial Inertia
+            // reload, keeping the current workspace and URL unchanged.
+            'sharingDialog' => Inertia::optional(function () use ($request): ?array {
+                $user = $request->user();
+                $listId = $request->integer('sharing_list_id');
+
+                if ($user === null || $listId < 1) {
+                    return null;
+                }
+
+                $list = $this->taskLists->findAccessibleFor($listId, $user);
+
+                return $list === null ? null : $this->workspace->sharingDetails($user, $list);
+            }),
         ];
     }
 }

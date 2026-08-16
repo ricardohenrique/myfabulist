@@ -13,11 +13,11 @@ type AuthLayoutProps = {
 export function AuthLayout({ eyebrow, title, intro, children }: AuthLayoutProps) {
     return (
         <main className="auth-shell">
-            <section className="auth-story" aria-label="My Fabulist introduction">
+            <section className="auth-story" aria-label="Purplelist introduction">
                 <div className="auth-story__wash" aria-hidden="true" />
                 <Link className="auth-brand" href={home()}>
                     <Logo size={50} />
-                    <span>My Fabulist</span>
+                    <span>Purplelist</span>
                 </Link>
 
                 <div className="auth-story__content">
@@ -50,7 +50,7 @@ export function AuthLayout({ eyebrow, title, intro, children }: AuthLayoutProps)
                 <div className="auth-form-card">
                     <div className="auth-form-card__brand">
                         <Logo size={48} />
-                        <span>My Fabulist</span>
+                        <span>Purplelist</span>
                     </div>
                     <p className="auth-form-card__eyebrow">{eyebrow}</p>
                     <h1>{title}</h1>

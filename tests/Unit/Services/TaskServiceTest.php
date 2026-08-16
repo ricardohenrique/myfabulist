@@ -47,7 +47,6 @@ class TaskServiceTest extends TestCase
         $taskList = new TaskList(['name' => 'Inbox']);
 
         $tasks = Mockery::mock(TaskRepositoryInterface::class);
-        $tasks->shouldReceive('nextPosition')->once()->with($taskList)->andReturn(0);
         $tasks->shouldReceive('create')
             ->once()
             ->with($user, $taskList, 'Buy milk', 0)

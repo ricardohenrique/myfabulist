@@ -44,10 +44,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $websiteLaunch = TaskList::factory()
-            ->inFolder($workFolder)
+            ->inFolder($workFolder, 0)
             ->create([
                 'name' => 'Website launch',
-                'position' => 0,
             ]);
 
         Task::factory()
@@ -77,11 +76,10 @@ class DatabaseSeeder extends Seeder
             ]);
 
         TaskList::factory()
+            ->atPosition(1)
             ->create([
                 'user_id' => $user->id,
-                'folder_id' => null,
                 'name' => 'Groceries',
-                'position' => 1,
             ]);
     }
 }

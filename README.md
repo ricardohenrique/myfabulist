@@ -1,6 +1,6 @@
-# My Fabulist
+# Purplelist
 
-My Fabulist is a calm, Wunderlist-inspired personal task manager organized as
+Purplelist is a calm, Wunderlist-inspired personal task manager organized as
 **Folder → List → Task**. Every account receives a permanent Inbox, with
 Starred as a focused cross-list view.
 
@@ -17,13 +17,14 @@ Sanctum API under `/api/v1`.
 - Sanctum for API authentication and Fortify for registration/login
 - `@dnd-kit/react` for scoped pointer, touch, and keyboard reordering
 - Pest 5, Larastan/PHPStan, and Pint
-- SQLite by default; other Laravel-supported databases remain configurable
+- MySQL
 
 ## Requirements
 
-- PHP 8.4 with PDO SQLite (or the driver for your chosen database)
+- PHP 8.4 with the PDO MySQL extension
 - Composer 2
 - Node.js 22 or newer with npm
+- MySQL with an application database and user credentials
 
 ## Setup
 
@@ -32,12 +33,19 @@ Sanctum API under `/api/v1`.
 From the project root:
 
 ```bash
+cp .env.example .env
+```
+
+Create the MySQL database named by `DB_DATABASE` and configure the `DB_*`
+values in `.env`, then run:
+
+```bash
 composer setup
 ```
 
-This installs PHP and JavaScript dependencies, creates `.env`, generates the
-application key, creates the SQLite file when needed, runs migrations, and
-builds production frontend assets.
+This installs PHP and JavaScript dependencies, generates the application key,
+runs migrations against the configured MySQL database, and builds production
+frontend assets.
 
 ### Manual setup
 
@@ -60,13 +68,14 @@ builds production frontend assets.
    php artisan key:generate
    ```
 
-   The example configuration uses SQLite. To use another database, update the
-   `DB_*` values before migrating.
+   The example configuration uses MySQL. Update the `DB_*` values for your
+   local MySQL database before migrating.
 
-4. Create the default SQLite database file and run migrations.
+4. Create the MySQL database and run migrations. The example command below
+   uses the default `DB_DATABASE=laravel`; adjust it if you changed that value.
 
    ```bash
-   php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+   mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS laravel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
    php artisan migrate
    ```
 
@@ -130,6 +139,14 @@ web release.
 
 Production pages are rendered by Inertia from `resources/js/pages`; the shared
 shell lives in `resources/js/layouts/app-shell.tsx`.
+
+### Add to Home Screen
+
+The browser app includes a web app manifest, install-sized icons, and Apple
+standalone metadata. On a supported mobile browser, use **Add to Home Screen**
+or **Install app** to launch Purplelist in a standalone window. Production
+must be served over HTTPS for browser installation. This does not enable
+offline access or offline writes; the Laravel server remains canonical.
 
 ### Reordering
 

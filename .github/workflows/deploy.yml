@@ -1,0 +1,66 @@
+name: Deploy Purplelist
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, fileinfo
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GODADDY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ secrets.GODADDY_PORT }}" "${{ secrets.GODADDY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy files
+        run: |
+          rsync -az \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude=".env" \
+            --exclude="node_modules" \
+            --exclude="vendor" \
+            --exclude="storage" \
+            -e "ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.GODADDY_PORT }}" \
+            ./ \
+            ${{ secrets.GODADDY_USER }}@${{ secrets.GODADDY_HOST }}:~/www/purplelist.app/myfabulist/
+
+      - name: Finalize Laravel deployment
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            -p "${{ secrets.GODADDY_PORT }}" \
+            "${{ secrets.GODADDY_USER }}@${{ secrets.GODADDY_HOST }}" \
+            'cd ~/www/purplelist.app/myfabulist && \
+             composer install --no-dev --optimize-autoloader && \
+             php artisan migrate --force && \
+             php artisan optimize'

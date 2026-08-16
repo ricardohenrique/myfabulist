@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Database;
+
+use App\Models\Folder;
+use App\Models\Task;
+use App\Models\TaskList;
+use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class DatabaseSeederTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_it_creates_the_small_acceptance_fixture_with_member_scoped_list_placement(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $user = User::query()->where('email', 'test@example.com')->firstOrFail();
+        $workFolder = Folder::query()
+            ->where('user_id', $user->id)
+            ->where('name', 'Work')
+            ->firstOrFail();
+        $websiteLaunch = TaskList::query()
+            ->where('user_id', $user->id)
+            ->where('name', 'Website launch')
+            ->firstOrFail();
+        $groceries = TaskList::query()
+            ->where('user_id', $user->id)
+            ->where('name', 'Groceries')
+            ->firstOrFail();
+
+        $this->assertSame(3, TaskList::query()->where('user_id', $user->id)->count());
+        $this->assertSame(5, Task::query()->where('task_list_id', $websiteLaunch->id)->count());
+
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $websiteLaunch->id,
+            'user_id' => $user->id,
+            'folder_id' => $workFolder->id,
+            'position' => 0,
+            'status' => 'accepted',
+        ]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $groceries->id,
+            'user_id' => $user->id,
+            'folder_id' => null,
+            'position' => 1,
+            'status' => 'accepted',
+        ]);
+    }
+}

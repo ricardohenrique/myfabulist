@@ -1,0 +1,25 @@
+{
+    "id": "/",
+    "name": "Purplelist",
+    "short_name": "Purplelist",
+    "description": "A calm, fast task manager for capturing and organizing what matters.",
+    "lang": "en",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#F7F4FC",
+    "theme_color": "#8B6FD6",
+    "categories": ["productivity"],
+    "icons": [
+        {
+            "src": "/web-app-icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/web-app-icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

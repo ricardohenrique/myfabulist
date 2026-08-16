@@ -27,6 +27,7 @@ class TaskTest extends TestCase
     {
         $user = User::factory()->create();
         $list = TaskList::factory()->create(['user_id' => $user->id]);
+        $existing = Task::factory()->forTaskList($list)->create(['position' => 0]);
 
         $response = $this->actingAs($user)->postJson("/api/v1/lists/{$list->id}/tasks", [
             'title' => 'Buy milk',
@@ -34,7 +35,8 @@ class TaskTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonPath('data.title', 'Buy milk');
-        $this->assertDatabaseHas('tasks', ['title' => 'Buy milk', 'user_id' => $user->id]);
+        $this->assertDatabaseHas('tasks', ['title' => 'Buy milk', 'user_id' => $user->id, 'position' => 0]);
+        $this->assertSame(1, $existing->fresh()->position);
     }
 
     public function test_a_whitespace_only_title_is_rejected_and_nothing_persists(): void

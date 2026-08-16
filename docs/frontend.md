@@ -301,9 +301,14 @@ canonical.
 `@dnd-kit/react` provides sortable pointer, touch, and keyboard interaction.
 Each drop optimistically updates the local collection, submits its complete ID
 order, disables further drops while saving, and reconciles from returned
-Inertia props. Active tasks are sortable; completed tasks remain ordered by
-completion time. Inbox and Starred are fixed navigation items rather than
-sortable user lists.
+Inertia props. Active tasks always display in their persisted custom order, and
+new tasks are inserted first without disturbing the existing relative order.
+Completed tasks remain ordered by completion time. Inbox and Starred are fixed
+navigation items rather than sortable user lists. Sortable rows preserve native
+vertical touch scrolling; touch reordering activates after a short stationary
+press rather than intercepting an ordinary swipe. Sidebar row actions remain
+visible on touch devices so a simulated hover cannot consume the first tap on
+a list link.
 
 ## Sharing and notification components
 
@@ -320,8 +325,11 @@ closes on Escape or an outside click, and reports its pending count through an
 accessible label on the trigger button.
 
 `resources/js/components/lists/share-dialog.tsx` implements the list-level
-sharing UI, opened from the "Share" action in the workspace header (visible
-whenever the current list is a real, non-Inbox list). Unlike the notification
+sharing UI, opened from the "Share" action in the workspace header or any
+non-Inbox list's three-dot menu. A sidebar action requests the optional
+`sharingDialog` prop with a partial Inertia reload and `preserveUrl`, so the
+selected list, workspace content, and URL remain unchanged behind the dialog.
+Unlike the notification
 center, this uses `components/ui/dialog.tsx` directly — managing a list's full
 member roster, pending invitations, and an invite form is a genuinely modal,
 higher-stakes interaction with more content than an anchored popover suits. It

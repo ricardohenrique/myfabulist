@@ -127,6 +127,7 @@ export type SharedPageProps = {
         // `app-shell.tsx`'s `openNotifications` (Step 9).
         invitations?: PendingInvitationSummary[];
     };
+    sharingDialog?: CurrentListDetails | null;
 };
 
 export type IconName =

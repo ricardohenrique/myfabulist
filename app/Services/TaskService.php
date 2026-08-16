@@ -53,7 +53,7 @@ class TaskService
     {
         $title = $this->requireNonBlankTitle($title);
 
-        return $this->tasks->create($user, $taskList, $title, $this->tasks->nextPosition($taskList));
+        return $this->tasks->create($user, $taskList, $title, 0);
     }
 
     /**
