@@ -955,7 +955,9 @@ button:disabled {
 .nav-item-wrap.is-sortable,
 .task-row.is-sortable {
     cursor: grab;
-    touch-action: none;
+    /* Let a vertical swipe scroll; the pointer sensor's touch delay still
+       turns a stationary press-and-hold into a drag. */
+    touch-action: pan-y;
 }
 
 .folder-group.is-dragging,

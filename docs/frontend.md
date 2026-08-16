@@ -304,7 +304,9 @@ order, disables further drops while saving, and reconciles from returned
 Inertia props. Active tasks always display in their persisted custom order, and
 new tasks are inserted first without disturbing the existing relative order.
 Completed tasks remain ordered by completion time. Inbox and Starred are fixed
-navigation items rather than sortable user lists.
+navigation items rather than sortable user lists. Sortable rows preserve native
+vertical touch scrolling; touch reordering activates after a short stationary
+press rather than intercepting an ordinary swipe.
 
 ## Sharing and notification components
 
