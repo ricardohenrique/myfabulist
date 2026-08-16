@@ -47,7 +47,6 @@ type UndoState = {
     message: string;
     execute: () => void;
 };
-type TaskSortMode = 'recent' | 'alphabetical' | 'manual';
 
 const NOTIFICATION_TIMEOUT_MS = 5_000;
 
@@ -80,8 +79,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
         .filter((task) => !task.completedAt)
         .map((task) => task.id));
     const [reorderPending, setReorderPending] = useState(false);
-    const [taskSortMode, setTaskSortMode] = useState<TaskSortMode>('recent');
-    const [sortMenuOpen, setSortMenuOpen] = useState(false);
     const [entityProcessing, setEntityProcessing] = useState(false);
     const [notice, setNotice] = useState('');
     const [undo, setUndo] = useState<UndoState | null>(null);
@@ -99,7 +96,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
     // reload `openNotifications` triggers below.
     const [invitations, setInvitations] = useState<PendingInvitationSummary[] | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
-    const sortMenuRef = useRef<HTMLDivElement>(null);
     const shareDetailsRequestId = useRef(0);
     const quickAdd = useForm({ title: '' });
     const profileForm = useForm({ name: user.name, email: user.email });
@@ -110,18 +106,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     });
 
     const tasks = workspace.tasks;
-    const positionOrderedActiveTasks = orderByIds(tasks.filter((task) => !task.completedAt), taskOrder);
-    const activeTasks = taskSortMode === 'recent'
-        ? [...positionOrderedActiveTasks].sort((left, right) => (
-            Date.parse(right.createdAt) - Date.parse(left.createdAt)
-            || right.id - left.id
-        ))
-        : taskSortMode === 'alphabetical'
-            ? [...positionOrderedActiveTasks].sort((left, right) => (
-                left.title.localeCompare(right.title, undefined, { sensitivity: 'base', numeric: true })
-                || left.id - right.id
-            ))
-            : positionOrderedActiveTasks;
+    const activeTasks = orderByIds(tasks.filter((task) => !task.completedAt), taskOrder);
     const completedTasks = tasks.filter((task) => task.completedAt);
     const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
     const shareDialogList = backgroundShareList ?? workspace.currentList;
@@ -133,34 +118,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
     useEffect(() => {
         setTaskOrder(tasks.filter((task) => !task.completedAt).map((task) => task.id));
     }, [tasks]);
-
-    useEffect(() => {
-        setTaskSortMode('recent');
-        setSortMenuOpen(false);
-    }, [workspace.currentList?.id, workspace.view]);
-
-    useEffect(() => {
-        if (!sortMenuOpen) return;
-
-        const closeOnOutsideClick = (event: MouseEvent) => {
-            if (!sortMenuRef.current?.contains(event.target as Node)) {
-                setSortMenuOpen(false);
-            }
-        };
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setSortMenuOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', closeOnOutsideClick);
-        document.addEventListener('keydown', closeOnEscape);
-
-        return () => {
-            document.removeEventListener('mousedown', closeOnOutsideClick);
-            document.removeEventListener('keydown', closeOnEscape);
-        };
-    }, [sortMenuOpen]);
 
     useEffect(() => {
         if (selectedTaskId !== null && !tasks.some((task) => task.id === selectedTaskId)) {
@@ -500,14 +457,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const handleTaskDragEnd = (event: DragEndEvent) => {
         const source = event.operation.source;
 
-        if (event.canceled || reorderPending || taskSortMode === 'alphabetical' || !isSortable(source)) {
+        if (event.canceled || reorderPending || !isSortable(source)) {
             return;
         }
 
         const reordered = moveItem(activeTasks, source.initialIndex, source.index);
 
         if (reordered !== activeTasks) {
-            setTaskSortMode('manual');
             reorderTask(reordered.map((task) => task.id));
         }
     };
@@ -776,51 +732,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
                         ) : (
                             <button aria-label="More list options are available in the sidebar" disabled type="button"><Icon name="more" size={19} /><span>More</span></button>
                         )}
-                        <div className="workspace-action-wrap" ref={sortMenuRef}>
-                            <button
-                                aria-expanded={sortMenuOpen}
-                                aria-haspopup="menu"
-                                aria-label={workspace.currentList
-                                    ? `Sort tasks in “${workspace.currentList.name}”. Current order: ${taskSortMode === 'recent' ? 'recently added' : taskSortMode === 'alphabetical' ? 'alphabetical A to Z' : 'custom'}`
-                                    : 'Sorting is available when viewing a list'}
-                                disabled={!workspace.currentList}
-                                onClick={() => setSortMenuOpen((open) => !open)}
-                                type="button"
-                            >
-                                <Icon name="sort" size={19} /><span>Sort</span>
-                            </button>
-                            {sortMenuOpen && workspace.currentList && (
-                                <div aria-label="Task sorting" className="workspace-sort-menu" role="menu">
-                                    <button
-                                        aria-checked={taskSortMode === 'recent'}
-                                        onClick={() => { setTaskSortMode('recent'); setSortMenuOpen(false); }}
-                                        role="menuitemradio"
-                                        type="button"
-                                    >
-                                        <span className="workspace-sort-menu__check">{taskSortMode === 'recent' && <Icon name="check" size={15} />}</span>
-                                        Recently added
-                                    </button>
-                                    <button
-                                        aria-checked={taskSortMode === 'alphabetical'}
-                                        onClick={() => { setTaskSortMode('alphabetical'); setSortMenuOpen(false); }}
-                                        role="menuitemradio"
-                                        type="button"
-                                    >
-                                        <span className="workspace-sort-menu__check">{taskSortMode === 'alphabetical' && <Icon name="check" size={15} />}</span>
-                                        Alphabetical A–Z
-                                    </button>
-                                    <button
-                                        aria-checked={taskSortMode === 'manual'}
-                                        onClick={() => { setTaskSortMode('manual'); setSortMenuOpen(false); }}
-                                        role="menuitemradio"
-                                        type="button"
-                                    >
-                                        <span className="workspace-sort-menu__check">{taskSortMode === 'manual' && <Icon name="check" size={15} />}</span>
-                                        Custom order
-                                    </button>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </header>
 
@@ -861,7 +772,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                                                 onToggleComplete={toggleComplete}
                                                 onToggleStar={toggleStar}
                                                 pending={pendingTaskIds.includes(task.id)}
-                                                sortableDisabled={!workspace.currentList || reorderPending || taskSortMode === 'alphabetical' || activeTasks.length < 2}
+                                                sortableDisabled={!workspace.currentList || reorderPending || activeTasks.length < 2}
                                                 sortableIndex={index}
                                                 task={task}
                                             />

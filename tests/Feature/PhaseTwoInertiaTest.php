@@ -320,6 +320,42 @@ it('persists drag-and-drop task list and folder orders', function () {
         ->and($taskA->fresh()->position)->toBe(1);
 });
 
+it('prepends new tasks without disturbing the saved drag order or flashing reorder success', function () {
+    $user = User::factory()->create();
+    $list = TaskList::factory()->create(['user_id' => $user->id]);
+    $first = Task::factory()->forTaskList($list)->create(['title' => 'First', 'position' => 0]);
+    $second = Task::factory()->forTaskList($list)->create(['title' => 'Second', 'position' => 1]);
+
+    $this->actingAs($user)
+        ->from(route('lists.show', $list))
+        ->put(route('lists.task-order', $list), [
+            'task_ids' => [$second->id, $first->id],
+        ])
+        ->assertRedirect(route('lists.show', $list))
+        ->assertSessionHasNoErrors()
+        ->assertSessionMissing('success');
+
+    $this->actingAs($user)
+        ->post(route('lists.tasks.store', $list), ['title' => 'Newest'])
+        ->assertSessionHasNoErrors();
+
+    $newest = Task::query()
+        ->where('task_list_id', $list->id)
+        ->where('title', 'Newest')
+        ->sole();
+
+    expect($newest->position)->toBe(0)
+        ->and($second->fresh()->position)->toBe(1)
+        ->and($first->fresh()->position)->toBe(2);
+
+    $this->actingAs($user)->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.tasks.0.id', $newest->id)
+            ->where('workspace.tasks.1.id', $second->id)
+            ->where('workspace.tasks.2.id', $first->id));
+});
+
 it('rejects stale drag-and-drop orders and preserves canonical positions', function () {
     $user = User::factory()->create();
     $folderA = Folder::factory()->for($user)->create(['position' => 0]);

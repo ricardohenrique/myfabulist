@@ -18,6 +18,6 @@ class TaskOrderController extends Controller
     {
         $this->tasks->reorder($list, $request->taskIds());
 
-        return back()->with('success', 'Task order updated.');
+        return back();
     }
 }

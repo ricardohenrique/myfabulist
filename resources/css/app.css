@@ -1034,8 +1034,6 @@ button:disabled {
 }
 
 .workspace-header {
-    position: relative;
-    z-index: 10;
     min-height: 75px;
     display: flex;
     align-items: center;
@@ -1076,8 +1074,7 @@ button:disabled {
     gap: 3px;
 }
 
-.workspace-actions > button,
-.workspace-action-wrap > button {
+.workspace-actions button {
     min-width: 52px;
     min-height: 48px;
     display: flex;
@@ -1092,57 +1089,8 @@ button:disabled {
     font-size: 0.61rem;
 }
 
-.workspace-actions > button:hover,
-.workspace-action-wrap > button:hover {
+.workspace-actions button:hover {
     background: rgba(255,255,255,0.12);
-}
-
-.workspace-action-wrap {
-    position: relative;
-    display: flex;
-}
-
-.workspace-sort-menu {
-    position: absolute;
-    top: calc(100% + 7px);
-    right: 0;
-    z-index: 70;
-    width: 225px;
-    overflow: hidden;
-    padding: 5px;
-    border: 1px solid #d9dfe1;
-    border-radius: 9px;
-    color: #53606a;
-    background: #fff;
-    box-shadow: 0 14px 34px rgba(35, 48, 57, 0.2);
-}
-
-.workspace-sort-menu button {
-    width: 100%;
-    min-height: 38px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border: 0;
-    border-radius: 6px;
-    color: inherit;
-    background: transparent;
-    font-size: 0.78rem;
-    text-align: left;
-}
-
-.workspace-sort-menu button:hover,
-.workspace-sort-menu button:focus-visible {
-    color: #3f4b54;
-    background: #f0edf8;
-}
-
-.workspace-sort-menu__check {
-    width: 16px;
-    display: inline-flex;
-    flex: 0 0 16px;
-    color: var(--brand);
 }
 
 .mobile-menu-button {
@@ -2328,13 +2276,11 @@ button:disabled {
         padding-inline: 17px;
     }
 
-    .workspace-actions > button span,
-    .workspace-action-wrap > button span {
+    .workspace-actions button span {
         display: none;
     }
 
-    .workspace-actions > button,
-    .workspace-action-wrap > button {
+    .workspace-actions button {
         min-width: 39px;
         min-height: 39px;
     }
