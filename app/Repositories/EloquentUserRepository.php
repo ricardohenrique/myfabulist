@@ -10,11 +10,24 @@ use Illuminate\Support\Str;
 
 class EloquentUserRepository implements UserRepositoryInterface
 {
+    public function create(array $attributes): User
+    {
+        $user = new User;
+        $user->forceFill($attributes)->save();
+
+        return $user->refresh();
+    }
+
     public function save(User $user): User
     {
         $user->save();
 
         return $user->refresh();
+    }
+
+    public function findByGoogleId(string $googleId): ?User
+    {
+        return User::query()->where('google_id', $googleId)->first();
     }
 
     /**

@@ -22,7 +22,9 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
- * @property string $password
+ * @property string|null $password
+ * @property string|null $google_id
+ * @property string|null $avatar
  * @property string|null $profile_photo_path
  * @property int|null $workspace_background_option_id
  * @property array<string, mixed>|null $workspace_background_config
@@ -39,7 +41,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property-read Collection<int, Task> $tasks
  * @property-read Collection<int, TaskComment> $taskComments
  */
-#[Fillable(['name', 'email', 'password', 'google_id', 'avatar', 'email_verified_at'])]
+#[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -82,7 +84,7 @@ class User extends Authenticatable
         return Attribute::get(
             fn (): ?string => $this->profile_photo_path
                 ? Storage::disk('public')->url($this->profile_photo_path)
-                : null,
+                : $this->avatar,
         );
     }
 

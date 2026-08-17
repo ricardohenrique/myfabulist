@@ -30,7 +30,7 @@ export default function Privacy() {
                 <h2>2. Data we process</h2>
                 <p>Depending on how you use Purplelist, we process:</p>
                 <ul>
-                    <li><strong>Account data:</strong> your name, email address, password hash, and account settings.</li>
+                    <li><strong>Account data:</strong> your name, email address, password hash (if you set a password), Google account identifier and profile image (if you use Google sign-in), and account settings.</li>
                     <li><strong>Content:</strong> folders, lists, tasks, notes, due dates, subtasks, comments, ordering, completion, and starred status.</li>
                     <li><strong>Collaboration data:</strong> list memberships, invitations, and the identity of comment authors and collaborators.</li>
                     <li><strong>Technical data:</strong> IP address, request time, browser and device information, log data, and session or API-token metadata needed to operate and secure the service.</li>
@@ -63,7 +63,20 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>4. Cookies and local storage</h2>
+                <h2>4. Google sign-in</h2>
+                <p>
+                    If you choose “Continue with Google,” your browser is redirected to Google for
+                    authentication. Google provides Purplelist with your Google account identifier, verified
+                    email address, name, and profile image. We use this data to sign you in, create or safely
+                    link your Purplelist account, and display your profile image. Google's own processing is
+                    governed by its{' '}
+                    <a href="https://policies.google.com/privacy" rel="noreferrer" target="_blank">privacy policy</a>.
+                    Using Google sign-in is optional; you may use an email and password instead.
+                </p>
+            </section>
+
+            <section>
+                <h2>5. Cookies and local storage</h2>
                 <p>
                     Purplelist uses strictly necessary first-party cookies for login sessions, CSRF protection,
                     and, when selected, the “keep me signed in” function. These technologies are required to
@@ -73,7 +86,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>5. Sharing and recipients</h2>
+                <h2>6. Sharing and recipients</h2>
                 <p>
                     When you join a shared list, accepted members can see the list's tasks, notes, due dates,
                     subtasks, comments, completion state, and collaborators. Comment attribution is visible to
@@ -94,7 +107,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>6. Retention</h2>
+                <h2>7. Retention</h2>
                 <p>
                     We keep account data and active content while your account is in use. Deleted tasks and lists
                     may remain recoverable for a limited period. After an account or content is permanently
@@ -109,7 +122,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>7. Your rights</h2>
+                <h2>8. Your rights</h2>
                 <p>
                     Subject to the legal conditions, you may request access, correction, deletion, restriction,
                     or portability of your personal data. You may object to processing based on legitimate
@@ -127,7 +140,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>8. Automated decisions and changes</h2>
+                <h2>9. Automated decisions and changes</h2>
                 <p>
                     Purplelist does not use your data for automated decision-making or profiling that produces
                     legal or similarly significant effects. We may update this policy when the service or legal
@@ -136,7 +149,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>9. Related terms</h2>
+                <h2>10. Related terms</h2>
                 <p>How you may use Purplelist is explained in our <Link href={terms()}>Terms of Service</Link>.</p>
             </section>
         </LegalLayout>

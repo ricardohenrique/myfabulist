@@ -853,6 +853,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
             <ProfileSettingsDialog
                 backgroundOptions={page.props.workspaceBackgroundOptions}
                 currentBackground={user.workspaceBackground}
+                hasPassword={user.hasPassword}
                 onClose={closeProfile}
                 onSaveProfile={saveProfile}
                 onSavePassword={savePassword}

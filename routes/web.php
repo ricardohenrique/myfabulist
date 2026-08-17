@@ -38,10 +38,12 @@ Route::middleware('guest')->group(function () {
         ->name('login.store');
     Route::get('register', fn () => Inertia::render('auth/register'))->name('register');
     Route::post('register', [RegisteredUserController::class, 'store'])->name('register.store');
-    Route::get('/auth/google', [GoogleController::class, 'redirect'])
+    Route::get('auth/google', [GoogleController::class, 'redirect'])
+        ->middleware('throttle:login')
         ->name('auth.google');
 
-    Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
+    Route::get('auth/google/callback', [GoogleController::class, 'callback'])
+        ->middleware('throttle:login')
         ->name('auth.google.callback');
 });
 

@@ -16,7 +16,14 @@ use App\Models\User;
  */
 interface UserRepositoryInterface
 {
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function create(array $attributes): User;
+
     public function save(User $user): User;
+
+    public function findByGoogleId(string $googleId): ?User;
 
     /**
      * Case-insensitive lookup by email (Q3: "exact lowercase email match").

@@ -71,6 +71,11 @@ frontend assets.
    The example configuration uses MySQL. Update the `DB_*` values for your
    local MySQL database before migrating.
 
+   To enable Google sign-in, create a Google OAuth 2.0 web client and set
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Register the exact callback
+   URL from `GOOGLE_REDIRECT_URI` (by default
+   `${APP_URL}/auth/google/callback`) as an authorized redirect URI in Google.
+
 4. Create the MySQL database and run migrations. The example command below
    uses the default `DB_DATABASE=laravel`; adjust it if you changed that value.
 
@@ -119,7 +124,10 @@ creates `demo1@example.com` through `demo20@example.com`, all with password
 
 ## Browser application
 
-Guests can register and sign in. Authenticated users can:
+Guests can register, sign in with email and password, or continue with a
+verified Google account. Matching verified email addresses are linked to the
+existing Purplelist account instead of creating duplicates. Authenticated
+users can:
 
 - navigate Inbox, Starred, folders, and lists;
 - create, rename, move, reorder, and delete folders/lists within their rules;

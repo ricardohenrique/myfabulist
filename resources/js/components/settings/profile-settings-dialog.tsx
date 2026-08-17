@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { WorkspaceBackgroundSection } from '@/components/settings/workspace-background-section';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import type { WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/types';
+import type { UserSummary, WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/types';
 
 export type ProfileFormData = {
     name: string;
@@ -41,6 +41,7 @@ type ProfileSettingsDialogProps = {
     onSavePassword: (event: FormEvent<HTMLFormElement>) => void;
     currentBackground: WorkspaceBackground | null;
     backgroundOptions: WorkspaceBackgroundOptionSummary[];
+    hasPassword: UserSummary['hasPassword'];
 };
 
 export function ProfileSettingsDialog({
@@ -53,6 +54,7 @@ export function ProfileSettingsDialog({
     onSavePassword,
     currentBackground,
     backgroundOptions,
+    hasPassword,
 }: ProfileSettingsDialogProps) {
     const [activeTab, setActiveTab] = useState<ProfileTabId>('profile');
 
@@ -145,22 +147,30 @@ export function ProfileSettingsDialog({
 
                         <section aria-labelledby="profile-password-heading" className="profile-modal__section">
                             <div className="profile-modal__section-heading">
-                                <h3 id="profile-password-heading">Change password</h3>
-                                <p>Confirm your current password before choosing a new one.</p>
+                                <h3 id="profile-password-heading">{hasPassword ? 'Change password' : 'Set a password'}</h3>
+                                <p>
+                                    {hasPassword
+                                        ? 'Confirm your current password before choosing a new one.'
+                                        : 'Add a password if you also want to sign in with your email address.'}
+                                </p>
                             </div>
 
                             <form className="profile-modal__form" noValidate onSubmit={onSavePassword}>
-                                <label className="field-label" htmlFor="current-password">Current password</label>
-                                <input
-                                    aria-invalid={Boolean(passwordForm.errors.current_password)}
-                                    autoComplete="current-password"
-                                    className="text-field"
-                                    id="current-password"
-                                    onChange={(event) => passwordForm.setData('current_password', event.target.value)}
-                                    type="password"
-                                    value={passwordForm.data.current_password}
-                                />
-                                {passwordForm.errors.current_password && <p className="field-error">{passwordForm.errors.current_password}</p>}
+                                {hasPassword && (
+                                    <>
+                                        <label className="field-label" htmlFor="current-password">Current password</label>
+                                        <input
+                                            aria-invalid={Boolean(passwordForm.errors.current_password)}
+                                            autoComplete="current-password"
+                                            className="text-field"
+                                            id="current-password"
+                                            onChange={(event) => passwordForm.setData('current_password', event.target.value)}
+                                            type="password"
+                                            value={passwordForm.data.current_password}
+                                        />
+                                        {passwordForm.errors.current_password && <p className="field-error">{passwordForm.errors.current_password}</p>}
+                                    </>
+                                )}
 
                                 <label className="field-label" htmlFor="new-password">New password</label>
                                 <input
@@ -187,7 +197,7 @@ export function ProfileSettingsDialog({
 
                                 <div className="profile-modal__actions">
                                     <Button disabled={passwordForm.processing} type="submit" variant="primary">
-                                        {passwordForm.processing ? 'Updating…' : 'Update password'}
+                                        {passwordForm.processing ? 'Saving…' : hasPassword ? 'Update password' : 'Set password'}
                                     </Button>
                                 </div>
                             </form>

@@ -1,56 +1,61 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Auth;
 
+use App\Exceptions\GoogleAccountAlreadyLinkedException;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Services\GoogleAccountService;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Socialite\AbstractUser;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Throwable;
 
 class GoogleController extends Controller
 {
-    public function redirect()
+    public function __construct(
+        private readonly GoogleAccountService $accounts,
+    ) {}
+
+    public function redirect(): RedirectResponse
     {
         return Socialite::driver('google')->redirect();
     }
 
-    public function callback()
+    public function callback(): RedirectResponse
     {
         try {
             $googleUser = Socialite::driver('google')->user();
 
-            // First try to find an already-linked Google account.
-            $user = User::where('google_id', $googleUser->getId())->first();
-
-            if (! $user) {
-                // Check whether this email already belongs to a Purplelist user.
-                $user = User::where('email', $googleUser->getEmail())->first();
-
-                if ($user) {
-                    // Link Google to the existing Purplelist account.
-                    $user->update([
-                        'google_id' => $googleUser->getId(),
-                        'avatar' => $googleUser->getAvatar(),
-                    ]);
-                } else {
-                    // Completely new user.
-                    $user = User::create([
-                        'name' => $googleUser->getName(),
-                        'email' => $googleUser->getEmail(),
-                        'google_id' => $googleUser->getId(),
-                        'avatar' => $googleUser->getAvatar(),
-                        'email_verified_at' => now(),
-                    ]);
-                }
+            if (! $googleUser instanceof AbstractUser) {
+                throw new \UnexpectedValueException('Google returned an unsupported user payload.');
             }
 
-            Auth::login($user, true);
+            if (! $this->hasVerifiedEmail($googleUser)) {
+                return redirect()->route('login')->with(
+                    'error',
+                    'Google did not provide a verified email address. Please use another sign-in method.',
+                );
+            }
+
+            $user = $this->accounts->resolve(
+                (string) $googleUser->getId(),
+                (string) $googleUser->getEmail(),
+                (string) $googleUser->getName(),
+                $googleUser->getAvatar(),
+            );
+
+            Auth::login($user);
 
             request()->session()->regenerate();
 
-            return redirect()->intended('/dashboard');
-
+            return redirect()->intended(route('inbox', absolute: false));
+        } catch (GoogleAccountAlreadyLinkedException) {
+            return redirect()
+                ->route('login')
+                ->with('error', 'This Purplelist account is already linked to another Google account.');
         } catch (Throwable $e) {
             report($e);
 
@@ -58,5 +63,13 @@ class GoogleController extends Controller
                 ->route('login')
                 ->with('error', 'Unable to sign in with Google. Please try again.');
         }
+    }
+
+    private function hasVerifiedEmail(AbstractUser $googleUser): bool
+    {
+        $raw = $googleUser->getRaw();
+
+        return filled($googleUser->getEmail())
+            && filter_var($raw['email_verified'] ?? $raw['verified_email'] ?? false, FILTER_VALIDATE_BOOL);
     }
 }

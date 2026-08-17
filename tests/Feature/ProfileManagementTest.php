@@ -82,4 +82,23 @@ class ProfileManagementTest extends TestCase
 
         $this->assertTrue(Hash::check('password', $user->fresh()->password));
     }
+
+    public function test_google_only_user_can_set_their_first_password(): void
+    {
+        $user = User::factory()->create([
+            'google_id' => 'google-123',
+            'password' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('profile.password.update'), [
+                'current_password' => '',
+                'password' => 'new-secure-password',
+                'password_confirmation' => 'new-secure-password',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertTrue(Hash::check('new-secure-password', $user->fresh()->password));
+    }
 }

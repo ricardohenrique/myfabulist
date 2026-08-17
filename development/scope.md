@@ -34,8 +34,10 @@ field. Lists may also remain ungrouped.
 ### Accounts and ownership
 
 - Authentication is required for product data.
-- Users may register, sign in, sign out, and update their name, email, and
-  password from a basic in-app profile modal. Email verification, password reset,
+- Users may register, sign in with email/password or a verified Google account,
+  sign out, and update their name, email, and password from a basic in-app
+  profile modal. A Google-only user may set their first password after signing
+  in. Email verification, password reset,
   two-factor authentication, passkeys, and expanded account settings are
   intentionally excluded from the current release.
 - A user may only view or mutate folders and tasks they own, and lists they

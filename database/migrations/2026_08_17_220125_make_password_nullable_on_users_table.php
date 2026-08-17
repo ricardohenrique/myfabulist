@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -21,6 +22,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        if (DB::table('users')->whereNull('password')->exists()) {
+            throw new RuntimeException('Cannot make passwords required while Google-only users exist.');
+        }
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('password')->nullable(false)->change();
+        });
     }
 };
