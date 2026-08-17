@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { optionSwatchBackground } from '@/lib/workspace-background';
@@ -25,11 +25,6 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
     const previewConfigFor = (option: WorkspaceBackgroundOptionSummary) =>
         currentBackground?.optionKey === option.key ? currentBackground.config : option.defaultConfig;
 
-    // The platform default (Twilight, matches the brand identity) — read
-    // from the catalog rather than hard-coded, so an admin can move which
-    // preset "Use default" reverts to without a frontend change.
-    const defaultOption = options.find((option) => option.isDefault) ?? null;
-
     const selectType = (option: WorkspaceBackgroundOptionSummary) => {
         setSelectedKey(option.key);
         form.setData('option_key', option.key);
@@ -45,22 +40,6 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
         // its curated workspace_header/task_composer colors
         // (WorkspaceBackgroundService::updateSelection()).
         form.patch(updateBackground.url(), { preserveScroll: true });
-    };
-
-    // "Use default" now means "the platform default" (Twilight) rather than
-    // clearing to no preference — it submits through the exact same
-    // endpoint a tile click would, with an empty config, so the backend
-    // adopts (and stays live-linked to) the default option's own
-    // `default_config`.
-    const reset = () => {
-        if (!defaultOption) {
-            return;
-        }
-
-        router.patch(updateBackground.url(), { option_key: defaultOption.key }, {
-            preserveScroll: true,
-            onSuccess: () => setSelectedKey(defaultOption.key),
-        });
     };
 
     return (
@@ -94,11 +73,6 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
                 </div>
 
                 <div className="profile-modal__actions">
-                    {currentBackground && (
-                        <Button disabled={form.processing || !defaultOption} onClick={reset} type="button" variant="ghost">
-                            Use default
-                        </Button>
-                    )}
                     <Button disabled={form.processing || !selectedKey} type="submit" variant="primary">
                         {form.processing ? 'Saving…' : 'Save background'}
                     </Button>
