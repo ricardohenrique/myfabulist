@@ -62,4 +62,22 @@ class EloquentWorkspaceBackgroundOptionRepositoryTest extends TestCase
     {
         $this->assertNull($this->repository->findById(999_999));
     }
+
+    public function test_default_returns_the_option_flagged_as_default(): void
+    {
+        WorkspaceBackgroundOption::factory()->create(['key' => 'flat_color']);
+        $default = WorkspaceBackgroundOption::factory()->asDefault()->create(['key' => 'gradient']);
+
+        $found = $this->repository->default();
+
+        $this->assertNotNull($found);
+        $this->assertTrue($found->is($default));
+    }
+
+    public function test_default_returns_null_when_no_option_is_flagged_as_default(): void
+    {
+        WorkspaceBackgroundOption::factory()->create(['key' => 'flat_color']);
+
+        $this->assertNull($this->repository->default());
+    }
 }

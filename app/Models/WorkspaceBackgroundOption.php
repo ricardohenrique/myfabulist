@@ -22,11 +22,12 @@ use Illuminate\Support\Carbon;
  * @property string $label
  * @property array<string, mixed>|null $default_config
  * @property bool $enabled
+ * @property bool $is_default
  * @property int $sort_order
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['key', 'type', 'label', 'default_config', 'enabled', 'sort_order'])]
+#[Fillable(['key', 'type', 'label', 'default_config', 'enabled', 'is_default', 'sort_order'])]
 class WorkspaceBackgroundOption extends Model
 {
     /** @use HasFactory<WorkspaceBackgroundOptionFactory> */
@@ -42,6 +43,7 @@ class WorkspaceBackgroundOption extends Model
         return [
             'default_config' => 'array',
             'enabled' => 'boolean',
+            'is_default' => 'boolean',
             'sort_order' => 'integer',
         ];
     }

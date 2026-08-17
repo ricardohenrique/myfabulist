@@ -33,4 +33,11 @@ class EloquentWorkspaceBackgroundOptionRepository implements WorkspaceBackground
     {
         return WorkspaceBackgroundOption::query()->find($id);
     }
+
+    public function default(): ?WorkspaceBackgroundOption
+    {
+        return WorkspaceBackgroundOption::query()
+            ->where('is_default', true)
+            ->first();
+    }
 }

@@ -31,4 +31,11 @@ interface WorkspaceBackgroundOptionRepositoryInterface
      * it has since been disabled.
      */
     public function findById(int $id): ?WorkspaceBackgroundOption;
+
+    /**
+     * The platform's designated default option (`is_default`) — the one new
+     * users start on and "Use default" reverts to. Null only if the catalog
+     * is misconfigured (no row currently flagged as default).
+     */
+    public function default(): ?WorkspaceBackgroundOption;
 }

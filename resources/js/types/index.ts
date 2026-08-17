@@ -19,6 +19,7 @@ export type WorkspaceBackgroundOptionSummary = {
     type: WorkspaceBackgroundType;
     label: string;
     defaultConfig: WorkspaceBackgroundConfig | null;
+    isDefault: boolean;
 };
 
 export type UserSummary = {

@@ -16,7 +16,6 @@ type WorkspaceBackgroundFormData = {
 
 export function WorkspaceBackgroundSection({ currentBackground, options }: WorkspaceBackgroundSectionProps) {
     const [selectedKey, setSelectedKey] = useState<string | null>(currentBackground?.optionKey ?? null);
-    const [successMessage, setSuccessMessage] = useState('');
     const form = useForm<WorkspaceBackgroundFormData>({ option_key: currentBackground?.optionKey ?? null });
 
     // The already-applied option previews the user's own resolved look
@@ -26,36 +25,41 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
     const previewConfigFor = (option: WorkspaceBackgroundOptionSummary) =>
         currentBackground?.optionKey === option.key ? currentBackground.config : option.defaultConfig;
 
+    // The platform default (Twilight, matches the brand identity) — read
+    // from the catalog rather than hard-coded, so an admin can move which
+    // preset "Use default" reverts to without a frontend change.
+    const defaultOption = options.find((option) => option.isDefault) ?? null;
+
     const selectType = (option: WorkspaceBackgroundOptionSummary) => {
         setSelectedKey(option.key);
         form.setData('option_key', option.key);
         form.clearErrors();
-        setSuccessMessage('');
     };
 
     const save = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setSuccessMessage('');
 
         // Every selection here is just `option_key` — no per-type config is
         // ever submitted from this UI, so the backend always adopts (and
         // stays live-linked to) the preset's own `default_config`, including
         // its curated workspace_header/task_composer colors
         // (WorkspaceBackgroundService::updateSelection()).
-        form.patch(updateBackground.url(), {
-            preserveScroll: true,
-            onSuccess: () => setSuccessMessage('Workspace background updated.'),
-        });
+        form.patch(updateBackground.url(), { preserveScroll: true });
     };
 
+    // "Use default" now means "the platform default" (Twilight) rather than
+    // clearing to no preference — it submits through the exact same
+    // endpoint a tile click would, with an empty config, so the backend
+    // adopts (and stays live-linked to) the default option's own
+    // `default_config`.
     const reset = () => {
-        setSuccessMessage('');
-        router.patch(updateBackground.url(), { option_key: null }, {
+        if (!defaultOption) {
+            return;
+        }
+
+        router.patch(updateBackground.url(), { option_key: defaultOption.key }, {
             preserveScroll: true,
-            onSuccess: () => {
-                setSelectedKey(null);
-                setSuccessMessage('Workspace background reset to default.');
-            },
+            onSuccess: () => setSelectedKey(defaultOption.key),
         });
     };
 
@@ -65,8 +69,6 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
                 <h3 id="workspace-background-heading">Workspace background</h3>
                 <p>Personalize the color, image, or gradient behind your tasks.</p>
             </div>
-
-            {successMessage && <p className="profile-modal__success" role="status">{successMessage}</p>}
 
             <form className="workspace-background-form" noValidate onSubmit={save}>
                 <div className="workspace-background-options">
@@ -93,7 +95,7 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
 
                 <div className="profile-modal__actions">
                     {currentBackground && (
-                        <Button disabled={form.processing} onClick={reset} type="button" variant="ghost">
+                        <Button disabled={form.processing || !defaultOption} onClick={reset} type="button" variant="ghost">
                             Use default
                         </Button>
                     )}

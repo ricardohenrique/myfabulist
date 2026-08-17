@@ -65,5 +65,11 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseHas('workspace_background_options', ['key' => 'gradient_twilight', 'type' => 'gradient', 'enabled' => true]);
         $this->assertDatabaseHas('workspace_background_options', ['key' => 'image_aurora_waves', 'type' => 'image', 'enabled' => true]);
         $this->assertDatabaseHas('workspace_background_options', ['key' => 'image_dune_drift', 'type' => 'image', 'enabled' => true]);
+
+        // Exactly one catalog row is the platform default — Twilight,
+        // matching the brand identity (WorkspaceBackgroundService::
+        // assignDefaultTo(), "Use default" in the picker).
+        $this->assertSame(1, WorkspaceBackgroundOption::query()->where('is_default', true)->count());
+        $this->assertDatabaseHas('workspace_background_options', ['key' => 'gradient_twilight', 'is_default' => true]);
     }
 }

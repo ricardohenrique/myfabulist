@@ -243,4 +243,46 @@ class WorkspaceBackgroundServiceTest extends TestCase
         $this->assertNotNull($resolved);
         $this->assertSame(['color' => '#112233'], $resolved->config);
     }
+
+    public function test_assign_default_to_puts_a_fresh_user_on_the_default_option(): void
+    {
+        $default = WorkspaceBackgroundOption::factory()
+            ->asDefault()
+            ->withDefaultConfig(['from' => '#4a3f7a', 'to' => '#d98fb3'])
+            ->create(['key' => 'gradient_twilight', 'type' => 'gradient']);
+        $user = User::factory()->create();
+        $service = app(WorkspaceBackgroundService::class);
+
+        $service->assignDefaultTo($user);
+
+        $this->assertSame($default->id, $user->fresh()->workspace_background_option_id);
+        $this->assertNull($user->fresh()->workspace_background_config);
+
+        $resolved = $service->resolvedBackgroundFor($user->fresh());
+        $this->assertNotNull($resolved);
+        $this->assertSame('gradient_twilight', $resolved->optionKey);
+    }
+
+    public function test_assign_default_to_does_not_clobber_an_existing_selection(): void
+    {
+        WorkspaceBackgroundOption::factory()->asDefault()->create(['key' => 'gradient_twilight', 'type' => 'gradient']);
+        $chosen = WorkspaceBackgroundOption::factory()->create(['key' => 'flat_color_amethyst', 'type' => 'flat_color']);
+        $user = User::factory()->withWorkspaceBackground($chosen, ['color' => '#8b6fd6'])->create();
+        $service = app(WorkspaceBackgroundService::class);
+
+        $service->assignDefaultTo($user);
+
+        $this->assertSame($chosen->id, $user->fresh()->workspace_background_option_id);
+    }
+
+    public function test_assign_default_to_is_a_no_op_when_no_option_is_flagged_as_default(): void
+    {
+        WorkspaceBackgroundOption::factory()->create(['key' => 'flat_color']);
+        $user = User::factory()->create();
+        $service = app(WorkspaceBackgroundService::class);
+
+        $service->assignDefaultTo($user);
+
+        $this->assertNull($user->fresh()->workspace_background_option_id);
+    }
 }

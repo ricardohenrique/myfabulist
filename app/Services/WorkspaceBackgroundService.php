@@ -170,6 +170,42 @@ class WorkspaceBackgroundService
     }
 
     /**
+     * Puts a brand-new user on the platform's default background
+     * (`AssignDefaultWorkspaceBackground`, fired on registration). Guarded
+     * by "only if nothing is set yet" so it stays safe to call more than
+     * once and never clobbers an explicit choice — not that a fresh user
+     * has one, but the check is what makes this safe to reuse as an
+     * idempotent fallback later, the same way `TaskListService::inboxFor()`
+     * backstops `CreateDefaultTaskList` for users who never fired
+     * `Registered`.
+     *
+     * Persists `null` on `workspace_background_config`, exactly like
+     * adopting any other preset unmodified — the user stays live-linked to
+     * the default option's `default_config`, not frozen to a snapshot of it.
+     * A no-op if the catalog has no row flagged `is_default` (misconfigured
+     * catalog) — never blocks registration over a missing preference.
+     */
+    public function assignDefaultTo(User $user): void
+    {
+        if ($user->workspace_background_option_id !== null) {
+            return;
+        }
+
+        $default = $this->options->default();
+
+        if ($default === null) {
+            return;
+        }
+
+        $user->forceFill([
+            'workspace_background_option_id' => $default->id,
+            'workspace_background_config' => null,
+        ]);
+
+        $this->users->save($user);
+    }
+
+    /**
      * Resolves what actually gets persisted on `workspace_background_config`
      * for a selection:
      *

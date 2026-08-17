@@ -68,6 +68,7 @@ class HandleInertiaRequests extends Middleware
                         'type' => $option->type,
                         'label' => $option->label,
                         'defaultConfig' => $option->default_config,
+                        'isDefault' => $option->is_default,
                     ])
                     ->values()
                     ->all(),

@@ -25,6 +25,7 @@ class WorkspaceBackgroundOptionFactory extends Factory
             'label' => fake()->words(2, true),
             'default_config' => null,
             'enabled' => true,
+            'is_default' => false,
             'sort_order' => 0,
         ];
     }
@@ -36,6 +37,18 @@ class WorkspaceBackgroundOptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'enabled' => false,
+        ]);
+    }
+
+    /**
+     * Mark this option as the platform default — the one new users start on
+     * (WorkspaceBackgroundService::assignDefaultTo()) and "Use default"
+     * reverts to.
+     */
+    public function asDefault(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_default' => true,
         ]);
     }
 
