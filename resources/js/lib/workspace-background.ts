@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { WorkspaceBackground } from '@/types';
+import type { WorkspaceBackground, WorkspaceBackgroundConfig } from '@/types';
 
 // The exact three CSS custom properties `.workspace-header`/`.task-composer`
 // (and the task canvas itself) read, with today's hard-coded colors as their
@@ -24,41 +24,47 @@ export function workspaceBackgroundStyle(background: WorkspaceBackground | null)
 
     switch (background.type) {
         case 'flat_color':
-            return flatColorStyle(background.config.color);
+            return flatColorStyle(background.config);
         case 'gradient':
-            return gradientStyle(background.config.from, background.config.to);
+            return gradientStyle(background.config);
         case 'image':
-            return imageStyle(background.config.url);
+            return imageStyle(background.config);
         default:
             return {};
     }
 }
 
-function flatColorStyle(color?: string): WorkspaceBackgroundStyle {
+function flatColorStyle(config: WorkspaceBackgroundConfig): WorkspaceBackgroundStyle {
+    const { color, workspace_header: workspaceHeader, task_composer: taskComposer } = config;
+
     if (!color) {
         return {};
     }
 
     return {
         '--workspace-bg': color,
-        '--workspace-header-bg': `color-mix(in srgb, ${color} 85%, black)`,
-        '--workspace-composer-bg': `color-mix(in srgb, ${color} 78%, black)`,
+        '--workspace-header-bg': workspaceHeader ?? `color-mix(in srgb, ${color} 85%, black)`,
+        '--workspace-composer-bg': taskComposer ?? `color-mix(in srgb, ${color} 78%, black)`,
     };
 }
 
-function gradientStyle(from?: string, to?: string): WorkspaceBackgroundStyle {
+function gradientStyle(config: WorkspaceBackgroundConfig): WorkspaceBackgroundStyle {
+    const { from, to, workspace_header: workspaceHeader, task_composer: taskComposer } = config;
+
     if (!from || !to) {
         return {};
     }
 
     return {
         '--workspace-bg': `linear-gradient(115deg, ${from} 0%, ${to} 100%)`,
-        '--workspace-header-bg': `color-mix(in srgb, ${from} 50%, ${to} 50%)`,
-        '--workspace-composer-bg': `color-mix(in srgb, ${from} 40%, ${to} 60%)`,
+        '--workspace-header-bg': workspaceHeader ?? `color-mix(in srgb, ${from} 50%, ${to} 50%)`,
+        '--workspace-composer-bg': taskComposer ?? `color-mix(in srgb, ${from} 40%, ${to} 60%)`,
     };
 }
 
-function imageStyle(url?: string): WorkspaceBackgroundStyle {
+function imageStyle(config: WorkspaceBackgroundConfig): WorkspaceBackgroundStyle {
+    const { url, workspace_header: workspaceHeader, task_composer: taskComposer } = config;
+
     if (!url) {
         return {};
     }
@@ -66,11 +72,13 @@ function imageStyle(url?: string): WorkspaceBackgroundStyle {
     return {
         '--workspace-bg': `url("${cssUrl(url)}") center / cover no-repeat`,
         // A background image can land anywhere on the contrast spectrum, so
-        // the header/composer get a fixed, neutral dark scrim rather than a
-        // color sampled from the image — keeps text legible without a full
-        // contrast-calculation engine (Plan §Risk Assessment fallback).
-        '--workspace-header-bg': 'rgba(20, 22, 26, 0.55)',
-        '--workspace-composer-bg': 'rgba(20, 22, 26, 0.45)',
+        // the header/composer fall back to a fixed, neutral dark scrim
+        // (rather than a color sampled from the image) when the preset does
+        // not specify its own `workspace_header`/`task_composer` — keeps
+        // text legible without a full contrast-calculation engine (Plan
+        // §Risk Assessment fallback).
+        '--workspace-header-bg': workspaceHeader ?? 'rgba(20, 22, 26, 0.55)',
+        '--workspace-composer-bg': taskComposer ?? 'rgba(20, 22, 26, 0.45)',
     };
 }
 

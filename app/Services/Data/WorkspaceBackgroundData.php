@@ -15,10 +15,19 @@ final readonly class WorkspaceBackgroundData
 {
     /**
      * @param  array<string, mixed>  $config
+     * @param  bool  $isCustomized  True when `config` is the user's own stored
+     *                              override (`users.workspace_background_config`
+     *                              is non-null); false when it is only the
+     *                              option's current `default_config`, followed
+     *                              live. The picker UI uses this to decide
+     *                              whether re-saving without editing anything
+     *                              should stay live-linked to the preset or
+     *                              keep the user's existing personal override.
      */
     public function __construct(
         public string $optionKey,
         public string $type,
         public array $config,
+        public bool $isCustomized,
     ) {}
 }

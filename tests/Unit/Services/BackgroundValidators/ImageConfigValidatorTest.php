@@ -57,4 +57,43 @@ class ImageConfigValidatorTest extends TestCase
 
         $validator->validate(['image' => $file]);
     }
+
+    public function test_it_accepts_and_lowercases_optional_workspace_header_and_task_composer_colors(): void
+    {
+        Storage::fake('public');
+        $validator = new ImageConfigValidator;
+        $file = UploadedFile::fake()->image('background.jpg', 800, 600);
+
+        $result = $validator->validate([
+            'image' => $file,
+            'workspace_header' => '#AABBCC',
+            'task_composer' => '#DDEEFF',
+        ]);
+
+        $this->assertSame('#aabbcc', $result['workspace_header']);
+        $this->assertSame('#ddeeff', $result['task_composer']);
+    }
+
+    public function test_it_omits_workspace_header_and_task_composer_when_absent_or_null(): void
+    {
+        Storage::fake('public');
+        $validator = new ImageConfigValidator;
+        $file = UploadedFile::fake()->image('background.jpg', 800, 600);
+
+        $result = $validator->validate(['image' => $file, 'workspace_header' => null]);
+
+        $this->assertArrayNotHasKey('workspace_header', $result);
+        $this->assertArrayNotHasKey('task_composer', $result);
+    }
+
+    public function test_it_rejects_a_malformed_optional_workspace_header_color(): void
+    {
+        Storage::fake('public');
+        $validator = new ImageConfigValidator;
+        $file = UploadedFile::fake()->image('background.jpg', 800, 600);
+
+        $this->expectException(InvalidBackgroundSelectionException::class);
+
+        $validator->validate(['image' => $file, 'workspace_header' => 'not-a-color']);
+    }
 }

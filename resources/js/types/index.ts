@@ -11,6 +11,7 @@ export type WorkspaceBackground = {
     optionKey: string;
     type: WorkspaceBackgroundType;
     config: WorkspaceBackgroundConfig;
+    isCustomized: boolean;
 };
 
 export type WorkspaceBackgroundOptionSummary = {

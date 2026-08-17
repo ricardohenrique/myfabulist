@@ -133,7 +133,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * @return array{optionKey: string, type: string, config: array<string, mixed>}|null
+     * @return array{optionKey: string, type: string, config: array<string, mixed>, isCustomized: bool}|null
      */
     private function resolvedWorkspaceBackground(User $user): ?array
     {
@@ -147,6 +147,7 @@ class HandleInertiaRequests extends Middleware
             'optionKey' => $background->optionKey,
             'type' => $background->type,
             'config' => $background->config,
+            'isCustomized' => $background->isCustomized,
         ];
     }
 }

@@ -37,6 +37,16 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
     const [imagePreview, setImagePreview] = useState<string | null>(
         currentBackground?.type === 'image' ? (currentBackground.config.url ?? null) : null,
     );
+    // Whether the currently-shown color/gradient/image value is the user's
+    // own deliberate override, as opposed to just a preview of the selected
+    // preset's `default_config`. Only a `true` value is ever submitted as an
+    // explicit config on save — otherwise the request carries just
+    // `option_key`, so the backend adopts (and stays live-linked to) the
+    // preset's own default rather than freezing a copy
+    // (WorkspaceBackgroundService::updateSelection()). Seeded from the
+    // server's own record of this, since a merely-previewed default and a
+    // real personal override are visually indistinguishable once rendered.
+    const [isCustomized, setIsCustomized] = useState(currentBackground?.isCustomized ?? false);
     const form = useForm<WorkspaceBackgroundFormData>(initialFormData(currentBackground));
 
     const selectedOption = options.find((option) => option.key === selectedKey) ?? null;
@@ -47,12 +57,18 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
         form.clearErrors();
         setSuccessMessage('');
 
-        // Prefill from the preset's own curated value when switching to a
-        // fresh option — not when re-opening the user's own already-
-        // customized selection, whose form state (from `initialFormData`)
-        // must win instead.
+        // Re-selecting the option already applied leaves its customized
+        // state exactly as it was (the fields still hold whatever was there
+        // before) — only switching to a genuinely different option resets to
+        // "just previewing this preset's default, nothing customized yet".
         const isCurrentSelection = currentBackground?.optionKey === option.key;
-        if (isCurrentSelection || !option.defaultConfig) {
+        if (isCurrentSelection) {
+            return;
+        }
+
+        setIsCustomized(false);
+
+        if (!option.defaultConfig) {
             return;
         }
 
@@ -74,6 +90,7 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
     const onImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         form.setData('image', file);
+        setIsCustomized(true);
         if (file) {
             setImagePreview(URL.createObjectURL(file));
         }
@@ -83,13 +100,17 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
         event.preventDefault();
         setSuccessMessage('');
 
-        // Only the fields relevant to the selected option's type are ever
-        // submitted. Critically, an `image` selection with no newly chosen
-        // file sends nothing but `option_key` — never the leftover
-        // color/gradient defaults sitting in form state — so the backend
-        // sees a genuinely empty config and adopts the option's own
-        // `default_config` (WorkspaceBackgroundService::updateSelection()).
+        // A picker that was never actually touched submits nothing but
+        // `option_key`, regardless of type, so the backend adopts the
+        // preset's own `default_config` (including its curated
+        // workspace_header/task_composer colors, which this form has no
+        // fields for) and stays live-linked to it. Only a genuine edit sends
+        // an explicit config, and only the fields relevant to the selected
+        // option's type.
         form.transform((data) => {
+            if (!isCustomized) {
+                return { option_key: data.option_key };
+            }
             if (selectedOption?.type === 'flat_color') {
                 return { option_key: data.option_key, color: data.color };
             }
@@ -122,7 +143,7 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
     };
 
     return (
-        <section aria-labelledby="workspace-background-heading" className="profile-modal__section profile-modal__section--full">
+        <section aria-labelledby="workspace-background-heading" className="profile-modal__section">
             <div className="profile-modal__section-heading">
                 <h3 id="workspace-background-heading">Workspace background</h3>
                 <p>Personalize the color, image, or gradient behind your tasks.</p>
@@ -153,7 +174,7 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
                         <label className="field-label" htmlFor="background-color">Color</label>
                         <input
                             id="background-color"
-                            onChange={(event) => form.setData('color', event.target.value)}
+                            onChange={(event) => { form.setData('color', event.target.value); setIsCustomized(true); }}
                             type="color"
                             value={form.data.color}
                         />
@@ -167,7 +188,7 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
                             <label className="field-label" htmlFor="background-gradient-from">From</label>
                             <input
                                 id="background-gradient-from"
-                                onChange={(event) => form.setData('gradient_from', event.target.value)}
+                                onChange={(event) => { form.setData('gradient_from', event.target.value); setIsCustomized(true); }}
                                 type="color"
                                 value={form.data.gradient_from}
                             />
@@ -176,7 +197,7 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
                             <label className="field-label" htmlFor="background-gradient-to">To</label>
                             <input
                                 id="background-gradient-to"
-                                onChange={(event) => form.setData('gradient_to', event.target.value)}
+                                onChange={(event) => { form.setData('gradient_to', event.target.value); setIsCustomized(true); }}
                                 type="color"
                                 value={form.data.gradient_to}
                             />

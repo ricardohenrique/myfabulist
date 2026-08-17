@@ -23,6 +23,7 @@ class WorkspaceBackgroundResource extends JsonResource
             'optionKey' => $this->optionKey,
             'type' => $this->type,
             'config' => $this->config,
+            'isCustomized' => $this->isCustomized,
         ];
     }
 

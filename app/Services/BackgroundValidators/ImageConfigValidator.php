@@ -25,6 +25,8 @@ class ImageConfigValidator implements BackgroundConfigValidator
 
     private const STORAGE_DIRECTORY = 'workspace-backgrounds';
 
+    private const HEX_COLOR_PATTERN = '/^#[0-9a-f]{6}$/i';
+
     public function validate(array $config): array
     {
         $image = $config['image'] ?? null;
@@ -53,6 +55,44 @@ class ImageConfigValidator implements BackgroundConfigValidator
             throw InvalidBackgroundSelectionException::becauseInvalidConfig('image');
         }
 
-        return ['path' => $path];
+        $sanitized = ['path' => $path];
+
+        foreach (['workspace_header', 'task_composer'] as $key) {
+            $value = $this->validateOptionalColor($config, $key);
+
+            if ($value !== null) {
+                $sanitized[$key] = $value;
+            }
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * `workspace_header`/`task_composer` are optional per-preset overrides
+     * of the fixed neutral scrim otherwise used for image backgrounds —
+     * validated only when present (and not null), omitted from the
+     * sanitized result otherwise rather than being forced to null. In
+     * practice these two keys reach this validator only if a caller
+     * bundles them alongside an actual file upload — an adopted `image`
+     * preset's `default_config` (which is where these values normally
+     * live) bypasses this validator entirely (see
+     * `WorkspaceBackgroundService`).
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function validateOptionalColor(array $config, string $key): ?string
+    {
+        $value = $config[$key] ?? null;
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (! is_string($value) || preg_match(self::HEX_COLOR_PATTERN, $value) !== 1) {
+            throw InvalidBackgroundSelectionException::becauseInvalidConfig('image');
+        }
+
+        return strtolower($value);
     }
 }

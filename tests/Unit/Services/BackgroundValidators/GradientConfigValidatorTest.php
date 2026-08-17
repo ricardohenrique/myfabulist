@@ -45,4 +45,41 @@ class GradientConfigValidatorTest extends TestCase
 
         $validator->validate(['color' => '#112233']);
     }
+
+    public function test_it_accepts_and_lowercases_optional_workspace_header_and_task_composer_colors(): void
+    {
+        $validator = new GradientConfigValidator;
+
+        $result = $validator->validate([
+            'from' => '#aabbcc',
+            'to' => '#112233',
+            'workspace_header' => '#AABBCC',
+            'task_composer' => '#DDEEFF',
+        ]);
+
+        $this->assertSame([
+            'from' => '#aabbcc',
+            'to' => '#112233',
+            'workspace_header' => '#aabbcc',
+            'task_composer' => '#ddeeff',
+        ], $result);
+    }
+
+    public function test_it_omits_workspace_header_and_task_composer_when_absent_or_null(): void
+    {
+        $validator = new GradientConfigValidator;
+
+        $result = $validator->validate(['from' => '#aabbcc', 'to' => '#112233', 'task_composer' => null]);
+
+        $this->assertSame(['from' => '#aabbcc', 'to' => '#112233'], $result);
+    }
+
+    public function test_it_rejects_a_malformed_optional_task_composer_color(): void
+    {
+        $validator = new GradientConfigValidator;
+
+        $this->expectException(InvalidBackgroundSelectionException::class);
+
+        $validator->validate(['from' => '#aabbcc', 'to' => '#112233', 'task_composer' => 'not-a-color']);
+    }
 }

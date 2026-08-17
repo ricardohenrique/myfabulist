@@ -148,7 +148,11 @@ class WorkspaceBackgroundServiceTest extends TestCase
         $updated = $service->updateSelection($user, 'flat_color_amethyst', []);
 
         $this->assertSame($option->id, $updated->workspace_background_option_id);
-        $this->assertSame(['color' => '#8b6fd6'], $updated->workspace_background_config);
+        $this->assertNull($updated->workspace_background_config);
+
+        $resolved = $service->resolvedBackgroundFor($updated);
+        $this->assertNotNull($resolved);
+        $this->assertSame(['color' => '#8b6fd6'], $resolved->config);
     }
 
     public function test_selecting_a_gradient_preset_with_an_empty_config_adopts_its_default(): void
@@ -162,7 +166,11 @@ class WorkspaceBackgroundServiceTest extends TestCase
         $updated = $service->updateSelection($user, 'gradient_twilight', []);
 
         $this->assertSame($option->id, $updated->workspace_background_option_id);
-        $this->assertSame(['from' => '#4a3f7a', 'to' => '#d98fb3'], $updated->workspace_background_config);
+        $this->assertNull($updated->workspace_background_config);
+
+        $resolved = $service->resolvedBackgroundFor($updated);
+        $this->assertNotNull($resolved);
+        $this->assertSame(['from' => '#4a3f7a', 'to' => '#d98fb3'], $resolved->config);
     }
 
     public function test_selecting_an_image_preset_with_an_empty_config_adopts_its_default_without_validation(): void
@@ -176,7 +184,11 @@ class WorkspaceBackgroundServiceTest extends TestCase
         $updated = $service->updateSelection($user, 'image_aurora_waves', []);
 
         $this->assertSame($option->id, $updated->workspace_background_option_id);
-        $this->assertSame(['url' => '/images/workspace-backgrounds/aurora-waves.svg'], $updated->workspace_background_config);
+        $this->assertNull($updated->workspace_background_config);
+
+        $resolved = $service->resolvedBackgroundFor($updated);
+        $this->assertNotNull($resolved);
+        $this->assertSame(['url' => '/images/workspace-backgrounds/aurora-waves.svg'], $resolved->config);
     }
 
     public function test_selecting_an_option_with_an_empty_config_and_no_default_still_throws(): void
@@ -188,6 +200,25 @@ class WorkspaceBackgroundServiceTest extends TestCase
         $this->expectException(InvalidBackgroundSelectionException::class);
 
         $service->updateSelection($user, 'flat_color', []);
+    }
+
+    public function test_adopting_a_preset_unmodified_tracks_later_default_config_edits_live(): void
+    {
+        $option = WorkspaceBackgroundOption::factory()
+            ->withDefaultConfig(['color' => '#8b6fd6'])
+            ->create(['key' => 'flat_color_amethyst', 'type' => 'flat_color']);
+        $user = User::factory()->create();
+        $service = app(WorkspaceBackgroundService::class);
+
+        $updated = $service->updateSelection($user, 'flat_color_amethyst', []);
+        $this->assertNull($updated->workspace_background_config);
+
+        $option->update(['default_config' => ['color' => '#112233']]);
+
+        $resolved = $service->resolvedBackgroundFor($updated);
+
+        $this->assertNotNull($resolved);
+        $this->assertSame(['color' => '#112233'], $resolved->config);
     }
 
     public function test_a_submitted_config_overrides_the_options_default_config(): void
@@ -202,5 +233,14 @@ class WorkspaceBackgroundServiceTest extends TestCase
 
         $this->assertSame($option->id, $updated->workspace_background_option_id);
         $this->assertSame(['color' => '#112233'], $updated->workspace_background_config);
+
+        // A later edit to the catalog's default_config must not affect a
+        // user who customized their own value.
+        $option->update(['default_config' => ['color' => '#000000']]);
+
+        $resolved = $service->resolvedBackgroundFor($updated);
+
+        $this->assertNotNull($resolved);
+        $this->assertSame(['color' => '#112233'], $resolved->config);
     }
 }
