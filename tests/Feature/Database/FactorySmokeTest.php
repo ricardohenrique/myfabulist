@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskList;
 use App\Models\User;
+use App\Models\WorkspaceBackgroundOption;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -229,5 +230,36 @@ class FactorySmokeTest extends TestCase
         $this->assertTrue($task->is_completed);
         $this->assertNotNull($task->completed_at);
         $this->assertSame($completedAt->format('Y-m-d H:i:s'), $task->completed_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_user_factory_has_no_default_workspace_background(): void
+    {
+        $user = User::factory()->create();
+
+        $this->assertNull($user->workspace_background_option_id);
+        $this->assertNull($user->workspace_background_config);
+    }
+
+    public function test_user_factory_with_workspace_background_state_persists_the_selection(): void
+    {
+        $option = WorkspaceBackgroundOption::factory()->create(['key' => 'flat_color', 'type' => 'flat_color']);
+        $user = User::factory()->withWorkspaceBackground($option, ['color' => '#aabbcc'])->create();
+
+        $this->assertSame($option->id, $user->fresh()->workspace_background_option_id);
+        $this->assertSame(['color' => '#aabbcc'], $user->fresh()->workspace_background_config);
+    }
+
+    public function test_workspace_background_option_factory_produces_a_valid_persisted_row(): void
+    {
+        $option = WorkspaceBackgroundOption::factory()->create();
+
+        $this->assertDatabaseHas('workspace_background_options', ['id' => $option->id, 'enabled' => true]);
+    }
+
+    public function test_workspace_background_option_factory_disabled_state(): void
+    {
+        $option = WorkspaceBackgroundOption::factory()->disabled()->create();
+
+        $this->assertFalse($option->fresh()->enabled);
     }
 }

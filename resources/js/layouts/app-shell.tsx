@@ -9,7 +9,9 @@ import { TaskRow } from '@/components/tasks/task-row';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
+import { ProfileSettingsDialog } from '@/components/settings/profile-settings-dialog';
 import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
+import { workspaceBackgroundStyle } from '@/lib/workspace-background';
 import * as folderRoutes from '@/routes/folders';
 import * as invitationRoutes from '@/routes/invitations';
 import * as listRoutes from '@/routes/lists';
@@ -680,7 +682,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     };
 
     return (
-        <div className="app-frame">
+        <div className="app-frame" style={workspaceBackgroundStyle(user.workspaceBackground)}>
             <Head title={`${workspace.heading} · Purplelist`} />
             <Sidebar
                 activeView={workspace.view}
@@ -848,105 +850,17 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 </div>
             )}
 
-            <Dialog
-                description="Update your account details without leaving your tasks."
+            <ProfileSettingsDialog
+                backgroundOptions={page.props.workspaceBackgroundOptions}
+                currentBackground={user.workspaceBackground}
                 onClose={closeProfile}
+                onSaveProfile={saveProfile}
+                onSavePassword={savePassword}
                 open={profileDialogOpen}
-                panelClassName="dialog-panel--profile"
-                title="Profile settings"
-            >
-                {profileSuccess && <p className="profile-modal__success" role="status">{profileSuccess}</p>}
-
-                <div className="profile-modal__sections">
-                    <section className="profile-modal__section" aria-labelledby="profile-details-heading">
-                        <div className="profile-modal__section-heading">
-                            <h3 id="profile-details-heading">Personal details</h3>
-                            <p>Change the name and email used for your account.</p>
-                        </div>
-
-                        <form className="profile-modal__form" noValidate onSubmit={saveProfile}>
-                            <label className="field-label" htmlFor="profile-name">Name</label>
-                            <input
-                                aria-invalid={Boolean(profileForm.errors.name)}
-                                autoComplete="name"
-                                className="text-field"
-                                id="profile-name"
-                                onChange={(event) => profileForm.setData('name', event.target.value)}
-                                value={profileForm.data.name}
-                            />
-                            {profileForm.errors.name && <p className="field-error">{profileForm.errors.name}</p>}
-
-                            <label className="field-label" htmlFor="profile-email">Email address</label>
-                            <input
-                                aria-invalid={Boolean(profileForm.errors.email)}
-                                autoComplete="email"
-                                className="text-field"
-                                id="profile-email"
-                                onChange={(event) => profileForm.setData('email', event.target.value)}
-                                type="email"
-                                value={profileForm.data.email}
-                            />
-                            {profileForm.errors.email && <p className="field-error">{profileForm.errors.email}</p>}
-
-                            <div className="profile-modal__actions">
-                                <Button disabled={profileForm.processing} type="submit" variant="primary">
-                                    {profileForm.processing ? 'Saving…' : 'Save profile'}
-                                </Button>
-                            </div>
-                        </form>
-                    </section>
-
-                    <section className="profile-modal__section" aria-labelledby="profile-password-heading">
-                        <div className="profile-modal__section-heading">
-                            <h3 id="profile-password-heading">Change password</h3>
-                            <p>Confirm your current password before choosing a new one.</p>
-                        </div>
-
-                        <form className="profile-modal__form" noValidate onSubmit={savePassword}>
-                            <label className="field-label" htmlFor="current-password">Current password</label>
-                            <input
-                                aria-invalid={Boolean(passwordForm.errors.current_password)}
-                                autoComplete="current-password"
-                                className="text-field"
-                                id="current-password"
-                                onChange={(event) => passwordForm.setData('current_password', event.target.value)}
-                                type="password"
-                                value={passwordForm.data.current_password}
-                            />
-                            {passwordForm.errors.current_password && <p className="field-error">{passwordForm.errors.current_password}</p>}
-
-                            <label className="field-label" htmlFor="new-password">New password</label>
-                            <input
-                                aria-invalid={Boolean(passwordForm.errors.password)}
-                                autoComplete="new-password"
-                                className="text-field"
-                                id="new-password"
-                                onChange={(event) => passwordForm.setData('password', event.target.value)}
-                                placeholder="At least 8 characters"
-                                type="password"
-                                value={passwordForm.data.password}
-                            />
-                            {passwordForm.errors.password && <p className="field-error">{passwordForm.errors.password}</p>}
-
-                            <label className="field-label" htmlFor="new-password-confirmation">Confirm new password</label>
-                            <input
-                                autoComplete="new-password"
-                                className="text-field"
-                                id="new-password-confirmation"
-                                onChange={(event) => passwordForm.setData('password_confirmation', event.target.value)}
-                                type="password"
-                                value={passwordForm.data.password_confirmation}
-                            />
-
-                            <div className="profile-modal__actions">
-                                <Button disabled={passwordForm.processing} type="submit" variant="primary">
-                                    {passwordForm.processing ? 'Updating…' : 'Update password'}
-                                </Button>
-                            </div>
-                        </form>
-                    </section>
-                </div>
-            </Dialog>
+                passwordForm={passwordForm}
+                profileForm={profileForm}
+                successMessage={profileSuccess}
+            />
 
             <Dialog
                 description={entityDialog?.kind === 'list' ? 'Lists can stay ungrouped or live inside a folder.' : 'Folders keep related lists together.'}

@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(WorkspaceBackgroundOptionSeeder::class);
+
         $user = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',

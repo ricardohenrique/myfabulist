@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -23,6 +24,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $profile_photo_path
+ * @property int|null $workspace_background_option_id
+ * @property array<string, mixed>|null $workspace_background_config
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -30,6 +33,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read string|null $profile_photo_url
+ * @property-read WorkspaceBackgroundOption|null $workspaceBackgroundOption
  * @property-read Collection<int, Folder> $folders
  * @property-read Collection<int, TaskList> $taskLists
  * @property-read Collection<int, Task> $tasks
@@ -52,6 +56,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'workspace_background_config' => 'array',
         ];
     }
 
@@ -79,6 +84,18 @@ class User extends Authenticatable
                 ? Storage::disk('public')->url($this->profile_photo_path)
                 : null,
         );
+    }
+
+    /**
+     * The catalog row for this user's currently selected background type, if
+     * any — resolving/validating the user's actual selection is
+     * `WorkspaceBackgroundService`'s job, not this relation's.
+     *
+     * @return BelongsTo<WorkspaceBackgroundOption, $this>
+     */
+    public function workspaceBackgroundOption(): BelongsTo
+    {
+        return $this->belongsTo(WorkspaceBackgroundOption::class);
     }
 
     /**

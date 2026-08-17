@@ -11,6 +11,7 @@ use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Contracts\WorkspaceBackgroundOptionRepositoryInterface;
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
 use Tests\TestCase;
@@ -88,6 +89,7 @@ class LayeringTest extends TestCase
             SubtaskRepositoryInterface::class,
             TaskListMemberRepositoryInterface::class,
             UserRepositoryInterface::class,
+            WorkspaceBackgroundOptionRepositoryInterface::class,
         ];
 
         $repositoriesDirectory = app_path('Repositories');

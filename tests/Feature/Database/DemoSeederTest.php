@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\TaskListMember;
 use App\Models\User;
+use App\Models\WorkspaceBackgroundOption;
 use App\Services\NavigationService;
 use App\Services\TaskListService;
 use Database\Seeders\DemoSeeder;
@@ -335,6 +336,40 @@ class DemoSeederTest extends TestCase
             ->exists();
 
         $this->assertTrue($hasPendingInvitation, 'Expected demo1@example.com to have at least one pending invitation.');
+    }
+
+    /**
+     * `db:fresh-seed` (SeedDemoDatabaseCommand) runs `migrate:fresh
+     * --seeder=DemoSeeder` — a database reset through that path must not
+     * leave the workspace-background catalog empty, which is exactly what
+     * happened before `run()` called `WorkspaceBackgroundOptionSeeder`
+     * itself.
+     */
+    public function test_it_seeds_the_workspace_background_option_catalog(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        $this->assertSame(6, WorkspaceBackgroundOption::query()->count());
+    }
+
+    /**
+     * Demo users are factory-created, so they never fire `Registered` —
+     * without DemoSeeder explicitly assigning it, they would render today's
+     * hard-coded CSS fallback instead of the platform default (Twilight),
+     * unlike a real registered user.
+     */
+    public function test_every_demo_user_starts_on_the_platform_default_workspace_background(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        $twilight = WorkspaceBackgroundOption::query()->where('key', 'gradient_twilight')->firstOrFail();
+        $demoUsers = User::query()->where('email', 'like', 'demo%@example.com')->get();
+
+        $this->assertCount(self::USER_COUNT, $demoUsers);
+        $this->assertTrue($demoUsers->every(
+            fn (User $user): bool => $user->workspace_background_option_id === $twilight->id
+                && $user->workspace_background_config === null,
+        ));
     }
 
     private function membershipFor(TaskList $list, User $user): TaskListMember

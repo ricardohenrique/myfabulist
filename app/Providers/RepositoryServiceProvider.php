@@ -11,6 +11,7 @@ use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Contracts\WorkspaceBackgroundOptionRepositoryInterface;
 use App\Repositories\EloquentFolderRepository;
 use App\Repositories\EloquentSubtaskRepository;
 use App\Repositories\EloquentTaskCommentRepository;
@@ -18,6 +19,7 @@ use App\Repositories\EloquentTaskListMemberRepository;
 use App\Repositories\EloquentTaskListRepository;
 use App\Repositories\EloquentTaskRepository;
 use App\Repositories\EloquentUserRepository;
+use App\Repositories\EloquentWorkspaceBackgroundOptionRepository;
 use Illuminate\Support\ServiceProvider;
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -34,5 +36,6 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(SubtaskRepositoryInterface::class, EloquentSubtaskRepository::class);
         $this->app->bind(TaskListMemberRepositoryInterface::class, EloquentTaskListMemberRepository::class);
         $this->app->bind(UserRepositoryInterface::class, EloquentUserRepository::class);
+        $this->app->bind(WorkspaceBackgroundOptionRepositoryInterface::class, EloquentWorkspaceBackgroundOptionRepository::class);
     }
 }

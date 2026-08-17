@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\FolderOrderController;
 use App\Http\Controllers\Api\V1\InboxController;
 use App\Http\Controllers\Api\V1\ListInvitationController;
 use App\Http\Controllers\Api\V1\MoveTaskController;
+use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RestoreSubtaskController;
 use App\Http\Controllers\Api\V1\RestoreTaskController;
 use App\Http\Controllers\Api\V1\StarredTaskController;
@@ -44,6 +45,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     Route::get('user', function (Request $request) {
         return $request->user();
     })->name('user');
+
+    Route::patch('profile/background', [ProfileController::class, 'updateBackground'])->name('profile.background.update');
 
     Route::get('inbox', InboxController::class)->name('inbox');
 

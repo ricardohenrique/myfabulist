@@ -12,6 +12,7 @@ use App\Models\TaskList;
 use App\Models\User;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Services\ListSharingService;
+use App\Services\WorkspaceBackgroundService;
 use Carbon\CarbonInterface;
 use Database\Factories\TaskFactory;
 use Illuminate\Console\Command;
@@ -113,7 +114,14 @@ class DemoSeeder extends Seeder
      */
     public function run(int $userCount = self::DEFAULT_USER_COUNT): void
     {
+        // `db:fresh-seed` (SeedDemoDatabaseCommand) runs `migrate:fresh
+        // --seeder=DemoSeeder`, which never touches `DatabaseSeeder` — so
+        // without this call, the workspace-background catalog would never
+        // exist on a freshly reset demo database.
+        $this->call(WorkspaceBackgroundOptionSeeder::class);
+
         $users = $this->createUsers($userCount);
+        $this->assignDefaultBackgrounds($users);
 
         $totals = ['folders' => 0, 'lists' => 0, 'tasks' => 0, 'subtasks' => 0];
 
@@ -157,6 +165,24 @@ class DemoSeeder extends Seeder
                 'email' => sprintf('demo%d@example.com', $startIndex + $sequence->index + 1),
             ])
             ->create();
+    }
+
+    /**
+     * Demo users are created via the factory above, which never fires
+     * `Registered` — so without this, `AssignDefaultWorkspaceBackground`
+     * never runs and every demo account would render today's hard-coded
+     * CSS fallback instead of the platform default (Twilight), unlike a
+     * real registered user.
+     *
+     * @param  Collection<int, User>  $users
+     */
+    private function assignDefaultBackgrounds(Collection $users): void
+    {
+        $backgrounds = app(WorkspaceBackgroundService::class);
+
+        foreach ($users as $user) {
+            $backgrounds->assignDefaultTo($user);
+        }
     }
 
     /**
