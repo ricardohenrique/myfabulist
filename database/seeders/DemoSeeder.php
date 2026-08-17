@@ -113,6 +113,12 @@ class DemoSeeder extends Seeder
      */
     public function run(int $userCount = self::DEFAULT_USER_COUNT): void
     {
+        // `db:fresh-seed` (SeedDemoDatabaseCommand) runs `migrate:fresh
+        // --seeder=DemoSeeder`, which never touches `DatabaseSeeder` — so
+        // without this call, the workspace-background catalog would never
+        // exist on a freshly reset demo database.
+        $this->call(WorkspaceBackgroundOptionSeeder::class);
+
         $users = $this->createUsers($userCount);
 
         $totals = ['folders' => 0, 'lists' => 0, 'tasks' => 0, 'subtasks' => 0];

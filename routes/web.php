@@ -44,6 +44,7 @@ Route::get('/', HomeController::class)->name('home');
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('profile/background', [ProfileController::class, 'updateBackground'])->name('profile.background.update');
     Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password.update');
     Route::get('inbox', InboxController::class)->name('inbox');
     Route::get('starred', StarredController::class)->name('starred');

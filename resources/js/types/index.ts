@@ -1,10 +1,31 @@
 export type WorkspaceView = 'inbox' | 'list' | 'starred';
 
+export type WorkspaceBackgroundType = 'flat_color' | 'image' | 'gradient';
+
+// Which keys are present depends on `type` (color for flat_color, url for
+// image, from/to for gradient) — kept as a loose string map rather than a
+// discriminated union so a future 4th type never requires widening this.
+export type WorkspaceBackgroundConfig = Record<string, string>;
+
+export type WorkspaceBackground = {
+    optionKey: string;
+    type: WorkspaceBackgroundType;
+    config: WorkspaceBackgroundConfig;
+};
+
+export type WorkspaceBackgroundOptionSummary = {
+    key: string;
+    type: WorkspaceBackgroundType;
+    label: string;
+    defaultConfig: WorkspaceBackgroundConfig | null;
+};
+
 export type UserSummary = {
     id: number;
     name: string;
     email: string;
     avatarUrl: string | null;
+    workspaceBackground: WorkspaceBackground | null;
 };
 
 export type NavigationList = {
@@ -128,6 +149,7 @@ export type SharedPageProps = {
         invitations?: PendingInvitationSummary[];
     };
     sharingDialog?: CurrentListDetails | null;
+    workspaceBackgroundOptions: WorkspaceBackgroundOptionSummary[];
 };
 
 export type IconName =

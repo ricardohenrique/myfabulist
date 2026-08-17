@@ -1046,7 +1046,11 @@ button:disabled {
     gap: 16px;
     padding: 0 22px 0 27px;
     color: #fff;
-    background: rgba(71, 151, 111, 0.98);
+    /* Fallback preserves today's exact color when no workspace background
+       preference is set — see resources/js/lib/workspace-background.ts,
+       which sets --workspace-header-bg on .app-frame from the user's
+       resolved selection. */
+    background: var(--workspace-header-bg, rgba(71, 151, 111, 0.98));
     border-bottom: 1px solid rgba(45, 112, 80, 0.28);
 }
 
@@ -1111,9 +1115,13 @@ button:disabled {
     min-height: 0;
     flex: 1;
     overflow-y: auto;
-    background:
+    /* Fallback preserves today's exact gradient when no workspace
+       background preference is set (see .workspace-header above). */
+    background: var(
+        --workspace-bg,
         linear-gradient(90deg, rgba(65, 133, 96, 0.12), rgba(255,255,255,0.02)),
-        linear-gradient(115deg, #78b691 0%, #b8d0a5 55%, #e8dca1 100%);
+        linear-gradient(115deg, #78b691 0%, #b8d0a5 55%, #e8dca1 100%)
+    );
     overscroll-behavior: contain;
 }
 
@@ -1131,7 +1139,9 @@ button:disabled {
     padding: 0 9px 0 15px;
     border: 1px solid rgba(57, 115, 84, 0.21);
     border-radius: 6px;
-    background: rgba(64, 143, 102, 0.72);
+    /* Fallback preserves today's exact color when no workspace background
+       preference is set (see .workspace-header above). */
+    background: var(--workspace-composer-bg, rgba(64, 143, 102, 0.72));
     box-shadow: var(--shadow-sm);
     color: rgba(255,255,255,0.88);
 }
@@ -2093,6 +2103,10 @@ button:disabled {
     background: #fafafa;
 }
 
+.profile-modal__section--full {
+    grid-column: 1 / -1;
+}
+
 .profile-modal__section-heading h3 {
     margin: 0;
     color: var(--ink);
@@ -2149,6 +2163,77 @@ button:disabled {
     .profile-modal__actions .ui-button {
         width: 100%;
     }
+}
+
+.workspace-background-form {
+    margin-top: 18px;
+    display: grid;
+    gap: 14px;
+}
+
+.workspace-background-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.workspace-background-option {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 13px;
+    border: 1px solid #d8dbdc;
+    border-radius: 8px;
+    color: var(--ink);
+    background: #fff;
+    font-size: 0.83rem;
+    font-weight: 620;
+}
+
+.workspace-background-option.is-selected {
+    border-color: var(--brand);
+    color: var(--brand);
+    background: #f1eefb;
+}
+
+.workspace-background-option__badge {
+    padding: 2px 7px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--brand);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.workspace-background-field {
+    display: grid;
+    gap: 6px;
+}
+
+.workspace-background-field--gradient {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.workspace-background-field input[type='color'] {
+    width: 100%;
+    height: 40px;
+    padding: 3px;
+    border: 1px solid #d8dbdc;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.workspace-background-preview {
+    width: 100%;
+    max-height: 140px;
+    margin-top: 8px;
+    border: 1px solid #d8dbdc;
+    border-radius: 8px;
+    object-fit: cover;
 }
 
 .share-section {

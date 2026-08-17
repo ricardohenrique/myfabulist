@@ -9,7 +9,9 @@ import { TaskRow } from '@/components/tasks/task-row';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
+import { WorkspaceBackgroundSection } from '@/components/settings/workspace-background-section';
 import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
+import { workspaceBackgroundStyle } from '@/lib/workspace-background';
 import * as folderRoutes from '@/routes/folders';
 import * as invitationRoutes from '@/routes/invitations';
 import * as listRoutes from '@/routes/lists';
@@ -680,7 +682,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     };
 
     return (
-        <div className="app-frame">
+        <div className="app-frame" style={workspaceBackgroundStyle(user.workspaceBackground)}>
             <Head title={`${workspace.heading} · Purplelist`} />
             <Sidebar
                 activeView={workspace.view}
@@ -945,6 +947,11 @@ export function AppShell({ workspace, user }: AppShellProps) {
                             </div>
                         </form>
                     </section>
+
+                    <WorkspaceBackgroundSection
+                        currentBackground={user.workspaceBackground}
+                        options={page.props.workspaceBackgroundOptions}
+                    />
                 </div>
             </Dialog>
 

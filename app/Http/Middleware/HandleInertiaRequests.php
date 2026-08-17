@@ -6,8 +6,11 @@ namespace App\Http\Middleware;
 
 use App\Http\Presenters\WorkspacePresenter;
 use App\Models\TaskListMember;
+use App\Models\User;
+use App\Models\WorkspaceBackgroundOption;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
+use App\Services\WorkspaceBackgroundService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
@@ -24,6 +27,7 @@ class HandleInertiaRequests extends Middleware
         private readonly TaskListMemberRepositoryInterface $members,
         private readonly TaskListRepositoryInterface $taskLists,
         private readonly WorkspacePresenter $workspace,
+        private readonly WorkspaceBackgroundService $backgrounds,
     ) {}
 
     public function version(Request $request): ?string
@@ -45,8 +49,28 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                     'avatarUrl' => $request->user()->profile_photo_url,
+                    // Resolved server-side (image paths become public URLs
+                    // here) so the workspace shell can apply it on first
+                    // paint with no flash of unstyled background.
+                    'workspaceBackground' => $this->resolvedWorkspaceBackground($request->user()),
                 ],
             ],
+            // The catalog of currently selectable background types, plus
+            // the user's own selection even if it has since been disabled
+            // (WorkspaceBackgroundService::availableOptionsFor()) — the
+            // profile modal's picker renders straight from this, no extra
+            // round trip.
+            'workspaceBackgroundOptions' => fn (): array => $request->user() === null
+                ? []
+                : $this->backgrounds->availableOptionsFor($request->user())
+                    ->map(fn (WorkspaceBackgroundOption $option): array => [
+                        'key' => $option->key,
+                        'type' => $option->type,
+                        'label' => $option->label,
+                        'defaultConfig' => $option->default_config,
+                    ])
+                    ->values()
+                    ->all(),
             'flash' => [
                 'success' => fn (): ?string => $request->session()->get('success'),
                 'error' => fn (): ?string => $request->session()->get('error'),
@@ -105,6 +129,24 @@ class HandleInertiaRequests extends Middleware
 
                 return $list === null ? null : $this->workspace->sharingDetails($user, $list);
             }),
+        ];
+    }
+
+    /**
+     * @return array{optionKey: string, type: string, config: array<string, mixed>}|null
+     */
+    private function resolvedWorkspaceBackground(User $user): ?array
+    {
+        $background = $this->backgrounds->resolvedBackgroundFor($user);
+
+        if ($background === null) {
+            return null;
+        }
+
+        return [
+            'optionKey' => $background->optionKey,
+            'type' => $background->type,
+            'config' => $background->config,
         ];
     }
 }
