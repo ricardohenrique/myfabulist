@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InboxController;
 use App\Http\Controllers\StarredController;
@@ -37,7 +38,15 @@ Route::middleware('guest')->group(function () {
         ->name('login.store');
     Route::get('register', fn () => Inertia::render('auth/register'))->name('register');
     Route::post('register', [RegisteredUserController::class, 'store'])->name('register.store');
+    Route::get('/auth/google', [GoogleController::class, 'redirect'])
+        ->name('auth.google');
+
+    Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
+        ->name('auth.google.callback');
 });
+
+Route::get('privacy', fn () => Inertia::render('legal/privacy'))->name('privacy');
+Route::get('terms', fn () => Inertia::render('legal/terms'))->name('terms');
 
 Route::get('/', HomeController::class)->name('home');
 

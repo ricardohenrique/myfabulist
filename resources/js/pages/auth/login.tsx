@@ -2,7 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
-import { register } from '@/routes';
+import { privacy, register, terms } from '@/routes';
 import { store } from '@/routes/login';
 
 type LoginErrors = {
@@ -74,6 +74,12 @@ export default function Login() {
             <p className="auth-switch">
                 New to Purplelist? <Link href={register()}>Create an account</Link>
             </p>
+
+            <nav aria-label="Legal" className="auth-legal-links">
+                <Link href={privacy()}>Privacy</Link>
+                <span aria-hidden="true">·</span>
+                <Link href={terms()}>Terms</Link>
+            </nav>
         </AuthLayout>
     );
 }

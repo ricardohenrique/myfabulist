@@ -133,6 +133,11 @@ Guests can register and sign in. Authenticated users can:
   account menu; and
 - undo the latest completion, star change, or task move.
 
+Privacy and Terms pages are publicly available at `/privacy` and `/terms`,
+with links in the login-page footer. Their highlighted operator, processor,
+retention, and consumer-dispute details must be completed with the production
+business and infrastructure information before launch.
+
 Email verification, password reset, 2FA, passkeys, expanded account settings,
 search, reminders, and NativePHP screens are intentionally outside the current
 web release.

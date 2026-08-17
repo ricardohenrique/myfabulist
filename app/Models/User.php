@@ -39,7 +39,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property-read Collection<int, Task> $tasks
  * @property-read Collection<int, TaskComment> $taskComments
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'google_id', 'avatar', 'email_verified_at'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
