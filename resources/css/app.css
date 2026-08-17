@@ -1147,7 +1147,6 @@ button:disabled {
 }
 
 .task-composer:focus-within {
-    background: rgba(55, 133, 92, 0.82);
     box-shadow: 0 0 0 3px rgba(255,255,255,0.22);
 }
 
@@ -2031,8 +2030,12 @@ button:disabled {
 
 .dialog-panel--profile {
     width: min(100%, 820px);
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
+    /* Fixed (not content-driven) so switching tabs never grows/shrinks the
+       dialog itself — taller tab content scrolls inside .profile-modal__panel
+       instead. Still capped by the viewport on short screens. */
+    height: min(660px, calc(100vh - 40px));
+    display: flex;
+    flex-direction: column;
     padding: clamp(22px, 4vw, 30px);
 }
 
@@ -2093,6 +2096,8 @@ button:disabled {
     display: flex;
     align-items: flex-start;
     gap: 22px;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .profile-modal__tablist {
@@ -2131,6 +2136,9 @@ button:disabled {
 .profile-modal__panels {
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .profile-modal__panel {
@@ -2223,68 +2231,60 @@ button:disabled {
 }
 
 .workspace-background-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 14px;
 }
 
 .workspace-background-option {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 7px;
-    padding: 8px 13px;
-    border: 1px solid #d8dbdc;
-    border-radius: 8px;
-    color: var(--ink);
-    background: #fff;
-    font-size: 0.83rem;
-    font-weight: 620;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
 }
 
-.workspace-background-option.is-selected {
+.workspace-background-option__preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 1px rgba(24, 32, 39, 0.08);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.workspace-background-option.is-selected .workspace-background-option__preview {
     border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(139, 111, 214, 0.28);
+}
+
+.workspace-background-option__label {
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-weight: 620;
+    text-align: center;
+}
+
+.workspace-background-option.is-selected .workspace-background-option__label {
     color: var(--brand);
-    background: #f1eefb;
 }
 
 .workspace-background-option__badge {
-    padding: 2px 7px;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 2px 6px;
     border-radius: 999px;
     color: #fff;
-    background: var(--brand);
-    font-size: 0.62rem;
+    background: rgba(24, 32, 39, 0.68);
+    font-size: 0.58rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-}
-
-.workspace-background-field {
-    display: grid;
-    gap: 6px;
-}
-
-.workspace-background-field--gradient {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.workspace-background-field input[type='color'] {
-    width: 100%;
-    height: 40px;
-    padding: 3px;
-    border: 1px solid #d8dbdc;
-    border-radius: 7px;
-    background: #fff;
-}
-
-.workspace-background-preview {
-    width: 100%;
-    max-height: 140px;
-    margin-top: 8px;
-    border: 1px solid #d8dbdc;
-    border-radius: 8px;
-    object-fit: cover;
 }
 
 .share-section {

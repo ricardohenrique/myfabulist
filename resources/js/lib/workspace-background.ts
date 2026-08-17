@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { WorkspaceBackground, WorkspaceBackgroundConfig } from '@/types';
+import type { WorkspaceBackground, WorkspaceBackgroundConfig, WorkspaceBackgroundType } from '@/types';
 
 // The exact three CSS custom properties `.workspace-header`/`.task-composer`
 // (and the task canvas itself) read, with today's hard-coded colors as their
@@ -84,4 +84,30 @@ function imageStyle(config: WorkspaceBackgroundConfig): WorkspaceBackgroundStyle
 
 function cssUrl(url: string): string {
     return url.replace(/"/g, '%22');
+}
+
+// A single CSS `background` value for a small swatch tile — used by the
+// picker to show each option's actual look (color/gradient/image) before it
+// is selected, rather than a plain labeled button. Falls back to a neutral
+// gray for a hypothetical option with no config to preview yet (e.g. a
+// future type an operator added but hasn't configured).
+const SWATCH_FALLBACK = '#d8dbdc';
+
+export function optionSwatchBackground(type: WorkspaceBackgroundType, config: WorkspaceBackgroundConfig | null): string {
+    if (!config) {
+        return SWATCH_FALLBACK;
+    }
+
+    switch (type) {
+        case 'flat_color':
+            return config.color ?? SWATCH_FALLBACK;
+        case 'gradient':
+            return config.from && config.to
+                ? `linear-gradient(135deg, ${config.from} 0%, ${config.to} 100%)`
+                : SWATCH_FALLBACK;
+        case 'image':
+            return config.url ? `url("${cssUrl(config.url)}") center / cover no-repeat` : SWATCH_FALLBACK;
+        default:
+            return SWATCH_FALLBACK;
+    }
 }
