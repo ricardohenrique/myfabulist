@@ -352,6 +352,26 @@ class DemoSeederTest extends TestCase
         $this->assertSame(6, WorkspaceBackgroundOption::query()->count());
     }
 
+    /**
+     * Demo users are factory-created, so they never fire `Registered` —
+     * without DemoSeeder explicitly assigning it, they would render today's
+     * hard-coded CSS fallback instead of the platform default (Twilight),
+     * unlike a real registered user.
+     */
+    public function test_every_demo_user_starts_on_the_platform_default_workspace_background(): void
+    {
+        (new DemoSeeder)->run(self::USER_COUNT);
+
+        $twilight = WorkspaceBackgroundOption::query()->where('key', 'gradient_twilight')->firstOrFail();
+        $demoUsers = User::query()->where('email', 'like', 'demo%@example.com')->get();
+
+        $this->assertCount(self::USER_COUNT, $demoUsers);
+        $this->assertTrue($demoUsers->every(
+            fn (User $user): bool => $user->workspace_background_option_id === $twilight->id
+                && $user->workspace_background_config === null,
+        ));
+    }
+
     private function membershipFor(TaskList $list, User $user): TaskListMember
     {
         return TaskListMember::query()
