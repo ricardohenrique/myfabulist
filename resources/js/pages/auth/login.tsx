@@ -2,6 +2,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
+import { trackAnalyticsEvent } from '@/lib/analytics';
 import { privacy, register, terms } from '@/routes';
 import { google } from '@/routes/auth';
 import { store } from '@/routes/login';
@@ -44,6 +45,7 @@ export default function Login({ status }: LoginProps) {
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         form.post(store.url(), {
+            onSuccess: () => trackAnalyticsEvent('login', { method: 'password' }),
             onFinish: () => form.reset('password'),
         });
     };

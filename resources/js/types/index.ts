@@ -142,6 +142,10 @@ export type SharedPageProps = {
     flash: {
         success: string | null;
         error: string | null;
+        analyticsEvent: {
+            name: 'login' | 'sign_up';
+            method: 'google';
+        } | null;
     };
     errors: Record<string, string>;
     notifications: {

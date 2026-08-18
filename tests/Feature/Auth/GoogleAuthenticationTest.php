@@ -24,6 +24,10 @@ class GoogleAuthenticationTest extends TestCase
 
         $this->get(route('auth.google.callback'))
             ->assertSessionHasNoErrors()
+            ->assertSessionHas('analytics_event', [
+                'name' => 'sign_up',
+                'method' => 'google',
+            ])
             ->assertRedirect(route('inbox', absolute: false));
 
         $this->assertAuthenticated();
@@ -55,6 +59,10 @@ class GoogleAuthenticationTest extends TestCase
         $this->mockGoogleUser($this->googleUser());
 
         $this->get(route('auth.google.callback'))
+            ->assertSessionHas('analytics_event', [
+                'name' => 'login',
+                'method' => 'google',
+            ])
             ->assertRedirect(route('inbox', absolute: false));
 
         $this->assertAuthenticatedAs($user);

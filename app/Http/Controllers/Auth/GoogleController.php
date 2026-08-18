@@ -51,6 +51,11 @@ class GoogleController extends Controller
 
             request()->session()->regenerate();
 
+            request()->session()->flash('analytics_event', [
+                'name' => $user->wasRecentlyCreated ? 'sign_up' : 'login',
+                'method' => 'google',
+            ]);
+
             return redirect()->intended(route('inbox', absolute: false));
         } catch (GoogleAccountAlreadyLinkedException) {
             return redirect()

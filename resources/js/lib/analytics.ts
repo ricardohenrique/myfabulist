@@ -1,6 +1,15 @@
 import { router } from '@inertiajs/react';
 
 type GtagArguments = [command: string, ...parameters: unknown[]];
+type AnalyticsEventName =
+    | 'folder_created'
+    | 'list_created'
+    | 'login'
+    | 'sign_up'
+    | 'task_completed'
+    | 'task_created'
+    | 'task_moved';
+type AnalyticsEventParameters = Record<string, boolean | number | string>;
 
 let initialized = false;
 let lastTrackedLocation: string | null = null;
@@ -22,6 +31,13 @@ function trackPageView(): void {
         page_path: `${window.location.pathname}${window.location.search}`,
         page_title: document.title,
     });
+}
+
+export function trackAnalyticsEvent(
+    eventName: AnalyticsEventName,
+    parameters: AnalyticsEventParameters = {},
+): void {
+    window.gtag?.('event', eventName, parameters);
 }
 
 export function initializeAnalytics(): void {

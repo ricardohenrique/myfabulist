@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { ProfileSettingsDialog } from '@/components/settings/profile-settings-dialog';
+import { trackAnalyticsEvent } from '@/lib/analytics';
 import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
 import { workspaceBackgroundStyle } from '@/lib/workspace-background';
 import * as folderRoutes from '@/routes/folders';
@@ -138,6 +139,14 @@ export function AppShell({ workspace, user }: AppShellProps) {
     }, [page.props.errors, page.props.flash]);
 
     useEffect(() => {
+        const analyticsEvent = page.props.flash?.analyticsEvent;
+
+        if (analyticsEvent) {
+            trackAnalyticsEvent(analyticsEvent.name, { method: analyticsEvent.method });
+        }
+    }, [page.props.flash?.analyticsEvent]);
+
+    useEffect(() => {
         if (!undo && !notice) return;
 
         const timeoutId = window.setTimeout(() => {
@@ -191,6 +200,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
         quickAdd.post(storeTask.url(workspace.currentList.id), {
             preserveScroll: true,
             onSuccess: () => {
+                trackAnalyticsEvent('task_created');
                 quickAdd.reset('title');
                 quickAdd.clearErrors();
                 inputRef.current?.focus();
@@ -209,10 +219,16 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
         router.post(route, {}, {
             ...mutationOptions(taskId),
-            onSuccess: () => setUndo({
-                message: completing ? `“${task.title}” completed.` : `“${task.title}” restored.`,
-                execute: () => router.post(completing ? taskRoutes.restore(taskId) : taskRoutes.complete(taskId), {}, { preserveScroll: true }),
-            }),
+            onSuccess: () => {
+                if (completing) {
+                    trackAnalyticsEvent('task_completed');
+                }
+
+                setUndo({
+                    message: completing ? `“${task.title}” completed.` : `“${task.title}” restored.`,
+                    execute: () => router.post(completing ? taskRoutes.restore(taskId) : taskRoutes.complete(taskId), {}, { preserveScroll: true }),
+                });
+            },
         });
     };
 
@@ -246,6 +262,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
             onSuccess: () => {
                 setSelectedTaskId(null);
                 if (original && original.taskListId !== draft.taskListId) {
+                    trackAnalyticsEvent('task_moved');
                     setUndo({
                         message: `“${draft.title}” moved to ${draft.taskListName}.`,
                         execute: () => router.post(taskRoutes.move(draft.id), { task_list_id: original.taskListId }, { preserveScroll: true }),
@@ -423,7 +440,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
             : { name: entityName.trim(), folder_id: entityFolderId };
         const options = {
             preserveScroll: true,
-            onSuccess: () => setEntityDialog(null),
+            onSuccess: () => {
+                if (entityDialog.mode === 'create') {
+                    trackAnalyticsEvent(entityDialog.kind === 'folder' ? 'folder_created' : 'list_created');
+                }
+
+                setEntityDialog(null);
+            },
             onError: (errors: Record<string, string>) => setEntityError(Object.values(errors)[0] ?? 'This item could not be saved.'),
             onFinish: () => setEntityProcessing(false),
         };

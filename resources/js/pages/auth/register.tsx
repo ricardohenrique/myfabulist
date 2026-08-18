@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
+import { trackAnalyticsEvent } from '@/lib/analytics';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
@@ -18,6 +19,7 @@ export default function Register() {
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         form.post(store.url(), {
+            onSuccess: () => trackAnalyticsEvent('sign_up', { method: 'password' }),
             onFinish: () => form.reset('password', 'password_confirmation'),
         });
     };

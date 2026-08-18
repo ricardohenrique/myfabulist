@@ -77,6 +77,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn (): ?string => $request->session()->get('success'),
                 'error' => fn (): ?string => $request->session()->get('error'),
+                'analyticsEvent' => fn (): ?array => $request->session()->get('analytics_event'),
             ],
             'notifications' => [
                 // A plain closure, evaluated on every response — matching
