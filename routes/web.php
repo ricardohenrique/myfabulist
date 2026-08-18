@@ -28,6 +28,7 @@ use App\Http\Controllers\Web\TaskOrderController;
 use App\Http\Controllers\Web\TaskSubtaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\EmailVerificationNotificationController;
@@ -54,6 +55,9 @@ Route::middleware('guest')->group(function () {
         ->name('password.email');
     Route::get('reset-password/{token}', fn (Request $request, string $token) => Inertia::render('auth/reset-password', [
         'email' => $request->query('email', ''),
+        'passwordRequirements' => collect(Password::default()->appliedRules())
+            ->only(['min', 'mixedCase', 'letters', 'numbers', 'symbols', 'uncompromised'])
+            ->all(),
         'token' => $token,
     ]))->name('password.reset');
     Route::post('reset-password', [NewPasswordController::class, 'store'])

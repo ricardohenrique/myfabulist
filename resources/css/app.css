@@ -410,6 +410,63 @@ button:disabled {
     margin-top: 5px;
 }
 
+.password-requirements {
+    margin: -4px 0 1px;
+}
+
+.password-requirements__title {
+    margin: 0 0 5px;
+    color: #7b8791;
+    font-size: 0.74rem;
+    font-weight: 650;
+}
+
+.password-requirements__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.password-requirement {
+    position: relative;
+    padding-left: 9px;
+    color: #89949d;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    transition: color 150ms ease;
+}
+
+.password-requirement::before {
+    position: absolute;
+    left: 0;
+    content: "•";
+}
+
+.password-requirement.is-met {
+    color: var(--brand);
+}
+
+.password-requirements__breach-note {
+    margin: 5px 0 0;
+    color: #7b8791;
+    font-size: 0.68rem;
+    line-height: 1.4;
+}
+
+.password-match {
+    margin: -7px 0 0;
+    color: #89949d;
+    font-size: 0.72rem;
+    transition: color 150ms ease;
+}
+
+.password-match.is-met {
+    color: var(--brand);
+}
+
 .auth-error {
     margin: 0 0 18px;
     padding: 11px 12px;

@@ -56,6 +56,12 @@ class PasswordResetTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('auth/reset-password')
                 ->where('email', $user->email)
+                ->where('passwordRequirements.min', 8)
+                ->where('passwordRequirements.mixedCase', false)
+                ->where('passwordRequirements.letters', false)
+                ->where('passwordRequirements.numbers', false)
+                ->where('passwordRequirements.symbols', false)
+                ->where('passwordRequirements.uncompromised', false)
                 ->where('token', $token));
 
         $this->post(route('password.update'), [
@@ -75,6 +81,22 @@ class PasswordResetTest extends TestCase
         ])->assertRedirect(route('inbox', absolute: false));
 
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_reset_screen_exposes_every_production_password_requirement(): void
+    {
+        $this->app['env'] = 'production';
+
+        $this->get(route('password.reset', ['token' => 'test-token', 'email' => 'user@example.com']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('auth/reset-password')
+                ->where('passwordRequirements.min', 12)
+                ->where('passwordRequirements.mixedCase', true)
+                ->where('passwordRequirements.letters', true)
+                ->where('passwordRequirements.numbers', true)
+                ->where('passwordRequirements.symbols', true)
+                ->where('passwordRequirements.uncompromised', true));
     }
 
     public function test_google_only_user_can_request_a_reset_and_set_a_password(): void
