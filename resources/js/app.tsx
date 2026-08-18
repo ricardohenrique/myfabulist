@@ -1,4 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { AnalyticsConsent } from '@/components/analytics-consent';
 import '../css/app.css';
 
 createInertiaApp({
@@ -10,5 +13,16 @@ createInertiaApp({
     progress: {
         color: '#8b6fd6',
     },
-    strictMode: true,
+    setup({ el, App, props }) {
+        if (!el) {
+            return;
+        }
+
+        createRoot(el).render(
+            <StrictMode>
+                <App {...props} />
+                <AnalyticsConsent />
+            </StrictMode>,
+        );
+    },
 });

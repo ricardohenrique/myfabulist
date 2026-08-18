@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { LegalLayout } from '@/components/legal/legal-layout';
+import { reopenAnalyticsConsent } from '@/lib/analytics';
 import { terms } from '@/routes';
 
 export default function Privacy() {
@@ -33,7 +34,7 @@ export default function Privacy() {
                     <li><strong>Account data:</strong> your name, email address, password hash (if you set a password), Google account identifier and profile image (if you use Google sign-in), and account settings.</li>
                     <li><strong>Content:</strong> folders, lists, tasks, notes, due dates, subtasks, comments, ordering, completion, and starred status.</li>
                     <li><strong>Collaboration data:</strong> list memberships, invitations, and the identity of comment authors and collaborators.</li>
-                    <li><strong>Technical data:</strong> IP address, request time, browser and device information, log data, and session or API-token metadata needed to operate and secure the service.</li>
+                    <li><strong>Technical data:</strong> IP address, request time, browser and device information, log data, session or API-token metadata needed to operate and secure the service, and, with your consent, page-view analytics.</li>
                     <li><strong>Optional data:</strong> a profile photo and workspace appearance choices if you choose to provide them.</li>
                 </ul>
                 <p>
@@ -59,6 +60,10 @@ export default function Privacy() {
                         Where processing is necessary to comply with a legal obligation, the legal basis is
                         Article 6(1)(c) GDPR.
                     </li>
+                    <li>
+                        With your consent, we use page-view analytics to understand and improve Purplelist. The
+                        legal basis is Article 6(1)(a) GDPR. You may withdraw that consent at any time.
+                    </li>
                 </ul>
             </section>
 
@@ -80,13 +85,27 @@ export default function Privacy() {
                 <p>
                     Purplelist uses strictly necessary first-party cookies for login sessions, CSRF protection,
                     and, when selected, the “keep me signed in” function. These technologies are required to
-                    provide the service securely. The current application does not use advertising or analytics
-                    cookies.
+                    provide the service securely. In production, Google Analytics is available only after you
+                    allow analytics. We store your analytics choice in local storage so that we can remember it.
+                </p>
+                <button className="legal-consent-button" onClick={reopenAnalyticsConsent} type="button">
+                    Review analytics choice
+                </button>
+            </section>
+
+            <section>
+                <h2>6. Google Analytics</h2>
+                <p>
+                    If you allow analytics, Google Analytics receives page URLs and titles together with browser,
+                    device, approximate-location, and interaction metadata generated when pages are viewed. We do
+                    not use Google Analytics for advertising. Google acts as an analytics provider and may process
+                    data outside the EEA under its applicable transfer safeguards. You can learn more in Google's{' '}
+                    <a href="https://policies.google.com/privacy" rel="noreferrer" target="_blank">privacy policy</a>.
                 </p>
             </section>
 
             <section>
-                <h2>6. Sharing and recipients</h2>
+                <h2>7. Sharing and recipients</h2>
                 <p>
                     When you join a shared list, accepted members can see the list's tasks, notes, due dates,
                     subtasks, comments, completion state, and collaborators. Comment attribution is visible to
@@ -107,7 +126,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>7. Retention</h2>
+                <h2>8. Retention</h2>
                 <p>
                     We keep account data and active content while your account is in use. Deleted tasks and lists
                     may remain recoverable for a limited period. After an account or content is permanently
@@ -122,7 +141,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>8. Your rights</h2>
+                <h2>9. Your rights</h2>
                 <p>
                     Subject to the legal conditions, you may request access, correction, deletion, restriction,
                     or portability of your personal data. You may object to processing based on legitimate
@@ -140,7 +159,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>9. Automated decisions and changes</h2>
+                <h2>10. Automated decisions and changes</h2>
                 <p>
                     Purplelist does not use your data for automated decision-making or profiling that produces
                     legal or similarly significant effects. We may update this policy when the service or legal
@@ -149,7 +168,7 @@ export default function Privacy() {
             </section>
 
             <section>
-                <h2>10. Related terms</h2>
+                <h2>11. Related terms</h2>
                 <p>How you may use Purplelist is explained in our <Link href={terms()}>Terms of Service</Link>.</p>
             </section>
         </LegalLayout>

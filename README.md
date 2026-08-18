@@ -76,6 +76,12 @@ frontend assets.
    URL from `GOOGLE_REDIRECT_URI` (by default
    `${APP_URL}/auth/google/callback`) as an authorized redirect URI in Google.
 
+   To enable production Google Analytics, set `VITE_GA_MEASUREMENT_ID` to the
+   GA4 web stream ID (`G-...`) before running `npm run build`. Analytics is
+   omitted from development builds and loads in production only after the
+   visitor grants analytics consent. Inertia navigations are recorded as page
+   views without requiring a full browser reload.
+
 4. Create the MySQL database and run migrations. The example command below
    uses the default `DB_DATABASE=laravel`; adjust it if you changed that value.
 

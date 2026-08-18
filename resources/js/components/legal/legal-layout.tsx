@@ -30,7 +30,7 @@ export function LegalLayout({ children, description, eyebrow, title }: LegalLayo
                     <p className="legal-eyebrow">{eyebrow}</p>
                     <h1>{title}</h1>
                     <p>{description}</p>
-                    <p className="legal-updated">Last updated: 17 August 2026</p>
+                    <p className="legal-updated">Last updated: 18 August 2026</p>
                 </header>
                 <div className="legal-content">{children}</div>
             </article>
