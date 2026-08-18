@@ -78,9 +78,10 @@ frontend assets.
 
    To enable production Google Analytics, set `VITE_GA_MEASUREMENT_ID` to the
    GA4 web stream ID (`G-...`) before running `npm run build`. Analytics is
-   omitted from development builds and loads in production only after the
-   visitor grants analytics consent. Inertia navigations are recorded as page
-   views without requiring a full browser reload.
+   omitted from development builds. In production it covers public and
+   authenticated pages, while Inertia navigations are recorded as page views
+   without requiring a full browser reload. Cookie consent is managed by the
+   separately configured CookieYes integration.
 
 4. Create the MySQL database and run migrations. The example command below
    uses the default `DB_DATABASE=laravel`; adjust it if you changed that value.

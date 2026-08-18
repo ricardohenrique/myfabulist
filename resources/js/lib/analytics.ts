@@ -2,9 +2,7 @@ import { router } from '@inertiajs/react';
 
 const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim();
 
-export const analyticsConsentStorageKey = 'purplelist.analytics-consent.v1';
-export const analyticsConsentChangeEvent = 'purplelist:analytics-consent-change';
-export const isAnalyticsConfigured = import.meta.env.PROD && /^G-[A-Z0-9]+$/i.test(measurementId ?? '');
+const isAnalyticsConfigured = import.meta.env.PROD && /^G-[A-Z0-9]+$/i.test(measurementId ?? '');
 
 type GtagArguments = [command: string, ...parameters: unknown[]];
 
@@ -36,66 +34,29 @@ function trackPageView(): void {
     });
 }
 
-export function enableAnalytics(): () => void {
-    if (!isAnalyticsConfigured || !measurementId) {
-        return () => undefined;
+export function initializeAnalytics(): void {
+    if (!isAnalyticsConfigured || !measurementId || initialized) {
+        return;
     }
 
+    initialized = true;
     window.gtag = gtag;
-    if (!initialized) {
-        window.gtag('consent', 'default', {
-            ad_personalization: 'denied',
-            ad_storage: 'denied',
-            ad_user_data: 'denied',
-            analytics_storage: 'denied',
-        });
-    }
-    window.gtag('consent', 'update', {
-        analytics_storage: 'granted',
+    window.gtag('js', new Date());
+    window.gtag('config', measurementId, {
+        send_page_view: false,
     });
-    if (!initialized) {
-        initialized = true;
-        window.gtag('js', new Date());
-        window.gtag('config', measurementId, {
-            send_page_view: false,
-        });
 
-        const script = document.createElement('script');
-        script.async = true;
-        script.dataset.purplelistAnalytics = 'true';
-        script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
-        document.head.appendChild(script);
-    }
+    const script = document.createElement('script');
+    script.async = true;
+    script.dataset.purplelistAnalytics = 'true';
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+    document.head.appendChild(script);
 
     trackPageView();
 
-    let active = true;
-    const removeNavigateListener = router.on('navigate', () => {
+    router.on('navigate', () => {
         window.requestAnimationFrame(() => {
-            if (active) {
-                trackPageView();
-            }
+            trackPageView();
         });
     });
-
-    return () => {
-        active = false;
-        removeNavigateListener();
-    };
-}
-
-export function denyAnalytics(): void {
-    lastTrackedLocation = null;
-    window.gtag?.('consent', 'update', {
-        analytics_storage: 'denied',
-    });
-}
-
-export function reopenAnalyticsConsent(): void {
-    try {
-        localStorage.removeItem(analyticsConsentStorageKey);
-    } catch {
-        // The banner remains usable when storage is blocked by the browser.
-    }
-    window.dispatchEvent(new Event(analyticsConsentChangeEvent));
 }

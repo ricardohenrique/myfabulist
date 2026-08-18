@@ -741,7 +741,15 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     <div className="task-column">
                         {workspace.canAddTask && (
                             <form className="task-composer" onSubmit={addTask}>
-                                <Icon name="plus" size={21} />
+                                <button
+                                    aria-label="Focus new task input"
+                                    className="task-composer-focus"
+                                    disabled={quickAdd.processing}
+                                    onClick={() => inputRef.current?.focus()}
+                                    type="button"
+                                >
+                                    <Icon name="plus" size={21} />
+                                </button>
                                 <input
                                     aria-describedby={quickAdd.errors.title ? 'composer-error' : undefined}
                                     aria-invalid={Boolean(quickAdd.errors.title)}

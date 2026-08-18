@@ -1,6 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import { LegalLayout } from '@/components/legal/legal-layout';
-import { reopenAnalyticsConsent } from '@/lib/analytics';
 import { terms } from '@/routes';
 
 export default function Privacy() {
@@ -85,12 +84,9 @@ export default function Privacy() {
                 <p>
                     Purplelist uses strictly necessary first-party cookies for login sessions, CSRF protection,
                     and, when selected, the “keep me signed in” function. These technologies are required to
-                    provide the service securely. In production, Google Analytics is available only after you
-                    allow analytics. We store your analytics choice in local storage so that we can remember it.
+                    provide the service securely. Google Analytics may use analytics cookies when you allow them
+                    through the CookieYes consent controls.
                 </p>
-                <button className="legal-consent-button" onClick={reopenAnalyticsConsent} type="button">
-                    Review analytics choice
-                </button>
             </section>
 
             <section>

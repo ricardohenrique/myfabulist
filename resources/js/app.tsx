@@ -1,7 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AnalyticsConsent } from '@/components/analytics-consent';
+import { initializeAnalytics } from '@/lib/analytics';
 import '../css/app.css';
 
 createInertiaApp({
@@ -21,8 +21,9 @@ createInertiaApp({
         createRoot(el).render(
             <StrictMode>
                 <App {...props} />
-                <AnalyticsConsent />
             </StrictMode>,
         );
+
+        initializeAnalytics();
     },
 });
