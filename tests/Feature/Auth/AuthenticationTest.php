@@ -80,8 +80,13 @@ class AuthenticationTest extends TestCase
 
     public function test_excluded_authentication_routes_are_not_registered(): void
     {
-        $this->assertFalse(Route::has('verification.notice'));
-        $this->assertFalse(Route::has('password.request'));
+        $this->assertTrue(Route::has('verification.notice'));
+        $this->assertTrue(Route::has('verification.verify'));
+        $this->assertTrue(Route::has('verification.send'));
+        $this->assertTrue(Route::has('password.request'));
+        $this->assertTrue(Route::has('password.email'));
+        $this->assertTrue(Route::has('password.reset'));
+        $this->assertTrue(Route::has('password.update'));
         $this->assertFalse(Route::has('password.confirm'));
         $this->assertFalse(Route::has('password.confirm.store'));
         $this->assertFalse(Route::has('password.confirmation'));

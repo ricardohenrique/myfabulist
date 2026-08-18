@@ -28,6 +28,7 @@ export type UserSummary = {
     email: string;
     avatarUrl: string | null;
     hasPassword: boolean;
+    emailVerified: boolean;
     workspaceBackground: WorkspaceBackground | null;
 };
 

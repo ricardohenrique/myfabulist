@@ -4,8 +4,10 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use App\Models\WorkspaceBackgroundOption;
+use App\Notifications\WelcomeVerifyEmailNotification;
 use Database\Seeders\WorkspaceBackgroundOptionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
@@ -29,6 +31,8 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        Notification::fake();
+
         $response = $this->post(route('register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
@@ -44,6 +48,10 @@ class RegistrationTest extends TestCase
             'name' => 'Inbox',
             'is_default' => true,
         ]);
+
+        $user = User::query()->where('email', 'test@example.com')->firstOrFail();
+        Notification::assertSentTo($user, WelcomeVerifyEmailNotification::class);
+        $this->assertFalse($user->hasVerifiedEmail());
     }
 
     public function test_new_users_start_on_the_platform_default_workspace_background(): void

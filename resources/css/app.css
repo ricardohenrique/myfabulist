@@ -473,6 +473,36 @@ button:disabled {
     line-height: 1.45;
 }
 
+.auth-form-card > .form-notice {
+    margin-bottom: 18px;
+}
+
+.profile-email-status {
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: -4px;
+    color: #9a6b35;
+    font-size: 0.77rem;
+    font-weight: 650;
+}
+
+.profile-email-status span.is-verified {
+    color: var(--green-dark);
+}
+
+.profile-email-status button {
+    padding: 3px 0;
+    border: 0;
+    color: var(--brand-dark);
+    background: transparent;
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 .auth-switch {
     margin: 25px 0 0;
     color: #778590;

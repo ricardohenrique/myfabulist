@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'avatarUrl' => $request->user()->profile_photo_url,
                     'hasPassword' => $request->user()->password !== null,
+                    'emailVerified' => $request->user()->hasVerifiedEmail(),
                     // Resolved server-side (image paths become public URLs
                     // here) so the workspace shell can apply it on first
                     // paint with no flash of unstyled background.

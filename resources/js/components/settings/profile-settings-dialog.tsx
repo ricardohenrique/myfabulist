@@ -1,8 +1,9 @@
-import type { InertiaForm } from '@inertiajs/react';
+import { router, type InertiaForm } from '@inertiajs/react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { WorkspaceBackgroundSection } from '@/components/settings/workspace-background-section';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
+import { send as sendEmailVerification } from '@/routes/verification';
 import type { UserSummary, WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/types';
 
 export type ProfileFormData = {
@@ -42,6 +43,8 @@ type ProfileSettingsDialogProps = {
     currentBackground: WorkspaceBackground | null;
     backgroundOptions: WorkspaceBackgroundOptionSummary[];
     hasPassword: UserSummary['hasPassword'];
+    email: UserSummary['email'];
+    emailVerified: UserSummary['emailVerified'];
 };
 
 export function ProfileSettingsDialog({
@@ -55,8 +58,12 @@ export function ProfileSettingsDialog({
     currentBackground,
     backgroundOptions,
     hasPassword,
+    email,
+    emailVerified,
 }: ProfileSettingsDialogProps) {
     const [activeTab, setActiveTab] = useState<ProfileTabId>('profile');
+    const [verificationSending, setVerificationSending] = useState(false);
+    const [verificationSent, setVerificationSent] = useState(false);
 
     // Every time the dialog opens, land back on the first tab — a stale
     // "Workspace background" tab left active from a previous visit would be
@@ -66,6 +73,19 @@ export function ProfileSettingsDialog({
             setActiveTab('profile');
         }
     }, [open]);
+
+    useEffect(() => {
+        setVerificationSent(false);
+    }, [email, emailVerified]);
+
+    const resendVerification = () => {
+        router.post(sendEmailVerification.url(), {}, {
+            preserveScroll: true,
+            onStart: () => setVerificationSending(true),
+            onSuccess: () => setVerificationSent(true),
+            onFinish: () => setVerificationSending(false),
+        });
+    };
 
     return (
         <Dialog
@@ -136,6 +156,17 @@ export function ProfileSettingsDialog({
                                     value={profileForm.data.email}
                                 />
                                 {profileForm.errors.email && <p className="field-error">{profileForm.errors.email}</p>}
+
+                                <div className="profile-email-status">
+                                    <span className={emailVerified ? 'is-verified' : ''}>
+                                        {emailVerified ? 'Email confirmed' : verificationSent ? 'Confirmation sent' : 'Email not confirmed'}
+                                    </span>
+                                    {!emailVerified && (
+                                        <button disabled={verificationSending} onClick={resendVerification} type="button">
+                                            {verificationSending ? 'Sending…' : 'Resend email'}
+                                        </button>
+                                    )}
+                                </div>
 
                                 <div className="profile-modal__actions">
                                     <Button disabled={profileForm.processing} type="submit" variant="primary">

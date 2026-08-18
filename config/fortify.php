@@ -138,6 +138,8 @@ return [
         'login' => '/inbox',
         'register' => '/inbox',
         'logout' => '/login',
+        'password-reset' => '/login',
+        'email-verification' => '/inbox',
     ],
 
     /*
@@ -153,6 +155,8 @@ return [
 
     'features' => [
         Features::registration(),
+        Features::resetPasswords(),
+        Features::emailVerification(),
     ],
 
 ];

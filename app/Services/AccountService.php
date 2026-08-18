@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use Illuminate\Support\Str;
 
 class AccountService
 {
@@ -15,12 +16,21 @@ class AccountService
 
     public function updateProfile(User $user, string $name, string $email): User
     {
+        $emailChanged = Str::lower($user->email) !== Str::lower($email);
+
         $user->forceFill([
             'name' => $name,
             'email' => $email,
+            'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
         ]);
 
-        return $this->users->save($user);
+        $user = $this->users->save($user);
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
+
+        return $user;
     }
 
     public function updatePassword(User $user, string $password): User

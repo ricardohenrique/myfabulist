@@ -111,8 +111,8 @@ that materially expand the boilerplate's stack or maintenance burden.
 ### API-first multi-platform contract
 
 - Keep externally consumed endpoints under `/api/v1` and authenticated with
-  Sanctum. Email verification is intentionally disabled for the current
-  release.
+  Sanctum. Email confirmation is optional and must not be added as an API or
+  browser authorization gate in the current release.
 - API Resources are the canonical JSON payload contract. Keep corresponding
   TypeScript and native client types synchronized as those clients are built.
 - Maintain the established response shapes: successful resources use Laravel's
@@ -230,8 +230,8 @@ that materially expand the boilerplate's stack or maintenance burden.
 - First-party browser requests use Laravel sessions and CSRF protection.
   Sanctum protects the versioned API.
 - Keep login, uploads, and other abuse-sensitive endpoints appropriately
-  rate-limited. Verification and password reset are not exposed in the current
-  release.
+  rate-limited. Email-confirmation resend and password-recovery endpoints are
+  public/account-sensitive surfaces and must remain throttled.
 - Validate uploads by size and actual file type. Profile photos and future user
   files require ownership checks and safe storage; never trust extensions or
   client-provided MIME types alone.

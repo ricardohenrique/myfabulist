@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { privacy, register, terms } from '@/routes';
 import { google } from '@/routes/auth';
 import { store } from '@/routes/login';
+import { request as requestPasswordReset } from '@/routes/password';
 
 type LoginErrors = {
     email?: string;
@@ -15,6 +16,10 @@ type LoginPageProps = {
     flash?: {
         error?: string | null;
     };
+};
+
+type LoginProps = {
+    status?: string | null;
 };
 
 function GoogleLogo() {
@@ -28,7 +33,7 @@ function GoogleLogo() {
     );
 }
 
-export default function Login() {
+export default function Login({ status }: LoginProps) {
     const { flash } = usePage<LoginPageProps>().props;
     const form = useForm({
         email: '',
@@ -51,6 +56,7 @@ export default function Login() {
         >
             <Head title="Log in" />
 
+            {status && <p className="form-notice" role="status">{status}</p>}
             {flash?.error && <p className="auth-error" role="alert">{flash.error}</p>}
 
             <form className="auth-form" noValidate onSubmit={submit}>
@@ -68,7 +74,10 @@ export default function Login() {
                 />
                 {form.errors.email && <p className="field-error" id="email-error">{form.errors.email}</p>}
 
-                <label className="field-label" htmlFor="password">Password</label>
+                <div className="field-label-row">
+                    <label className="field-label" htmlFor="password">Password</label>
+                    <Link className="auth-muted-link" href={requestPasswordReset()}>Forgot password?</Link>
+                </div>
                 <input
                     aria-describedby={form.errors.password ? 'password-error' : undefined}
                     aria-invalid={Boolean(form.errors.password)}

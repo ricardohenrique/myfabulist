@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class ProfileManagementTest extends TestCase
@@ -19,6 +21,7 @@ class ProfileManagementTest extends TestCase
 
     public function test_user_can_update_their_name_and_email(): void
     {
+        Notification::fake();
         $user = User::factory()->create();
 
         $this->actingAs($user)
@@ -33,6 +36,8 @@ class ProfileManagementTest extends TestCase
 
         $this->assertSame('Grace Hopper', $user->name);
         $this->assertSame('grace@example.com', $user->email);
+        $this->assertNull($user->email_verified_at);
+        Notification::assertSentTo($user, VerifyEmailNotification::class);
     }
 
     public function test_profile_email_must_be_unique(): void

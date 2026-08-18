@@ -146,9 +146,22 @@ with links in the login-page footer. Their highlighted operator, processor,
 retention, and consumer-dispute details must be completed with the production
 business and infrastructure information before launch.
 
-Email verification, password reset, 2FA, passkeys, expanded account settings,
-search, reminders, and NativePHP screens are intentionally outside the current
-web release.
+Password recovery is available from the login page. Password-based registrations
+receive a branded welcome email with an optional confirmation link; unverified
+accounts can still sign in and use the application. 2FA, passkeys, expanded
+account settings, search, reminders, and NativePHP screens remain outside the
+current web release.
+
+Authentication emails are queued and use the `MAIL_*` configuration. With the
+default `QUEUE_CONNECTION=database`, production must keep a queue worker running
+(for example under Supervisor or systemd):
+
+```bash
+php artisan queue:work --tries=3
+```
+
+Set `APP_URL` to the public HTTPS origin before sending mail because password
+reset and email-confirmation links are generated from it.
 
 Production pages are rendered by Inertia from `resources/js/pages`; the shared
 shell lives in `resources/js/layouts/app-shell.tsx`.

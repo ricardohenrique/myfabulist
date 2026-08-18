@@ -37,8 +37,10 @@ field. Lists may also remain ungrouped.
 - Users may register, sign in with email/password or a verified Google account,
   sign out, and update their name, email, and password from a basic in-app
   profile modal. A Google-only user may set their first password after signing
-  in. Email verification, password reset,
-  two-factor authentication, passkeys, and expanded account settings are
+  in. Password recovery is available by email. New password-based accounts
+  receive a branded welcome email with an optional confirmation link; email
+  confirmation is recorded but never gates sign-in or product access.
+  Two-factor authentication, passkeys, and expanded account settings are
   intentionally excluded from the current release.
 - A user may only view or mutate folders and tasks they own, and lists they
   own or hold an accepted membership on. Only a list's owner may invite or

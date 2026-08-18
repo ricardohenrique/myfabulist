@@ -21,9 +21,9 @@ On mobile, the sidebar should open from a menu button.
 The account menu opens a large profile settings modal over the current
 workspace, preserving the user's list and task context behind it. The initial
 profile surface stays deliberately small: users can update their name and
-email, or change their password after confirming the current password. It does
-not include avatars, account deletion, verification, password reset, 2FA, or
-passkeys.
+email, change or set their password, see their email-confirmation state, and
+resend a confirmation email. Password recovery starts from the public login
+page. It does not include avatar uploads, account deletion, 2FA, or passkeys.
 
 ## Organization structure
 
