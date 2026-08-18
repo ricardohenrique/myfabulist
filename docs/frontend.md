@@ -304,7 +304,8 @@ canonical.
 `@dnd-kit/react` provides sortable pointer, touch, and keyboard interaction
 through one workspace-level drag context. Typed droppable targets coordinate
 folders and lists in the sidebar with active tasks in the main pane. Reorders
-optimistically submit their complete scoped ID order; cross-container moves call
+preview their order through React as the dragged item crosses its peers, then
+optimistically submit the complete scoped ID order; cross-container moves call
 dedicated atomic move routes and append at the destination. Further drops are
 disabled while saving, and rejected writes restore canonical Inertia state.
 Active tasks always display in their persisted custom order, and new tasks are

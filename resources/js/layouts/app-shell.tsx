@@ -1,4 +1,4 @@
-import { DragDropProvider, PointerSensor, type CollisionEvent, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from '@dnd-kit/react';
+import { DragDropProvider, PointerSensor, type CollisionEvent, type DragEndEvent, type DragMoveEvent, type DragOverEvent, type DragStartEvent } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -104,6 +104,9 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const dragSourceId = useRef<string | null>(null);
     const lastCollisionTargetId = useRef<string | null>(null);
+    const taskOrderRef = useRef(taskOrder);
+    const taskDragInitialOrder = useRef<number[] | null>(null);
+    const taskDragPreviewTargetId = useRef<number | null>(null);
     const shareDetailsRequestId = useRef(0);
     const quickAdd = useForm({ title: '' });
     const profileForm = useForm({ name: user.name, email: user.email });
@@ -127,7 +130,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
     );
 
     useEffect(() => {
-        setTaskOrder(tasks.filter((task) => !task.completedAt).map((task) => task.id));
+        const nextTaskOrder = tasks.filter((task) => !task.completedAt).map((task) => task.id);
+
+        taskOrderRef.current = nextTaskOrder;
+        setTaskOrder(nextTaskOrder);
         setOptimisticallyMovedTaskIds((current) => current.filter((taskId) => tasks.some((task) => task.id === taskId)));
     }, [tasks]);
 
@@ -488,6 +494,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const reorderTask = (taskIds: number[]) => {
         const canonicalIds = tasks.filter((task) => !task.completedAt).map((task) => task.id);
 
+        taskOrderRef.current = taskIds;
         setTaskOrder(taskIds);
 
         if (!workspace.currentList) return;
@@ -496,11 +503,24 @@ export function AppShell({ workspace, user }: AppShellProps) {
         router.put(listRoutes.taskOrder(workspace.currentList.id), { task_ids: taskIds }, {
             preserveScroll: true,
             onError: (errors) => {
+                taskOrderRef.current = canonicalIds;
                 setTaskOrder(canonicalIds);
                 setNotice(Object.values(errors)[0] ?? 'The task order could not be saved. The current order was restored.');
             },
             onFinish: () => setReorderPending(false),
         });
+    };
+
+    const restoreTaskDragOrder = () => {
+        const initialOrder = taskDragInitialOrder.current;
+
+        taskDragInitialOrder.current = null;
+        taskDragPreviewTargetId.current = null;
+
+        if (initialOrder) {
+            taskOrderRef.current = initialOrder;
+            setTaskOrder(initialOrder);
+        }
     };
 
     const handleTaskDragEnd = (event: DragEndEvent) => {
@@ -511,6 +531,8 @@ export function AppShell({ workspace, user }: AppShellProps) {
         const collisionTargetId = lastCollisionTargetId.current;
 
         if (event.canceled || reorderPending || sourceData?.kind !== 'task') {
+            if (sourceData?.kind === 'task') restoreTaskDragOrder();
+
             return;
         }
 
@@ -526,9 +548,12 @@ export function AppShell({ workspace, user }: AppShellProps) {
             const targetList = destinationLists.find((list) => list.id === targetListId);
 
             if (!task || !targetList || !sourceData.canMoveAcrossLists || !targetList.isOwner || targetList.isShared) {
+                restoreTaskDragOrder();
+
                 return;
             }
 
+            restoreTaskDragOrder();
             setTaskPending(task.id, true);
             setOptimisticallyMovedTaskIds((current) => [...new Set([...current, task.id])]);
             router.post(taskRoutes.move(task.id), { task_list_id: targetList.id }, {
@@ -551,23 +576,51 @@ export function AppShell({ workspace, user }: AppShellProps) {
         }
 
         if (!isSortable(source) || targetData?.kind !== 'task' || targetData.taskListId !== sourceData.taskListId) {
+            restoreTaskDragOrder();
+
             return;
         }
 
         const collisionTaskId = collisionTargetId?.startsWith('task-')
             ? Number(collisionTargetId.slice('task-'.length))
-            : targetData.taskId;
-        const targetIndex = activeTasks.findIndex((task) => task.id === collisionTaskId);
-        const reordered = moveItem(activeTasks, source.initialIndex, targetIndex);
+            : taskDragPreviewTargetId.current;
 
-        if (reordered !== activeTasks) {
-            reorderTask(reordered.map((task) => task.id));
+        if (collisionTaskId === null && targetData.taskId === sourceData.taskId) {
+            restoreTaskDragOrder();
+
+            return;
+        }
+
+        const initialOrder = taskDragInitialOrder.current ?? activeTasks.map((task) => task.id);
+        let reorderedIds = taskOrderRef.current;
+
+        if (reorderedIds.every((taskId, index) => taskId === initialOrder[index])) {
+            const finalTargetTaskId = collisionTaskId ?? targetData.taskId;
+            const sourceIndex = reorderedIds.indexOf(sourceData.taskId);
+            const targetIndex = reorderedIds.indexOf(finalTargetTaskId);
+
+            reorderedIds = moveItem(reorderedIds, sourceIndex, targetIndex);
+        }
+
+        taskDragInitialOrder.current = null;
+        taskDragPreviewTargetId.current = null;
+
+        if (!reorderedIds.every((taskId, index) => taskId === initialOrder[index])) {
+            reorderTask(reorderedIds);
         }
     };
 
     const handleDragStart = (event: DragStartEvent) => {
+        const sourceData = workspaceDragData(event.operation.source);
+
         dragSourceId.current = String(event.operation.source?.id ?? '');
         lastCollisionTargetId.current = null;
+        taskDragPreviewTargetId.current = null;
+
+        if (sourceData?.kind === 'task') {
+            taskDragInitialOrder.current = activeTasks.map((task) => task.id);
+            taskOrderRef.current = activeTasks.map((task) => task.id);
+        }
     };
 
     const handleCollision = (event: CollisionEvent) => {
@@ -578,16 +631,71 @@ export function AppShell({ workspace, user }: AppShellProps) {
         }
     };
 
+    const previewTaskOrder = (sourceTaskId: number, targetTaskId: number) => {
+        if (sourceTaskId === targetTaskId || taskDragPreviewTargetId.current === targetTaskId) return;
+
+        taskDragPreviewTargetId.current = targetTaskId;
+
+        const currentOrder = taskOrderRef.current;
+        const sourceIndex = currentOrder.indexOf(sourceTaskId);
+        const targetIndex = currentOrder.indexOf(targetTaskId);
+        const reordered = moveItem(currentOrder, sourceIndex, targetIndex);
+
+        if (reordered !== currentOrder) {
+            taskOrderRef.current = reordered;
+            setTaskOrder(reordered);
+        }
+    };
+
     const handleDragMove = (event: DragMoveEvent) => {
+        const sourceData = workspaceDragData(event.operation.source);
         const nativeEvent = event.nativeEvent;
-        const point = nativeEvent instanceof PointerEvent
-            ? { x: nativeEvent.clientX, y: nativeEvent.clientY }
-            : event.operation.position.current;
-        const target = document.elementsFromPoint(point.x, point.y)
+        const point = event.to
+            ?? (nativeEvent instanceof PointerEvent
+                ? { x: nativeEvent.clientX, y: nativeEvent.clientY }
+                : event.operation.position.current);
+        const elementsAtPoint = document.elementsFromPoint(point.x, point.y);
+        const target = elementsAtPoint
             .map((element) => element.closest<HTMLElement>('[data-workspace-drop-id]'))
             .find((element) => element !== null && element.dataset.workspaceDropId !== dragSourceId.current);
+        const targetId = target?.dataset.workspaceDropId ?? null;
 
-        lastCollisionTargetId.current = target?.dataset.workspaceDropId ?? null;
+        lastCollisionTargetId.current = targetId;
+
+        if (sourceData?.kind !== 'task') return;
+
+        if (targetId?.startsWith('task-')) {
+            previewTaskOrder(sourceData.taskId, Number(targetId.slice('task-'.length)));
+
+            return;
+        }
+
+        const remainsOverTaskRegion = elementsAtPoint.some((element) => element.closest('.task-list'));
+
+        if (!(nativeEvent instanceof KeyboardEvent) && !remainsOverTaskRegion && taskDragPreviewTargetId.current !== null) {
+            const initialOrder = taskDragInitialOrder.current;
+
+            taskDragPreviewTargetId.current = null;
+
+            if (initialOrder) {
+                taskOrderRef.current = initialOrder;
+                setTaskOrder(initialOrder);
+            }
+        }
+    };
+
+    const handleDragOver = (event: DragOverEvent) => {
+        const sourceData = workspaceDragData(event.operation.source);
+        const targetData = workspaceDragData(event.operation.target);
+
+        if (sourceData?.kind !== 'task'
+            || targetData?.kind !== 'task'
+            || sourceData.taskListId !== targetData.taskListId
+            || sourceData.taskId === targetData.taskId) {
+            return;
+        }
+
+        previewTaskOrder(sourceData.taskId, targetData.taskId);
     };
 
     const reorderFolder = (folderIds: number[]) => {
@@ -827,6 +935,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
             onCollision={handleCollision}
             onDragEnd={handleTaskDragEnd}
             onDragMove={handleDragMove}
+            onDragOver={handleDragOver}
             onDragStart={handleDragStart}
             sensors={(defaults) => [
                 ...defaults.filter((sensor) => sensor !== PointerSensor),
