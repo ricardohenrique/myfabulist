@@ -77,11 +77,13 @@ frontend assets.
    `${APP_URL}/auth/google/callback`) as an authorized redirect URI in Google.
 
    To enable production Google Analytics, set `VITE_GA_MEASUREMENT_ID` to the
-   GA4 web stream ID (`G-...`) before running `npm run build`. Analytics is
-   omitted from development builds. In production it covers public and
-   authenticated pages, while Inertia navigations are recorded as page views
-   without requiring a full browser reload. Cookie consent is managed by the
-   separately configured CookieYes integration.
+   GA4 web stream ID (`G-...`) in the production server's `.env`. Laravel adds
+   the Google tag to every production page at request time, including public
+   and authenticated pages, while Inertia navigations are recorded as page
+   views without requiring a full browser reload. Rebuilds are not required
+   when this value changes, but run `php artisan optimize` to refresh cached
+   configuration. Cookie consent is managed by the separately configured
+   CookieYes integration.
 
 4. Create the MySQL database and run migrations. The example command below
    uses the default `DB_DATABASE=laravel`; adjust it if you changed that value.

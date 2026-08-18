@@ -17,6 +17,22 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
         <link rel="manifest" href="/site.webmanifest">
 
+        @php
+            $googleAnalyticsMeasurementId = config('services.google.analytics_measurement_id');
+            $hasGoogleAnalytics = app()->isProduction()
+                && is_string($googleAnalyticsMeasurementId)
+                && preg_match('/^G-[A-Z0-9]+$/i', $googleAnalyticsMeasurementId) === 1;
+        @endphp
+        @if ($hasGoogleAnalytics)
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $googleAnalyticsMeasurementId }}"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', @json($googleAnalyticsMeasurementId));
+            </script>
+        @endif
+
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx'])
         @inertiaHead

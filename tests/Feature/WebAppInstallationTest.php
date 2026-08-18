@@ -37,4 +37,24 @@ class WebAppInstallationTest extends TestCase
             array_column($manifest['icons'], 'sizes'),
         );
     }
+
+    public function test_google_analytics_is_rendered_on_every_production_page_when_configured(): void
+    {
+        $this->app->instance('env', 'production');
+        config()->set('services.google.analytics_measurement_id', 'G-24120KDBR5');
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('https://www.googletagmanager.com/gtag/js?id=G-24120KDBR5', false)
+            ->assertSee("gtag('config', \"G-24120KDBR5\")", false);
+    }
+
+    public function test_google_analytics_is_not_rendered_outside_production(): void
+    {
+        config()->set('services.google.analytics_measurement_id', 'G-24120KDBR5');
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('googletagmanager.com/gtag/js', false);
+    }
 }
