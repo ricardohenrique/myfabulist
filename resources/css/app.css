@@ -1276,6 +1276,14 @@ button:disabled {
     touch-action: pan-y;
 }
 
+@media (hover: none) and (pointer: coarse) {
+    .nav-item-wrap.is-sortable .nav-row {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+}
+
 .folder-group.is-dragging,
 .nav-item-wrap.is-dragging {
     z-index: 60;

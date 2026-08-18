@@ -190,8 +190,14 @@ function SortableListRow({
         >
             <Link
                 className={`nav-row ${nested ? 'nav-row--nested' : ''} ${active ? 'is-active' : ''}`}
+                draggable={false}
                 href={showList(list.id)}
                 onClick={onCloseMobile}
+                onContextMenu={(event) => {
+                    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+                        event.preventDefault();
+                    }
+                }}
             >
                 <Icon className="nav-icon" name="list" size={16} />
                 <span>{list.name}</span>
