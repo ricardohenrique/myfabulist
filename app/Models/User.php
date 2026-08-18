@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OnboardingUseCase;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use App\Notifications\WelcomeVerifyEmailNotification;
@@ -32,6 +33,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $profile_photo_path
  * @property int|null $workspace_background_option_id
  * @property array<string, mixed>|null $workspace_background_config
+ * @property OnboardingUseCase|null $onboarding_use_case
+ * @property Carbon|null $onboarding_completed_at
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -74,8 +77,15 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'onboarding_use_case' => OnboardingUseCase::class,
+            'onboarding_completed_at' => 'datetime',
             'workspace_background_config' => 'array',
         ];
+    }
+
+    public function needsOnboarding(): bool
+    {
+        return $this->onboarding_completed_at === null;
     }
 
     /**

@@ -39,6 +39,10 @@ class UserFactory extends Factory
             // colors (Plan: "Workspace Background Personalization", Step 1).
             'workspace_background_option_id' => null,
             'workspace_background_config' => null,
+            // Factory and seeded users represent established accounts.
+            // Real registrations omit these fields and receive the prompt.
+            'onboarding_use_case' => null,
+            'onboarding_completed_at' => now(),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
@@ -52,6 +56,17 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user has not answered or skipped onboarding yet.
+     */
+    public function pendingOnboarding(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'onboarding_use_case' => null,
+            'onboarding_completed_at' => null,
         ]);
     }
 

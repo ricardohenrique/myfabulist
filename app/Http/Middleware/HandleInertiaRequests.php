@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Enums\OnboardingUseCase;
 use App\Http\Presenters\WorkspacePresenter;
 use App\Models\TaskListMember;
 use App\Models\User;
@@ -56,6 +57,10 @@ class HandleInertiaRequests extends Middleware
                     // paint with no flash of unstyled background.
                     'workspaceBackground' => $this->resolvedWorkspaceBackground($request->user()),
                 ],
+            ],
+            'onboarding' => fn (): array => [
+                'pending' => $request->user()?->needsOnboarding() ?? false,
+                'useCaseOptions' => OnboardingUseCase::options(),
             ],
             // The catalog of currently selectable background types, plus
             // the user's own selection even if it has since been disabled

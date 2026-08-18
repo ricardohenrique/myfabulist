@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\OnboardingUseCase;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Str;
@@ -36,6 +37,24 @@ class AccountService
     public function updatePassword(User $user, string $password): User
     {
         $user->forceFill(['password' => $password]);
+
+        return $this->users->save($user);
+    }
+
+    /**
+     * Record the optional onboarding answer exactly once. A null use case is
+     * an explicit skip, distinguished from a pending prompt by the timestamp.
+     */
+    public function completeOnboarding(User $user, ?OnboardingUseCase $useCase): User
+    {
+        if (! $user->needsOnboarding()) {
+            return $user;
+        }
+
+        $user->forceFill([
+            'onboarding_use_case' => $useCase,
+            'onboarding_completed_at' => now(),
+        ]);
 
         return $this->users->save($user);
     }

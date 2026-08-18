@@ -2364,6 +2364,10 @@ button:disabled {
     padding: clamp(22px, 4vw, 30px);
 }
 
+.dialog-panel--onboarding {
+    width: min(100%, 520px);
+}
+
 .dialog-heading {
     display: flex;
     align-items: flex-start;
@@ -2404,6 +2408,39 @@ button:disabled {
     color: #52606b;
     background: #f5f6f6;
     font-size: 0.83rem;
+}
+
+.onboarding-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.onboarding-option {
+    min-height: 52px;
+    padding: 11px 14px;
+    border: 1px solid #ddd7ec;
+    border-radius: 10px;
+    color: #443b5c;
+    background: #faf8ff;
+    font-size: 0.88rem;
+    font-weight: 650;
+    text-align: left;
+    transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+
+.onboarding-option:hover:not(:disabled) {
+    border-color: var(--brand);
+    background: var(--selection);
+    transform: translateY(-1px);
+}
+
+.onboarding-error {
+    margin-top: 14px;
+}
+
+.onboarding-actions {
+    margin-top: 12px;
 }
 
 .profile-modal__success {
@@ -2546,6 +2583,10 @@ button:disabled {
 
     .profile-modal__actions .ui-button {
         width: 100%;
+    }
+
+    .onboarding-options {
+        grid-template-columns: 1fr;
     }
 }
 

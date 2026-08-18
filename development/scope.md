@@ -40,6 +40,8 @@ field. Lists may also remain ungrouped.
   in. Password recovery is available by email. New password-based accounts
   receive a branded welcome email with an optional confirmation link; email
   confirmation is recorded but never gates sign-in or product access.
+  New accounts receive a lightweight, optional first-Inbox question about
+  their primary use case; answering or skipping completes the prompt.
   Two-factor authentication, passkeys, and expanded account settings are
   intentionally excluded from the current release.
 - A user may only view or mutate folders and tasks they own, and lists they
@@ -52,6 +54,8 @@ field. Lists may also remain ungrouped.
 ### Inbox
 
 - Every user receives exactly one default Inbox list.
+- A newly registered user's Inbox starts with two simple active example tasks
+  that demonstrate quick capture and completion.
 - Inbox is always ungrouped and shown prominently in navigation.
 - Inbox cannot be renamed or deleted.
 - Inbox is the default destination for global quick capture.

@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\FolderController;
 use App\Http\Controllers\Web\FolderOrderController;
 use App\Http\Controllers\Web\ListInvitationController;
 use App\Http\Controllers\Web\MoveTaskController;
+use App\Http\Controllers\Web\OnboardingController;
 use App\Http\Controllers\Web\PasswordController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\RestoreSubtaskController;
@@ -95,6 +96,7 @@ Route::middleware('auth')->group(function () {
         ->name('verification.send');
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::patch('onboarding', OnboardingController::class)->name('onboarding.complete');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('profile/background', [ProfileController::class, 'updateBackground'])->name('profile.background.update');
     Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password.update');

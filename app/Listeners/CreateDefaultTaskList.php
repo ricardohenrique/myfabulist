@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Actions\ProvisionNewAccount;
 use App\Models\User;
-use App\Services\TaskListService;
 use Illuminate\Auth\Events\Registered;
 
 /**
- * Provisions the new user's Inbox immediately after registration (D5). This
- * is the primary creation path; TaskListService::inboxFor() is the
- * idempotent fallback for users who never fired Registered (e.g. seeded or
- * factory-created users).
+ * Provisions the new user's Inbox and starter tasks immediately after
+ * registration. This is the primary creation path; TaskListService::
+ * inboxFor() remains the idempotent Inbox fallback for seeded or
+ * factory-created users that never fire Registered.
  *
  * Auto-discovered by Laravel's event discovery (Application::configure()
  * calls withEvents() by default) — the handle() type-hint on Registered is
@@ -21,7 +21,7 @@ use Illuminate\Auth\Events\Registered;
 class CreateDefaultTaskList
 {
     public function __construct(
-        private readonly TaskListService $taskListService,
+        private readonly ProvisionNewAccount $provisionAccount,
     ) {}
 
     public function handle(Registered $event): void
@@ -30,6 +30,6 @@ class CreateDefaultTaskList
             return;
         }
 
-        $this->taskListService->inboxFor($event->user);
+        $this->provisionAccount->handle($event->user);
     }
 }

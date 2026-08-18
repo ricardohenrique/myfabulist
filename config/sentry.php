@@ -8,7 +8,12 @@
 return [
 
     // @see https://docs.sentry.io/concepts/key-terms/dsn-explainer/
-    'dsn' => env('SENTRY_LARAVEL_DSN', env('SENTRY_DSN')),
+    // A missing DSN disables all Sentry event delivery and tracing
+    // integrations. Keep local, testing, and staging environments isolated
+    // even if a developer has copied the production DSN into their `.env`.
+    'dsn' => env('APP_ENV') === 'production'
+        ? env('SENTRY_LARAVEL_DSN', env('SENTRY_DSN'))
+        : null,
 
     // @see https://spotlightjs.com/
     // 'spotlight' => env('SENTRY_SPOTLIGHT', false),

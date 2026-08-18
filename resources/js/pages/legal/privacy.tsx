@@ -34,7 +34,7 @@ export default function Privacy() {
                     <li><strong>Content:</strong> folders, lists, tasks, notes, due dates, subtasks, comments, ordering, completion, and starred status.</li>
                     <li><strong>Collaboration data:</strong> list memberships, invitations, and the identity of comment authors and collaborators.</li>
                     <li><strong>Technical data:</strong> IP address, request time, browser and device information, log data, session or API-token metadata needed to operate and secure the service, and, with your consent, page-view analytics.</li>
-                    <li><strong>Optional data:</strong> a profile photo and workspace appearance choices if you choose to provide them.</li>
+                    <li><strong>Optional data:</strong> a profile photo, workspace appearance choices, and your main intended use for Purplelist if you choose to provide them.</li>
                 </ul>
                 <p>
                     Please avoid putting sensitive personal data in task titles, notes, or comments unless it is
@@ -54,6 +54,11 @@ export default function Privacy() {
                         We process technical and security data to maintain reliable operation, prevent abuse,
                         investigate errors, and protect accounts. The legal basis is Article 6(1)(f) GDPR. Our
                         legitimate interests are the security, stability, and improvement of the service.
+                    </li>
+                    <li>
+                        If you answer the optional onboarding question, we process that broad use category to
+                        understand how people plan to use Purplelist and improve onboarding. The legal basis is
+                        Article 6(1)(f) GDPR; our legitimate interest is improving the service.
                     </li>
                     <li>
                         Where processing is necessary to comply with a legal obligation, the legal basis is

@@ -4,6 +4,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ShareDialog } from '@/components/lists/share-dialog';
 import { Sidebar } from '@/components/navigation/sidebar';
+import { UseCaseDialog } from '@/components/onboarding/use-case-dialog';
 import { TaskDetails } from '@/components/tasks/task-details';
 import { TaskRow } from '@/components/tasks/task-row';
 import { Button } from '@/components/ui/button';
@@ -894,6 +895,11 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 passwordForm={passwordForm}
                 profileForm={profileForm}
                 successMessage={profileSuccess}
+            />
+
+            <UseCaseDialog
+                open={workspace.view === 'inbox' && page.props.onboarding.pending}
+                options={page.props.onboarding.useCaseOptions}
             />
 
             <Dialog

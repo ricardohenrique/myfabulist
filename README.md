@@ -150,6 +150,11 @@ users can:
   account menu; and
 - undo the latest completion, star change, or task move.
 
+New password and Google registrations begin with two simple tasks in Inbox.
+On the first Inbox visit, a one-question onboarding dialog optionally records
+the account's main Purplelist use case; choosing Skip dismisses it permanently
+without recording a category.
+
 Privacy and Terms pages are publicly available at `/privacy` and `/terms`,
 with links in the login-page footer. Their highlighted operator, processor,
 retention, and consumer-dispute details must be completed with the production
@@ -259,6 +264,14 @@ query the canonical database. Clients requesting JSON receive
 `{"status":"down"}` with HTTP 500 when the database check fails. Use this
 endpoint for deployment readiness and external uptime checks; the production
 JSON response does not expose credentials or exception details.
+
+## Production error monitoring
+
+Sentry delivery is enabled only when `APP_ENV=production` and
+`SENTRY_LARAVEL_DSN` is configured. A DSN present in a local, testing, or
+staging `.env` is ignored, so those environments cannot send errors, traces,
+logs, or metrics to the production Sentry project. After changing production
+Sentry settings, run `php artisan optimize` to refresh cached configuration.
 
 ## Quality gates
 

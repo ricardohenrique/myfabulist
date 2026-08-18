@@ -43,6 +43,13 @@ class GoogleAuthenticationTest extends TestCase
             'name' => 'Inbox',
             'is_default' => true,
         ]);
+        $inbox = $user->taskLists()->where('is_default', true)->sole();
+        $this->assertSame([
+            'Add something you need to do',
+            "Check this task when you're finished",
+        ], $inbox->tasks()->orderBy('position')->pluck('title')->all());
+        $this->assertNull($user->onboarding_use_case);
+        $this->assertNull($user->onboarding_completed_at);
         $this->assertSame(
             WorkspaceBackgroundOption::query()->where('is_default', true)->value('id'),
             $user->workspace_background_option_id,

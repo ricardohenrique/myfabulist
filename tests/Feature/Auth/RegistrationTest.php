@@ -58,6 +58,14 @@ class RegistrationTest extends TestCase
         ]);
 
         $user = User::query()->where('email', 'test@example.com')->firstOrFail();
+        $inbox = $user->taskLists()->where('is_default', true)->sole();
+
+        $this->assertSame([
+            'Add something you need to do',
+            "Check this task when you're finished",
+        ], $inbox->tasks()->orderBy('position')->pluck('title')->all());
+        $this->assertNull($user->onboarding_use_case);
+        $this->assertNull($user->onboarding_completed_at);
         Notification::assertSentTo($user, WelcomeVerifyEmailNotification::class);
         $this->assertFalse($user->hasVerifiedEmail());
     }

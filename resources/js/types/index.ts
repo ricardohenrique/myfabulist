@@ -1,5 +1,18 @@
 export type WorkspaceView = 'inbox' | 'list' | 'starred';
 
+export type OnboardingUseCase =
+    | 'personal_tasks'
+    | 'work'
+    | 'school_studies'
+    | 'household_family'
+    | 'projects'
+    | 'everything';
+
+export type OnboardingUseCaseOption = {
+    value: OnboardingUseCase;
+    label: string;
+};
+
 export type WorkspaceBackgroundType = 'flat_color' | 'image' | 'gradient';
 
 // Which keys are present depends on `type` (color for flat_color, url for
@@ -138,6 +151,10 @@ export type SharedPageProps = {
     appName: string;
     auth: {
         user: UserSummary | null;
+    };
+    onboarding: {
+        pending: boolean;
+        useCaseOptions: OnboardingUseCaseOption[];
     };
     flash: {
         success: string | null;

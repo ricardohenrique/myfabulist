@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Enums\OnboardingUseCase;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
@@ -24,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'onboarding_use_case' => OnboardingUseCase::Projects,
         ]);
 
         $this->seedAcceptanceCriteriaWalkthrough($user);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Database;
 
+use App\Enums\OnboardingUseCase;
 use App\Models\Folder;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -22,6 +23,8 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $user = User::query()->where('email', 'test@example.com')->firstOrFail();
+        $this->assertSame(OnboardingUseCase::Projects, $user->onboarding_use_case);
+        $this->assertNotNull($user->onboarding_completed_at);
         $workFolder = Folder::query()
             ->where('user_id', $user->id)
             ->where('name', 'Work')
