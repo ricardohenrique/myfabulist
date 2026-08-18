@@ -233,6 +233,21 @@ export function AppShell({ workspace, user }: AppShellProps) {
         });
     };
 
+    const toggleCompleteFromDetails = (taskId: number) => {
+        const task = tasks.find((item) => item.id === taskId);
+        if (!task) return;
+
+        // Completing a task removes the details surface immediately, which
+        // is especially important when that surface fills a mobile viewport.
+        // A rejected write still reconciles through toggleComplete's existing
+        // error handling and leaves the canonical active task in the list.
+        if (task.completedAt === null) {
+            setSelectedTaskId(null);
+        }
+
+        toggleComplete(taskId);
+    };
+
     const toggleStar = (taskId: number) => {
         const task = tasks.find((item) => item.id === taskId);
         if (!task) return;
@@ -864,7 +879,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     onRenameSubtask={renameSubtask}
                     onSave={saveTask}
                     onToggleSubtask={toggleSubtask}
-                    onToggleComplete={toggleComplete}
+                    onToggleComplete={toggleCompleteFromDetails}
                     onToggleStar={toggleStar}
                     processing={pendingTaskIds.includes(selectedTask.id)}
                     pendingSubtaskIds={pendingSubtaskIds}
