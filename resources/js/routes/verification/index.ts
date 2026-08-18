@@ -1,6 +1,6 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
-* @see routes/web.php:82
+* @see routes/web.php:86
 * @route '/email/verify'
 */
 export const notice = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -14,7 +14,7 @@ notice.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:82
+* @see routes/web.php:86
 * @route '/email/verify'
 */
 notice.url = (options?: RouteQueryOptions) => {
@@ -22,7 +22,7 @@ notice.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/web.php:82
+* @see routes/web.php:86
 * @route '/email/verify'
 */
 notice.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -31,7 +31,7 @@ notice.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:82
+* @see routes/web.php:86
 * @route '/email/verify'
 */
 notice.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({

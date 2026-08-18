@@ -8,6 +8,7 @@ use App\Notifications\WelcomeVerifyEmailNotification;
 use Database\Seeders\WorkspaceBackgroundOptionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
@@ -26,7 +27,14 @@ class RegistrationTest extends TestCase
     {
         $response = $this->get(route('register'));
 
-        $response->assertOk();
+        $response->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('auth/register')
+                ->where('passwordRequirements.min', 8)
+                ->where('passwordRequirements.mixedCase', true)
+                ->where('passwordRequirements.letters', true)
+                ->where('passwordRequirements.numbers', true)
+                ->where('passwordRequirements.symbols', true));
     }
 
     public function test_new_users_can_register(): void
@@ -36,8 +44,8 @@ class RegistrationTest extends TestCase
         $response = $this->post(route('register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'ValidPass1!',
+            'password_confirmation' => 'ValidPass1!',
         ]);
 
         $response->assertSessionHasNoErrors()
@@ -54,6 +62,18 @@ class RegistrationTest extends TestCase
         $this->assertFalse($user->hasVerifiedEmail());
     }
 
+    public function test_registration_rejects_passwords_missing_the_required_character_types(): void
+    {
+        $this->post(route('register.store'), [
+            'name' => 'John Doe',
+            'email' => 'test@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertSessionHasErrors('password');
+
+        $this->assertGuest();
+    }
+
     public function test_new_users_start_on_the_platform_default_workspace_background(): void
     {
         $this->seed(WorkspaceBackgroundOptionSeeder::class);
@@ -62,8 +82,8 @@ class RegistrationTest extends TestCase
         $this->post(route('register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'ValidPass1!',
+            'password_confirmation' => 'ValidPass1!',
         ])->assertSessionHasNoErrors();
 
         $user = User::query()->where('email', 'test@example.com')->firstOrFail();

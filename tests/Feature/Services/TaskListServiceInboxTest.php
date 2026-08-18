@@ -49,8 +49,8 @@ class TaskListServiceInboxTest extends TestCase
         $this->post(route('register.store'), [
             'name' => 'John Doe',
             'email' => 'inbox-test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'ValidPass1!',
+            'password_confirmation' => 'ValidPass1!',
         ])->assertSessionHasNoErrors();
 
         $user = User::query()->where('email', 'inbox-test@example.com')->firstOrFail();

@@ -62,13 +62,13 @@ class ProfileManagementTest extends TestCase
         $this->actingAs($user)
             ->put(route('profile.password.update'), [
                 'current_password' => 'password',
-                'password' => 'new-secure-password',
-                'password_confirmation' => 'new-secure-password',
+                'password' => 'ValidPass1!',
+                'password_confirmation' => 'ValidPass1!',
             ])
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $this->assertTrue(Hash::check('new-secure-password', $user->fresh()->password));
+        $this->assertTrue(Hash::check('ValidPass1!', $user->fresh()->password));
     }
 
     public function test_current_password_is_required_to_update_password(): void
@@ -79,8 +79,8 @@ class ProfileManagementTest extends TestCase
             ->from(route('inbox'))
             ->put(route('profile.password.update'), [
                 'current_password' => 'incorrect-password',
-                'password' => 'new-secure-password',
-                'password_confirmation' => 'new-secure-password',
+                'password' => 'ValidPass1!',
+                'password_confirmation' => 'ValidPass1!',
             ])
             ->assertSessionHasErrors('current_password')
             ->assertRedirect(route('inbox'));
@@ -98,12 +98,12 @@ class ProfileManagementTest extends TestCase
         $this->actingAs($user)
             ->put(route('profile.password.update'), [
                 'current_password' => '',
-                'password' => 'new-secure-password',
-                'password_confirmation' => 'new-secure-password',
+                'password' => 'ValidPass1!',
+                'password_confirmation' => 'ValidPass1!',
             ])
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $this->assertTrue(Hash::check('new-secure-password', $user->fresh()->password));
+        $this->assertTrue(Hash::check('ValidPass1!', $user->fresh()->password));
     }
 }

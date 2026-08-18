@@ -422,9 +422,8 @@ button:disabled {
 }
 
 .password-requirements__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 14px;
+    display: grid;
+    gap: 3px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -447,13 +446,6 @@ button:disabled {
 
 .password-requirement.is-met {
     color: var(--brand);
-}
-
-.password-requirements__breach-note {
-    margin: 5px 0 0;
-    color: #7b8791;
-    font-size: 0.68rem;
-    line-height: 1.4;
 }
 
 .password-match {

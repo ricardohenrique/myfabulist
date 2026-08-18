@@ -44,7 +44,11 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthenticatedSessionController::class, 'store'])
         ->middleware('throttle:login')
         ->name('login.store');
-    Route::get('register', fn () => Inertia::render('auth/register'))->name('register');
+    Route::get('register', fn () => Inertia::render('auth/register', [
+        'passwordRequirements' => collect(Password::default()->appliedRules())
+            ->only(['min', 'mixedCase', 'letters', 'numbers', 'symbols'])
+            ->all(),
+    ]))->name('register');
     Route::post('register', [RegisteredUserController::class, 'store'])->name('register.store');
 
     Route::get('forgot-password', fn (Request $request) => Inertia::render('auth/forgot-password', [
@@ -56,7 +60,7 @@ Route::middleware('guest')->group(function () {
     Route::get('reset-password/{token}', fn (Request $request, string $token) => Inertia::render('auth/reset-password', [
         'email' => $request->query('email', ''),
         'passwordRequirements' => collect(Password::default()->appliedRules())
-            ->only(['min', 'mixedCase', 'letters', 'numbers', 'symbols', 'uncompromised'])
+            ->only(['min', 'mixedCase', 'letters', 'numbers', 'symbols'])
             ->all(),
         'token' => $token,
     ]))->name('password.reset');

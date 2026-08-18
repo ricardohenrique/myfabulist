@@ -1,14 +1,21 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { AuthLayout } from '@/components/auth/auth-layout';
+import {
+    PasswordMatch,
+    PasswordRequirements,
+    type PasswordRequirementsConfig,
+} from '@/components/auth/password-requirements';
 import { Button } from '@/components/ui/button';
 import { trackAnalyticsEvent } from '@/lib/analytics';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
-type RegisterErrors = Partial<Record<'name' | 'email' | 'password' | 'passwordConfirmation', string>>;
+type RegisterProps = {
+    passwordRequirements: PasswordRequirementsConfig;
+};
 
-export default function Register() {
+export default function Register({ passwordRequirements }: RegisterProps) {
     const form = useForm({
         name: '',
         email: '',
@@ -20,7 +27,6 @@ export default function Register() {
         event.preventDefault();
         form.post(store.url(), {
             onSuccess: () => trackAnalyticsEvent('sign_up', { method: 'password' }),
-            onFinish: () => form.reset('password', 'password_confirmation'),
         });
     };
 
@@ -60,29 +66,51 @@ export default function Register() {
 
                 <label className="field-label" htmlFor="password">Password</label>
                 <input
+                    aria-describedby={`registration-password-requirements${form.errors.password ? ' registration-password-error' : ''}`}
                     aria-invalid={Boolean(form.errors.password)}
                     autoComplete="new-password"
                     className="text-field"
                     id="password"
-                    onChange={(event) => form.setData('password', event.target.value)}
-                    placeholder="At least 8 characters"
+                    onChange={(event) => {
+                        form.setData('password', event.target.value);
+                        form.clearErrors('password');
+                    }}
+                    placeholder={`At least ${passwordRequirements.min} characters`}
                     type="password"
                     value={form.data.password}
                 />
-                {form.errors.password && <p className="field-error">{form.errors.password}</p>}
+                {form.errors.password && (
+                    <p className="field-error" id="registration-password-error" role="alert">
+                        {form.errors.password}
+                    </p>
+                )}
+                <PasswordRequirements
+                    id="registration-password-requirements"
+                    password={form.data.password}
+                    requirements={passwordRequirements}
+                />
 
                 <label className="field-label" htmlFor="password-confirmation">Confirm password</label>
                 <input
+                    aria-describedby="registration-password-match"
                     aria-invalid={Boolean(form.errors.password_confirmation)}
                     autoComplete="new-password"
                     className="text-field"
                     id="password-confirmation"
-                    onChange={(event) => form.setData('password_confirmation', event.target.value)}
+                    onChange={(event) => {
+                        form.setData('password_confirmation', event.target.value);
+                        form.clearErrors('password_confirmation', 'password');
+                    }}
                     placeholder="Repeat your password"
                     type="password"
                     value={form.data.password_confirmation}
                 />
                 {form.errors.password_confirmation && <p className="field-error">{form.errors.password_confirmation}</p>}
+                <PasswordMatch
+                    confirmation={form.data.password_confirmation}
+                    id="registration-password-match"
+                    password={form.data.password}
+                />
 
                 <Button className="auth-submit" disabled={form.processing} type="submit" variant="primary">
                     {form.processing ? 'Creating account…' : 'Create my account'}
