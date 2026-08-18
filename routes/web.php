@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\FolderController;
 use App\Http\Controllers\Web\FolderOrderController;
 use App\Http\Controllers\Web\ListInvitationController;
 use App\Http\Controllers\Web\MoveTaskController;
+use App\Http\Controllers\Web\MoveTaskListController;
 use App\Http\Controllers\Web\OnboardingController;
 use App\Http\Controllers\Web\PasswordController;
 use App\Http\Controllers\Web\ProfileController;
@@ -110,6 +111,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('folders/{folder}', [FolderController::class, 'destroy'])->whereNumber('folder')->name('folders.destroy');
 
     Route::put('lists/order', TaskListOrderController::class)->name('lists.order');
+    Route::post('lists/{list}/move', MoveTaskListController::class)->whereNumber('list')->name('lists.move');
     Route::post('lists', [WebTaskListController::class, 'store'])->name('lists.store');
     Route::put('lists/{list}', [WebTaskListController::class, 'update'])->whereNumber('list')->name('lists.update');
     Route::delete('lists/{list}', [WebTaskListController::class, 'destroy'])->whereNumber('list')->name('lists.destroy');

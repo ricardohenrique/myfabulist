@@ -83,6 +83,25 @@ class TaskListService
     }
 
     /**
+     * Move the acting user's list placement to another folder (or back to
+     * the ungrouped collection) without touching shared list state. Inbox is
+     * permanently ungrouped, matching update(). A same-container request is
+     * an idempotent no-op rather than an unexpected move to the end.
+     */
+    public function move(TaskList $taskList, User $user, ?int $folderId): TaskList
+    {
+        $folder = $taskList->is_default ? null : $this->resolveFolder($user, $folderId);
+
+        if ($folder?->id === $taskList->folder_id) {
+            return $taskList;
+        }
+
+        $position = $this->taskLists->nextPosition($user, $folder?->id);
+
+        return $this->taskLists->move($taskList, $user, $folder, $position);
+    }
+
+    /**
      * Delete a list (M2). The default (Inbox) list can never be deleted (D5).
      *
      * `$user` is required and re-checked against ownership here as defence

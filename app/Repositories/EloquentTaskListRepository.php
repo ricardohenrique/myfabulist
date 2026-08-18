@@ -220,6 +220,21 @@ class EloquentTaskListRepository implements TaskListRepositoryInterface
         });
     }
 
+    public function move(TaskList $taskList, User $user, ?Folder $folder, int $position): TaskList
+    {
+        return DB::transaction(function () use ($taskList, $user, $folder, $position): TaskList {
+            $membership = $this->taskListMembers->findMembership($taskList, $user);
+
+            if ($membership === null || $membership->status !== 'accepted') {
+                throw TaskListNotFoundException::forId($taskList->id);
+            }
+
+            $this->taskListMembers->updatePlacement($membership, $folder?->id, $position);
+
+            return $taskList->withPlacement($folder?->id, $position);
+        });
+    }
+
     public function delete(TaskList $taskList): void
     {
         $taskList->delete();

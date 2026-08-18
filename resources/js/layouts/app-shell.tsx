@@ -1,4 +1,4 @@
-import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/react';
+import { DragDropProvider, PointerSensor, type CollisionEvent, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/icon';
 import { ProfileSettingsDialog } from '@/components/settings/profile-settings-dialog';
 import { trackAnalyticsEvent } from '@/lib/analytics';
 import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
+import { workspaceDragData } from '@/lib/workspace-drag';
 import { workspaceBackgroundStyle } from '@/lib/workspace-background';
 import * as folderRoutes from '@/routes/folders';
 import * as invitationRoutes from '@/routes/invitations';
@@ -79,6 +80,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [subtaskCreating, setSubtaskCreating] = useState(false);
     const [pendingSubtaskIds, setPendingSubtaskIds] = useState<number[]>([]);
     const [pendingTaskIds, setPendingTaskIds] = useState<number[]>([]);
+    const [optimisticallyMovedTaskIds, setOptimisticallyMovedTaskIds] = useState<number[]>([]);
     const [taskOrder, setTaskOrder] = useState<number[]>(() => workspace.tasks
         .filter((task) => !task.completedAt)
         .map((task) => task.id));
@@ -100,6 +102,8 @@ export function AppShell({ workspace, user }: AppShellProps) {
     // reload `openNotifications` triggers below.
     const [invitations, setInvitations] = useState<PendingInvitationSummary[] | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
+    const dragSourceId = useRef<string | null>(null);
+    const lastCollisionTargetId = useRef<string | null>(null);
     const shareDetailsRequestId = useRef(0);
     const quickAdd = useForm({ title: '' });
     const profileForm = useForm({ name: user.name, email: user.email });
@@ -110,7 +114,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
     });
 
     const tasks = workspace.tasks;
-    const activeTasks = orderByIds(tasks.filter((task) => !task.completedAt), taskOrder);
+    const activeTasks = orderByIds(
+        tasks.filter((task) => !task.completedAt && !optimisticallyMovedTaskIds.includes(task.id)),
+        taskOrder,
+    );
     const completedTasks = tasks.filter((task) => task.completedAt);
     const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
     const shareDialogList = backgroundShareList ?? workspace.currentList;
@@ -121,6 +128,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
     useEffect(() => {
         setTaskOrder(tasks.filter((task) => !task.completedAt).map((task) => task.id));
+        setOptimisticallyMovedTaskIds((current) => current.filter((taskId) => tasks.some((task) => task.id === taskId)));
     }, [tasks]);
 
     useEffect(() => {
@@ -497,16 +505,89 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
     const handleTaskDragEnd = (event: DragEndEvent) => {
         const source = event.operation.source;
+        const target = event.operation.target;
+        const sourceData = workspaceDragData(source);
+        const targetData = workspaceDragData(target);
+        const collisionTargetId = lastCollisionTargetId.current;
 
-        if (event.canceled || reorderPending || !isSortable(source)) {
+        if (event.canceled || reorderPending || sourceData?.kind !== 'task') {
             return;
         }
 
-        const reordered = moveItem(activeTasks, source.initialIndex, source.index);
+        const collisionListId = collisionTargetId?.startsWith('list-target-')
+            ? Number(collisionTargetId.slice('list-target-'.length))
+            : collisionTargetId?.startsWith('list-')
+                ? Number(collisionTargetId.slice('list-'.length))
+                : null;
+        const targetListId = collisionListId ?? (targetData?.kind === 'list' ? targetData.listId : null);
+
+        if (targetListId !== null && targetListId !== sourceData.taskListId) {
+            const task = tasks.find((item) => item.id === sourceData.taskId);
+            const targetList = destinationLists.find((list) => list.id === targetListId);
+
+            if (!task || !targetList || !sourceData.canMoveAcrossLists || !targetList.isOwner || targetList.isShared) {
+                return;
+            }
+
+            setTaskPending(task.id, true);
+            setOptimisticallyMovedTaskIds((current) => [...new Set([...current, task.id])]);
+            router.post(taskRoutes.move(task.id), { task_list_id: targetList.id }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    trackAnalyticsEvent('task_moved');
+                    setUndo({
+                        message: `“${task.title}” moved to ${targetList.name}.`,
+                        execute: () => router.post(taskRoutes.move(task.id), { task_list_id: task.taskListId }, { preserveScroll: true }),
+                    });
+                },
+                onError: (errors) => {
+                    setOptimisticallyMovedTaskIds((current) => current.filter((taskId) => taskId !== task.id));
+                    setNotice(Object.values(errors)[0] ?? 'The task could not be moved.');
+                },
+                onFinish: () => setTaskPending(task.id, false),
+            });
+
+            return;
+        }
+
+        if (!isSortable(source) || targetData?.kind !== 'task' || targetData.taskListId !== sourceData.taskListId) {
+            return;
+        }
+
+        const collisionTaskId = collisionTargetId?.startsWith('task-')
+            ? Number(collisionTargetId.slice('task-'.length))
+            : targetData.taskId;
+        const targetIndex = activeTasks.findIndex((task) => task.id === collisionTaskId);
+        const reordered = moveItem(activeTasks, source.initialIndex, targetIndex);
 
         if (reordered !== activeTasks) {
             reorderTask(reordered.map((task) => task.id));
         }
+    };
+
+    const handleDragStart = (event: DragStartEvent) => {
+        dragSourceId.current = String(event.operation.source?.id ?? '');
+        lastCollisionTargetId.current = null;
+    };
+
+    const handleCollision = (event: CollisionEvent) => {
+        const collision = event.collisions.find((candidate) => String(candidate.id) !== dragSourceId.current);
+
+        if (collision) {
+            lastCollisionTargetId.current = String(collision.id);
+        }
+    };
+
+    const handleDragMove = (event: DragMoveEvent) => {
+        const nativeEvent = event.nativeEvent;
+        const point = nativeEvent instanceof PointerEvent
+            ? { x: nativeEvent.clientX, y: nativeEvent.clientY }
+            : event.operation.position.current;
+        const target = document.elementsFromPoint(point.x, point.y)
+            .map((element) => element.closest<HTMLElement>('[data-workspace-drop-id]'))
+            .find((element) => element !== null && element.dataset.workspaceDropId !== dragSourceId.current);
+
+        lastCollisionTargetId.current = target?.dataset.workspaceDropId ?? null;
     };
 
     const reorderFolder = (folderIds: number[]) => {
@@ -523,6 +604,27 @@ export function AppShell({ workspace, user }: AppShellProps) {
         router.put(listRoutes.order(), { folder_id: folderId, task_list_ids: taskListIds }, {
             preserveScroll: true,
             onError: (errors) => setNotice(Object.values(errors)[0] ?? 'The list order could not be saved. The current order was restored.'),
+            onFinish: () => setReorderPending(false),
+        });
+    };
+
+    const moveList = (list: NavigationList, folderId: number | null, onRejected: () => void) => {
+        const originalFolderId = list.folderId;
+        const destinationName = folderId === null
+            ? 'Ungrouped lists'
+            : workspace.folders.find((folder) => folder.id === folderId)?.name ?? 'that folder';
+
+        setReorderPending(true);
+        router.post(listRoutes.move(list.id), { folder_id: folderId }, {
+            preserveScroll: true,
+            onSuccess: () => setUndo({
+                message: `“${list.name}” moved to ${destinationName}.`,
+                execute: () => router.post(listRoutes.move(list.id), { folder_id: originalFolderId }, { preserveScroll: true }),
+            }),
+            onError: (errors) => {
+                onRejected();
+                setNotice(Object.values(errors)[0] ?? 'The list could not be moved.');
+            },
             onFinish: () => setReorderPending(false),
         });
     };
@@ -721,6 +823,16 @@ export function AppShell({ workspace, user }: AppShellProps) {
     };
 
     return (
+        <DragDropProvider
+            onCollision={handleCollision}
+            onDragEnd={handleTaskDragEnd}
+            onDragMove={handleDragMove}
+            onDragStart={handleDragStart}
+            sensors={(defaults) => [
+                ...defaults.filter((sensor) => sensor !== PointerSensor),
+                wholeItemPointerSensor,
+            ]}
+        >
         <div className="app-frame" style={workspaceBackgroundStyle(user.workspaceBackground)}>
             <Head title={`${workspace.heading} · Purplelist`} />
             <Sidebar
@@ -729,6 +841,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 folders={workspace.folders}
                 inbox={workspace.inbox}
                 invitations={invitations}
+                lastCollisionTargetId={lastCollisionTargetId}
                 mobileOpen={mobileNavOpen}
                 notificationsOpen={notificationsOpen}
                 onAcceptInvitation={acceptInvitation}
@@ -740,6 +853,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onEditFolder={openEditFolder}
                 onEditList={openEditList}
                 onLeaveList={leaveList}
+                onMoveList={moveList}
                 onNavigate={() => setSelectedTaskId(null)}
                 onOpenCreate={openCreate}
                 onOpenProfile={openProfile}
@@ -805,13 +919,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
                         <section aria-label="Active tasks" className="task-list-section">
                             {activeTasks.length > 0 ? (
-                                <DragDropProvider
-                                    onDragEnd={handleTaskDragEnd}
-                                    sensors={(defaults) => [
-                                        ...defaults.filter((sensor) => sensor !== PointerSensor),
-                                        wholeItemPointerSensor,
-                                    ]}
-                                >
                                     <div className="task-list">
                                         {activeTasks.map((task, index) => (
                                             <TaskRow
@@ -821,13 +928,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
                                                 onToggleComplete={toggleComplete}
                                                 onToggleStar={toggleStar}
                                                 pending={pendingTaskIds.includes(task.id)}
-                                                sortableDisabled={!workspace.currentList || reorderPending || activeTasks.length < 2}
+                                                canMoveAcrossLists={Boolean(workspace.currentList?.isOwner && !workspace.currentList.isShared)}
+                                                sortableDisabled={!workspace.currentList || reorderPending}
                                                 sortableIndex={index}
                                                 task={task}
                                             />
                                         ))}
                                     </div>
-                                </DragDropProvider>
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state__icon"><Icon name="check" size={34} /></div>
@@ -981,5 +1088,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
             />
 
         </div>
+        </DragDropProvider>
     );
 }

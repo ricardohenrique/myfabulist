@@ -1,3 +1,5 @@
+import { useDragOperation } from '@dnd-kit/react';
+import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useState } from 'react';
 import { Icon } from '@/components/ui/icon';
@@ -12,6 +14,7 @@ type TaskRowProps = {
     onDelete: (task: TaskSummary) => void;
     sortableIndex?: number;
     sortableDisabled?: boolean;
+    canMoveAcrossLists?: boolean;
     pending?: boolean;
 };
 
@@ -24,22 +27,42 @@ export function TaskRow({
     onDelete,
     sortableIndex = 0,
     sortableDisabled = false,
+    canMoveAcrossLists = false,
     pending = false,
 }: TaskRowProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const hasMetadata = Boolean(task.dueDateLabel || task.note || task.taskListName !== 'Inbox');
+    const dragOperation = useDragOperation();
+    const isDragSource = dragOperation.source?.id === `task-${task.id}`;
     const sortable = useSortable({
         id: `task-${task.id}`,
         index: sortableIndex,
+        group: `tasks-${task.taskListId}`,
         type: 'task',
-        disabled: completed,
+        accept: 'task',
+        data: {
+            kind: 'task',
+            taskId: task.id,
+            taskListId: task.taskListId,
+            title: task.title,
+            canMoveAcrossLists,
+        },
+        // Tasks can target sidebar list sortables. Let React perform that
+        // cross-tree move after persistence instead of allowing dnd-kit's
+        // optimistic plugin to physically reparent the task DOM node.
+        plugins: (defaults) => defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
+        disabled: {
+            draggable: completed || sortableDisabled,
+            droppable: completed || sortableDisabled || isDragSource,
+        },
     });
 
     return (
         <article
-            aria-label={!completed && !sortableDisabled ? `Reorder task ${task.title}` : undefined}
+            aria-label={!completed && !sortableDisabled ? `Reorder or move task ${task.title}` : undefined}
             aria-roledescription={!completed && !sortableDisabled ? 'sortable task' : undefined}
             className={`task-row ${completed ? 'is-completed' : ''} ${!completed && !sortableDisabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
+            data-workspace-drop-id={`task-${task.id}`}
             ref={!completed && !sortableDisabled ? sortable.ref : undefined}
             role={!completed && !sortableDisabled ? 'group' : undefined}
             tabIndex={!completed && !sortableDisabled ? 0 : undefined}

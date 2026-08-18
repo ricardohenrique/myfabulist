@@ -240,9 +240,12 @@ keyboard user focuses the item, starts the drag with Space or Enter, changes
 position with the arrow keys, and drops with Space or Enter. Dedicated
 move-up/move-down menu items are intentionally not part of the final interface.
 
-Task and list drops are constrained to their current container. Moving a task
-to another list or a list to another folder remains an explicit details/dialog
-operation, never an accidental drag side effect.
+Same-container drops reorder as before. Cross-container moves use explicit,
+typed destinations: folders accept lists, a visible ungrouped target removes a
+list from its folder, and eligible private lists accept active tasks. Destination
+moves append the item, invalid targets do not activate, and a drop outside a
+highlighted target is canceled. The existing details/dialog move controls remain
+available as non-drag alternatives.
 
 ## Empty states
 
@@ -298,11 +301,14 @@ Inertia props through shared services and presenters, and mutations delegate to
 the same service/repository workflows used by API controllers. Server data is
 canonical.
 
-`@dnd-kit/react` provides sortable pointer, touch, and keyboard interaction.
-Each drop optimistically updates the local collection, submits its complete ID
-order, disables further drops while saving, and reconciles from returned
-Inertia props. Active tasks always display in their persisted custom order, and
-new tasks are inserted first without disturbing the existing relative order.
+`@dnd-kit/react` provides sortable pointer, touch, and keyboard interaction
+through one workspace-level drag context. Typed droppable targets coordinate
+folders and lists in the sidebar with active tasks in the main pane. Reorders
+optimistically submit their complete scoped ID order; cross-container moves call
+dedicated atomic move routes and append at the destination. Further drops are
+disabled while saving, and rejected writes restore canonical Inertia state.
+Active tasks always display in their persisted custom order, and new tasks are
+inserted first without disturbing the existing relative order.
 Completed tasks remain ordered by completion time. Inbox and Starred are fixed
 navigation items rather than sortable user lists. Sortable rows preserve native
 vertical touch scrolling; touch reordering activates after a short stationary

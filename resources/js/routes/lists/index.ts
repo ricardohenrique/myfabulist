@@ -105,6 +105,64 @@ order.put = (options?: RouteQueryOptions): RouteDefinition<'put'> => ({
 })
 
 /**
+* @see \App\Http\Controllers\Web\MoveTaskListController::__invoke
+* @see app/Http/Controllers/Web/MoveTaskListController.php:17
+* @route '/lists/{list}/move'
+*/
+export const move = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: move.url(args, options),
+    method: 'post',
+})
+
+move.definition = {
+    methods: ["post"],
+    url: '/lists/{list}/move',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\Web\MoveTaskListController::__invoke
+* @see app/Http/Controllers/Web/MoveTaskListController.php:17
+* @route '/lists/{list}/move'
+*/
+move.url = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { list: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'id' in args) {
+        args = { list: args.id }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            list: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        list: typeof args.list === 'object'
+        ? args.list.id
+        : args.list,
+    }
+
+    return move.definition.url
+            .replace('{list}', parsedArgs.list.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\Web\MoveTaskListController::__invoke
+* @see app/Http/Controllers/Web/MoveTaskListController.php:17
+* @route '/lists/{list}/move'
+*/
+move.post = (args: { list: number | { id: number } } | [list: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: move.url(args, options),
+    method: 'post',
+})
+
+/**
 * @see \App\Http\Controllers\Web\TaskListController::store
 * @see app/Http/Controllers/Web/TaskListController.php:21
 * @route '/lists'
@@ -315,6 +373,7 @@ taskOrder.put = (args: { list: number | { id: number } } | [list: number | { id:
 const lists = {
     show: Object.assign(show, show),
     order: Object.assign(order, order),
+    move: Object.assign(move, move),
     store: Object.assign(store, store),
     update: Object.assign(update, update),
     destroy: Object.assign(destroy, destroy),

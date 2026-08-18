@@ -326,6 +326,21 @@ class EloquentTaskListRepositoryTest extends TestCase
         $this->assertSame($folder->id, $this->membershipFor($list, $user)->folder_id);
     }
 
+    public function test_move_changes_placement_without_writing_the_list_name(): void
+    {
+        $user = User::factory()->create();
+        $folder = Folder::factory()->for($user)->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id, 'name' => 'Canonical name']);
+
+        $moved = $this->repository->move($list, $user, $folder, 3);
+
+        $this->assertSame('Canonical name', $list->fresh()->name);
+        $this->assertSame($folder->id, $moved->folder_id);
+        $this->assertSame(3, $moved->position);
+        $this->assertSame($folder->id, $this->membershipFor($list, $user)->folder_id);
+        $this->assertSame(3, $this->membershipFor($list, $user)->position);
+    }
+
     /**
      * Plan 1, Step 4 (code-review follow-up): update() does not trust the
      * caller alone to have already checked membership status —

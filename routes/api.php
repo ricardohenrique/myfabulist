@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\FolderOrderController;
 use App\Http\Controllers\Api\V1\InboxController;
 use App\Http\Controllers\Api\V1\ListInvitationController;
 use App\Http\Controllers\Api\V1\MoveTaskController;
+use App\Http\Controllers\Api\V1\MoveTaskListController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RestoreSubtaskController;
 use App\Http\Controllers\Api\V1\RestoreTaskController;
@@ -61,6 +62,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     // "lists/order" must be registered before the "lists/{list}" resource
     // routes below, or "order" is swallowed as a list id (R12).
     Route::put('lists/order', TaskListOrderController::class)->name('lists.order');
+    Route::post('lists/{list}/move', MoveTaskListController::class)->name('lists.move')->whereNumber('list');
 
     Route::apiResource('lists', TaskListController::class)
         ->parameters(['lists' => 'list'])

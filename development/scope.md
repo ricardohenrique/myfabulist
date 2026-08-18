@@ -77,7 +77,9 @@ field. Lists may also remain ungrouped.
 - A list displays active tasks first and completed tasks below them.
 - Lists are soft-deleted. The default Inbox is exempt from deletion.
 - Moving a list between a folder and the ungrouped collection is an explicit
-  operation; same-container reorder does not imply a move.
+  atomic operation. Dragging onto a highlighted folder/list destination or
+  the visible ungrouped drop zone performs that move; dropping between peers
+  in the same container remains a reorder.
 
 ### Tasks
 
@@ -93,8 +95,10 @@ field. Lists may also remain ungrouped.
   that order, and every newly created task is inserted at the first position
   without disturbing the relative order of the existing tasks. Completed tasks
   are displayed by most recent completion.
-- Cross-list movement is explicit and atomic. Reordering is scoped to one list
-  and rejects stale, incomplete, duplicate, or foreign ID sets.
+- Cross-list movement is explicit and atomic. An active task may be dropped on
+  a highlighted eligible sidebar list and is appended there. Reordering is
+  scoped to one list and rejects stale, incomplete, duplicate, or foreign ID
+  sets. Tasks never move into or out of shared lists in the current release.
 - Users can add chronological plain-text comments to their tasks. Each comment
   records its author for the future shared-list model; comments cannot be blank
   and use the same `TEXT` storage boundary as notes.
@@ -128,6 +132,9 @@ field. Lists may also remain ungrouped.
   keyboard dragging without separate grip icons. Ordinary clicks on their
   nested controls remain unchanged. Dedicated move-up/move-down menu actions
   are intentionally excluded; keyboard users reorder from the focused item.
+- Cross-container drag destinations are typed and visibly highlighted:
+  folders accept lists, the ungrouped zone accepts grouped lists, and eligible
+  private lists accept active tasks. A drop outside a valid target is canceled.
 - Completing, starring, and moving a task may offer a short single-action Undo
   period. Undo is a safety net for the most recent action, not a history stack.
 - Destructive actions require explicit confirmation until a complete and
@@ -236,7 +243,7 @@ implementation.
 - Kanban boards, Gantt charts, time tracking, sprints, workload dashboards, and
   enterprise portfolio management.
 - Multiple priority scales; starred remains the single importance signal.
-- Silent cross-container drag operations.
+- Unsignaled cross-container drops outside a highlighted valid destination.
 - Offline writes or automatic conflict resolution without a designed sync
   model.
 - Multiple canonical data stores.
