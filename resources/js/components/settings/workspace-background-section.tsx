@@ -8,13 +8,14 @@ import type { WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/ty
 type WorkspaceBackgroundSectionProps = {
     currentBackground: WorkspaceBackground | null;
     options: WorkspaceBackgroundOptionSummary[];
+    onSaved: () => void;
 };
 
 type WorkspaceBackgroundFormData = {
     option_key: string | null;
 };
 
-export function WorkspaceBackgroundSection({ currentBackground, options }: WorkspaceBackgroundSectionProps) {
+export function WorkspaceBackgroundSection({ currentBackground, options, onSaved }: WorkspaceBackgroundSectionProps) {
     const [selectedKey, setSelectedKey] = useState<string | null>(currentBackground?.optionKey ?? null);
     const form = useForm<WorkspaceBackgroundFormData>({ option_key: currentBackground?.optionKey ?? null });
 
@@ -39,7 +40,10 @@ export function WorkspaceBackgroundSection({ currentBackground, options }: Works
         // stays live-linked to) the preset's own `default_config`, including
         // its curated workspace_header/task_composer colors
         // (WorkspaceBackgroundService::updateSelection()).
-        form.patch(updateBackground.url(), { preserveScroll: true });
+        form.patch(updateBackground.url(), {
+            preserveScroll: true,
+            onSuccess: onSaved,
+        });
     };
 
     return (

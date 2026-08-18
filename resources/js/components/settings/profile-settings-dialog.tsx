@@ -244,6 +244,7 @@ export function ProfileSettingsDialog({
                     >
                         <WorkspaceBackgroundSection
                             currentBackground={currentBackground}
+                            onSaved={onClose}
                             options={backgroundOptions}
                         />
                     </div>
