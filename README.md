@@ -251,6 +251,15 @@ The API covers Inbox, Starred, folder CRUD/order, list CRUD/order, task
 CRUD/order, completion/restoration, starring, and explicit task moves. Route
 definitions in `routes/api.php` are the authoritative endpoint inventory.
 
+## Health check
+
+`GET /health` is public and checks that Laravel can handle the request and
+query the canonical database. Clients requesting JSON receive
+`{"status":"up"}` with HTTP 200 when both are available, or
+`{"status":"down"}` with HTTP 500 when the database check fails. Use this
+endpoint for deployment readiness and external uptime checks; the production
+JSON response does not expose credentials or exception details.
+
 ## Quality gates
 
 ```bash

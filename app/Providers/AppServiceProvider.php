@@ -12,9 +12,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -36,7 +38,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureHealthChecks();
         $this->configureRouteBindings();
+    }
+
+    /**
+     * Include the canonical database in Laravel's readiness check.
+     */
+    protected function configureHealthChecks(): void
+    {
+        Event::listen(DiagnosingHealth::class, function (): void {
+            DB::select('SELECT 1');
+        });
     }
 
     /**
