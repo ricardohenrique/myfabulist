@@ -172,6 +172,11 @@ php artisan queue:work --tries=3
 Set `APP_URL` to the public HTTPS origin before sending mail because password
 reset and email-confirmation links are generated from it.
 
+SMTP uses opportunistic TLS by default. A trusted host-local relay that
+explicitly does not support TLS, such as GoDaddy cPanel's `localhost:25`
+relay, may set `MAIL_AUTO_TLS=false`; do not disable TLS for a remote SMTP
+server.
+
 Production pages are rendered by Inertia from `resources/js/pages`; the shared
 shell lives in `resources/js/layouts/app-shell.tsx`.
 
