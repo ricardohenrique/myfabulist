@@ -1,6 +1,6 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
-* @see routes/web.php:55
+* @see routes/web.php:56
 * @route '/forgot-password'
 */
 export const request = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -14,7 +14,7 @@ request.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:55
+* @see routes/web.php:56
 * @route '/forgot-password'
 */
 request.url = (options?: RouteQueryOptions) => {
@@ -22,7 +22,7 @@ request.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/web.php:55
+* @see routes/web.php:56
 * @route '/forgot-password'
 */
 request.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -31,7 +31,7 @@ request.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:55
+* @see routes/web.php:56
 * @route '/forgot-password'
 */
 request.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -74,7 +74,7 @@ email.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 })
 
 /**
-* @see routes/web.php:61
+* @see routes/web.php:62
 * @route '/reset-password/{token}'
 */
 export const reset = (args: { token: string | number } | [token: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -88,7 +88,7 @@ reset.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:61
+* @see routes/web.php:62
 * @route '/reset-password/{token}'
 */
 reset.url = (args: { token: string | number } | [token: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -114,7 +114,7 @@ reset.url = (args: { token: string | number } | [token: string | number ] | stri
 }
 
 /**
-* @see routes/web.php:61
+* @see routes/web.php:62
 * @route '/reset-password/{token}'
 */
 reset.get = (args: { token: string | number } | [token: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -123,7 +123,7 @@ reset.get = (args: { token: string | number } | [token: string | number ] | stri
 })
 
 /**
-* @see routes/web.php:61
+* @see routes/web.php:62
 * @route '/reset-password/{token}'
 */
 reset.head = (args: { token: string | number } | [token: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({

@@ -6,7 +6,7 @@ import tasks from './tasks'
 import subtasks from './subtasks'
 import invitations from './invitations'
 /**
-* @see routes/api.php:45
+* @see routes/api.php:46
 * @route '/api/v1/user'
 */
 export const user = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -20,7 +20,7 @@ user.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/api.php:45
+* @see routes/api.php:46
 * @route '/api/v1/user'
 */
 user.url = (options?: RouteQueryOptions) => {
@@ -28,7 +28,7 @@ user.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/api.php:45
+* @see routes/api.php:46
 * @route '/api/v1/user'
 */
 user.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -37,7 +37,7 @@ user.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/api.php:45
+* @see routes/api.php:46
 * @route '/api/v1/user'
 */
 user.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({

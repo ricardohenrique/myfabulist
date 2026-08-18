@@ -1,4 +1,5 @@
-import { DragDropProvider, PointerSensor, type DragEndEvent } from '@dnd-kit/react';
+import { useDragDropMonitor, useDragOperation, useDroppable, type DragEndEvent } from '@dnd-kit/react';
+import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { isSortable, useSortable } from '@dnd-kit/react/sortable';
 import { Link } from '@inertiajs/react';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
@@ -7,7 +8,8 @@ import { NotificationCenter } from '@/components/navigation/notification-center'
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Logo } from '@/components/ui/logo';
-import { moveItem, orderByIds, wholeItemPointerSensor } from '@/lib/sortable';
+import { moveItem, orderByIds } from '@/lib/sortable';
+import { workspaceDragData } from '@/lib/workspace-drag';
 import { inbox as inboxRoute, logout, starred } from '@/routes';
 import { show as showList } from '@/routes/lists';
 import type { NavigationFolder, NavigationList, PendingInvitationSummary, UserSummary, WorkspaceView } from '@/types';
@@ -38,16 +40,17 @@ type SidebarProps = {
     onDeleteList: (list: NavigationList) => void;
     onLeaveList: (list: NavigationList) => void;
     onReorderList: (folderId: number | null, taskListIds: number[]) => void;
+    onMoveList: (list: NavigationList, folderId: number | null, onRejected: () => void) => void;
     onToggleNotifications: () => void;
     onCloseNotifications: () => void;
     onAcceptInvitation: (invitationId: number) => void;
     onDeclineInvitation: (invitationId: number) => void;
+    lastCollisionTargetId: RefObject<string | null>;
 };
 
 type SortableListRowProps = {
     list: NavigationList;
     index: number;
-    itemCount: number;
     nested: boolean;
     active: boolean;
     reorderPending: boolean;
@@ -121,7 +124,6 @@ function NavigationMenu({ anchorRef, children }: NavigationMenuProps) {
 function SortableListRow({
     list,
     index,
-    itemCount,
     nested,
     active,
     reorderPending,
@@ -134,21 +136,55 @@ function SortableListRow({
     onToggleMenu,
 }: SortableListRowProps) {
     const menuTriggerRef = useRef<HTMLButtonElement>(null);
+    const dragOperation = useDragOperation();
+    const isDragSource = dragOperation.source?.id === `list-${list.id}`;
     const sortable = useSortable({
         id: `list-${list.id}`,
         index,
         group: `lists-${list.folderId ?? 'ungrouped'}`,
         type: 'list',
-        disabled: reorderPending || itemCount < 2,
+        // Container targets must beat the dragged sortable's own droppable
+        // rectangle after dnd-kit promotes it into the top layer.
+        collisionPriority: 3,
+        accept: (source) => {
+            const data = workspaceDragData(source);
+
+            if (data?.kind === 'list') return true;
+
+            return data?.kind === 'task'
+                && data.canMoveAcrossLists
+                && data.taskListId !== list.id
+                && list.isOwner
+                && !list.isShared;
+        },
+        data: {
+            kind: 'list',
+            listId: list.id,
+            folderId: list.folderId,
+            name: list.name,
+        },
+        // The optimistic plugin physically reparents DOM nodes between
+        // sortable groups. Lists live in nested React trees (folder bodies
+        // versus the ungrouped collection), so React must own that cross-
+        // container reparenting after drop. Keep dnd-kit's keyboard plugin.
+        plugins: (defaults) => defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
+        disabled: {
+            draggable: reorderPending,
+            // The moving element follows the pointer in dnd-kit's default
+            // feedback mode. Disable its own target while active so the
+            // container beneath it wins collision detection.
+            droppable: reorderPending || isDragSource,
+        },
     });
-    const sortableEnabled = !reorderPending && itemCount > 1;
+    const sortableEnabled = !reorderPending;
 
     return (
         <div
-            aria-label={sortableEnabled ? `Reorder list ${list.name}` : undefined}
+            aria-label={sortableEnabled ? `Reorder or move list ${list.name}` : undefined}
             aria-roledescription={sortableEnabled ? 'sortable list' : undefined}
             className={`nav-item-wrap ${sortableEnabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
-            ref={sortableEnabled ? sortable.ref : undefined}
+            data-workspace-drop-id={`list-${list.id}`}
+            ref={sortable.ref}
             role={sortableEnabled ? 'group' : undefined}
             tabIndex={sortableEnabled ? 0 : undefined}
         >
@@ -200,12 +236,10 @@ type SortableListCollectionProps = {
     reorderPending: boolean;
     openMenu: string | null;
     onCloseMobile: () => void;
-    onCloseMenu: () => void;
     onDelete: (list: NavigationList) => void;
     onEdit: (list: NavigationList) => void;
     onShare: (list: NavigationList) => void;
     onLeave: (list: NavigationList) => void;
-    onReorder: (taskListIds: number[]) => void;
     onToggleMenu: (menuKey: string) => void;
 };
 
@@ -217,37 +251,14 @@ function SortableListCollection({
     reorderPending,
     openMenu,
     onCloseMobile,
-    onCloseMenu,
     onDelete,
     onEdit,
     onShare,
     onLeave,
-    onReorder,
     onToggleMenu,
 }: SortableListCollectionProps) {
-    const handleDragEnd = (event: DragEndEvent) => {
-        const source = event.operation.source;
-
-        if (event.canceled || reorderPending || !isSortable(source)) {
-            return;
-        }
-
-        const reordered = moveItem(lists, source.initialIndex, source.index);
-
-        if (reordered !== lists) {
-            onReorder(reordered.map((list) => list.id));
-        }
-    };
-
     return (
-        <DragDropProvider
-            onDragEnd={handleDragEnd}
-            onDragStart={onCloseMenu}
-            sensors={(defaults) => [
-                ...defaults.filter((sensor) => sensor !== PointerSensor),
-                wholeItemPointerSensor,
-            ]}
-        >
+        <>
             {lists.map((list, index) => {
                 const menuKey = `list-${list.id}`;
 
@@ -255,7 +266,6 @@ function SortableListCollection({
                     <SortableListRow
                         active={activeView === 'list' && currentListId === list.id}
                         index={index}
-                        itemCount={lists.length}
                         key={list.id}
                         list={list}
                         menuOpen={openMenu === menuKey}
@@ -270,7 +280,7 @@ function SortableListCollection({
                     />
                 );
             })}
-        </DragDropProvider>
+        </>
     );
 }
 
@@ -284,7 +294,6 @@ type SortableFolderProps = {
     reorderPending: boolean;
     openMenu: string | null;
     onCloseMobile: () => void;
-    onCloseMenu: () => void;
     onCreateList: (folder: NavigationFolder) => void;
     onDeleteFolder: (folder: NavigationFolder) => void;
     onDeleteList: (list: NavigationList) => void;
@@ -292,7 +301,6 @@ type SortableFolderProps = {
     onEditList: (list: NavigationList) => void;
     onShareList: (list: NavigationList) => void;
     onLeaveList: (list: NavigationList) => void;
-    onReorderLists: (folderId: number, taskListIds: number[]) => void;
     onToggle: () => void;
     onToggleMenu: (menuKey: string) => void;
 };
@@ -307,7 +315,6 @@ function SortableFolder({
     reorderPending,
     openMenu,
     onCloseMobile,
-    onCloseMenu,
     onCreateList,
     onDeleteFolder,
     onDeleteList,
@@ -315,30 +322,44 @@ function SortableFolder({
     onEditList,
     onShareList,
     onLeaveList,
-    onReorderLists,
     onToggle,
     onToggleMenu,
 }: SortableFolderProps) {
     const menuTriggerRef = useRef<HTMLButtonElement>(null);
+    const dragOperation = useDragOperation();
+    const isDragSource = dragOperation.source?.id === `folder-${folder.id}`;
     const sortable = useSortable({
         id: `folder-${folder.id}`,
         index,
         type: 'folder',
-        disabled: reorderPending || itemCount < 2,
+        collisionPriority: 4,
+        accept: ['folder', 'list'],
+        data: { kind: 'folder', folderId: folder.id },
+        // OptimisticSortingPlugin is registered globally by any sortable
+        // that includes it. Keep it disabled for every workspace sortable so
+        // dnd-kit never reparents React-owned nodes between nested trees.
+        plugins: (defaults) => defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
+        disabled: {
+            draggable: reorderPending || itemCount < 2,
+            droppable: reorderPending || isDragSource,
+        },
     });
     const menuKey = `folder-${folder.id}`;
     const sortableEnabled = !reorderPending && itemCount > 1;
 
     return (
         <div
-            aria-label={sortableEnabled ? `Reorder folder ${folder.name}` : undefined}
-            aria-roledescription={sortableEnabled ? 'sortable folder' : undefined}
             className={`folder-group ${sortableEnabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
-            ref={sortableEnabled ? sortable.ref : undefined}
-            role={sortableEnabled ? 'group' : undefined}
-            tabIndex={sortableEnabled ? 0 : undefined}
         >
-            <div className="folder-row">
+            <div
+                aria-label={sortableEnabled ? `Reorder folder ${folder.name}` : undefined}
+                aria-roledescription={sortableEnabled ? 'sortable folder' : undefined}
+                className="folder-row"
+                data-workspace-drop-id={`folder-${folder.id}`}
+                ref={sortable.ref}
+                role={sortableEnabled ? 'group' : undefined}
+                tabIndex={sortableEnabled ? 0 : undefined}
+            >
                 <button aria-expanded={expanded} className="folder-toggle" onClick={onToggle} type="button">
                     <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={15} />
                     <Icon className="folder-icon" name="folder" size={17} />
@@ -369,13 +390,11 @@ function SortableFolder({
                         currentListId={currentListId}
                         lists={folder.lists}
                         nested
-                        onCloseMenu={onCloseMenu}
                         onCloseMobile={onCloseMobile}
                         onDelete={onDeleteList}
                         onEdit={onEditList}
                         onShare={onShareList}
                         onLeave={onLeaveList}
-                        onReorder={(taskListIds) => onReorderLists(folder.id, taskListIds)}
                         onToggleMenu={onToggleMenu}
                         openMenu={openMenu}
                         reorderPending={reorderPending}
@@ -412,16 +431,51 @@ export function Sidebar({
     onDeleteList,
     onLeaveList,
     onReorderList,
+    onMoveList,
     onToggleNotifications,
     onCloseNotifications,
     onAcceptInvitation,
     onDeclineInvitation,
+    lastCollisionTargetId,
 }: SidebarProps) {
     const [orderedFolders, setOrderedFolders] = useState(folders);
     const [orderedUngroupedLists, setOrderedUngroupedLists] = useState(ungroupedLists);
     const [expandedFolders, setExpandedFolders] = useState<number[]>(folders.map((folder) => folder.id));
     const [profileOpen, setProfileOpen] = useState(false);
     const [openMenu, setOpenMenu] = useState<string | null>(null);
+    const dragOperation = useDragOperation();
+    const draggedData = workspaceDragData(dragOperation.source);
+    const inboxDrop = useDroppable({
+        id: `list-target-${inbox.id}`,
+        type: 'list-target',
+        collisionPriority: 4,
+        data: {
+            kind: 'list',
+            listId: inbox.id,
+            folderId: null,
+            name: inbox.name,
+        },
+        accept: (source) => {
+            const data = workspaceDragData(source);
+
+            return data?.kind === 'task'
+                && data.canMoveAcrossLists
+                && data.taskListId !== inbox.id;
+        },
+        disabled: reorderPending,
+    });
+    const ungroupedDrop = useDroppable({
+        id: 'list-container-ungrouped',
+        type: 'list-container',
+        collisionPriority: 4,
+        data: { kind: 'list-container', folderId: null },
+        accept: (source) => {
+            const data = workspaceDragData(source);
+
+            return data?.kind === 'list' && data.folderId !== null;
+        },
+        disabled: reorderPending,
+    });
 
     useEffect(() => {
         setOrderedFolders(folders);
@@ -500,20 +554,120 @@ export function Sidebar({
         onReorderList(folderId, taskListIds);
     };
 
-    const handleFolderDragEnd = (event: DragEndEvent) => {
-        const source = event.operation.source;
+    const listInFolder = (folderId: number | null): NavigationList[] => folderId === null
+        ? orderedUngroupedLists
+        : orderedFolders.find((folder) => folder.id === folderId)?.lists ?? [];
 
-        if (event.canceled || reorderPending || !isSortable(source)) {
+    const findList = (listId: number): NavigationList | undefined => [
+        ...orderedUngroupedLists,
+        ...orderedFolders.flatMap((folder) => folder.lists),
+    ].find((list) => list.id === listId);
+
+    const moveListLocally = (list: NavigationList, targetFolderId: number | null) => {
+        const movedList = { ...list, folderId: targetFolderId };
+
+        setOrderedUngroupedLists((current) => current.filter((item) => item.id !== list.id));
+        setOrderedFolders((current) => current.map((folder) => ({
+            ...folder,
+            lists: folder.id === targetFolderId
+                ? [...folder.lists.filter((item) => item.id !== list.id), movedList]
+                : folder.lists.filter((item) => item.id !== list.id),
+        })));
+
+        if (targetFolderId === null) {
+            setOrderedUngroupedLists((current) => [...current, movedList]);
+        } else {
+            setExpandedFolders((current) => current.includes(targetFolderId) ? current : [...current, targetFolderId]);
+        }
+    };
+
+    const handleSidebarDragEnd = (event: DragEndEvent) => {
+        const source = event.operation.source;
+        const target = event.operation.target;
+        const sourceData = workspaceDragData(source);
+        const targetData = workspaceDragData(target);
+        const collisionTargetId = lastCollisionTargetId.current;
+
+        if (event.canceled || reorderPending || !sourceData) {
             return;
         }
 
-        const reordered = moveItem(orderedFolders, source.initialIndex, source.index);
+        if (sourceData.kind === 'folder' && isSortable(source)) {
+            const collisionFolderId = collisionTargetId?.startsWith('folder-')
+                ? Number(collisionTargetId.slice('folder-'.length))
+                : targetData?.kind === 'folder'
+                    ? targetData.folderId
+                    : null;
+            const targetIndex = orderedFolders.findIndex((folder) => folder.id === collisionFolderId);
+            const reordered = moveItem(orderedFolders, source.initialIndex, targetIndex);
 
-        if (reordered !== orderedFolders) {
-            setOrderedFolders(reordered);
-            onReorderFolder(reordered.map((folder) => folder.id));
+            if (reordered !== orderedFolders) {
+                setOrderedFolders(reordered);
+                onReorderFolder(reordered.map((folder) => folder.id));
+            }
+
+            return;
+        }
+
+        if (sourceData.kind !== 'list' || !targetData) {
+            return;
+        }
+
+        const collisionFolderId = collisionTargetId === 'list-container-ungrouped'
+            ? null
+            : collisionTargetId?.startsWith('folder-')
+                ? Number(collisionTargetId.slice('folder-'.length))
+                : collisionTargetId?.startsWith('list-')
+                    ? findList(Number(collisionTargetId.slice('list-'.length)))?.folderId
+                    : undefined;
+        const targetFolderId = collisionFolderId !== undefined
+                ? collisionFolderId
+            : targetData.kind === 'folder'
+                ? targetData.folderId
+                : targetData.kind === 'list' || targetData.kind === 'list-container'
+                    ? targetData.folderId
+                    : undefined;
+
+        if (targetFolderId === undefined) {
+            return;
+        }
+
+        if (targetFolderId === sourceData.folderId) {
+            if (!isSortable(source)) {
+                return;
+            }
+
+            const lists = listInFolder(sourceData.folderId);
+            const targetListId = collisionTargetId?.startsWith('list-')
+                ? Number(collisionTargetId.slice('list-'.length))
+                : targetData.kind === 'list'
+                    ? targetData.listId
+                    : null;
+            const targetIndex = lists.findIndex((list) => list.id === targetListId);
+            const reordered = moveItem(lists, source.initialIndex, targetIndex);
+
+            if (reordered !== lists) {
+                reorderLists(sourceData.folderId, reordered.map((list) => list.id));
+            }
+
+            return;
+        }
+
+        const list = findList(sourceData.listId);
+
+        if (list) {
+            moveListLocally(list, targetFolderId);
+            onMoveList(list, targetFolderId, () => {
+                setOrderedFolders(folders);
+                setOrderedUngroupedLists(ungroupedLists);
+            });
         }
     };
+
+    useDragDropMonitor({
+        onDragStart: () => setOpenMenu(null),
+        onDragEnd: handleSidebarDragEnd,
+    });
 
     const initials = user.name
         .split(/\s+/)
@@ -561,11 +715,13 @@ export function Sidebar({
 
                 <nav className="sidebar-nav">
                     <div className="smart-list-group">
-                        <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={inboxRoute()} onClick={navigate}>
-                            <Icon className="nav-icon nav-icon--inbox" name="inbox" size={18} />
-                            <span>Inbox</span>
-                            <Count value={inbox.activeTaskCount} />
-                        </Link>
+                        <div className={`smart-list-drop-target ${inboxDrop.isDropTarget ? 'is-drop-target' : ''}`} data-workspace-drop-id={`list-target-${inbox.id}`} ref={inboxDrop.ref}>
+                            <Link className={`nav-row ${activeView === 'inbox' ? 'is-active' : ''}`} href={inboxRoute()} onClick={navigate}>
+                                <Icon className="nav-icon nav-icon--inbox" name="inbox" size={18} />
+                                <span>Inbox</span>
+                                <Count value={inbox.activeTaskCount} />
+                            </Link>
+                        </div>
                         <Link className={`nav-row ${activeView === 'starred' ? 'is-active' : ''}`} href={starred()} onClick={navigate}>
                             <Icon className="nav-icon nav-icon--star" fill name="star" size={18} />
                             <span>Starred</span>
@@ -575,16 +731,8 @@ export function Sidebar({
 
                     <div className="navigation-scroll">
                         <div className="section-label"><span>Folders & lists</span></div>
-                        <DragDropProvider
-                            onDragEnd={handleFolderDragEnd}
-                            onDragStart={() => setOpenMenu(null)}
-                            sensors={(defaults) => [
-                                ...defaults.filter((sensor) => sensor !== PointerSensor),
-                                wholeItemPointerSensor,
-                            ]}
-                        >
-                            {orderedFolders.map((folder, index) => (
-                                <SortableFolder
+                        {orderedFolders.map((folder, index) => (
+                            <SortableFolder
                                     activeView={activeView}
                                     currentListId={currentListId}
                                     expanded={expandedFolders.includes(folder.id)}
@@ -592,7 +740,6 @@ export function Sidebar({
                                     index={index}
                                     itemCount={orderedFolders.length}
                                     key={folder.id}
-                                    onCloseMenu={() => setOpenMenu(null)}
                                     onCloseMobile={navigate}
                                     onCreateList={createListInFolder}
                                     onDeleteFolder={deleteFolder}
@@ -601,26 +748,31 @@ export function Sidebar({
                                     onEditList={editList}
                                     onShareList={shareList}
                                     onLeaveList={leaveList}
-                                    onReorderLists={reorderLists}
                                     onToggle={() => toggleFolder(folder.id)}
                                     onToggleMenu={toggleMenu}
                                     openMenu={openMenu}
                                     reorderPending={reorderPending}
-                                />
-                            ))}
-                        </DragDropProvider>
+                            />
+                        ))}
+
+                        <div
+                            aria-hidden={draggedData?.kind !== 'list'}
+                            className={`ungrouped-drop-zone ${draggedData?.kind === 'list' ? 'is-visible' : ''} ${ungroupedDrop.isDropTarget ? 'is-drop-target' : ''}`}
+                            data-workspace-drop-id="list-container-ungrouped"
+                            ref={ungroupedDrop.ref}
+                        >
+                            Move outside folders
+                        </div>
 
                         <SortableListCollection
                             activeView={activeView}
                             currentListId={currentListId}
                             lists={orderedUngroupedLists}
-                            onCloseMenu={() => setOpenMenu(null)}
                             onCloseMobile={navigate}
                             onDelete={deleteList}
                             onEdit={editList}
                             onShare={shareList}
                             onLeave={leaveList}
-                            onReorder={(taskListIds) => reorderLists(null, taskListIds)}
                             onToggleMenu={toggleMenu}
                             openMenu={openMenu}
                             reorderPending={reorderPending}

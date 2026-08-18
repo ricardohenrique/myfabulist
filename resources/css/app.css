@@ -1285,10 +1285,49 @@ button:disabled {
     cursor: grabbing;
 }
 
+.folder-group.is-dragging > .folder-row {
+    background: #fff;
+    box-shadow: 0 9px 24px rgba(39, 49, 60, 0.18);
+}
+
 .folder-group.is-drop-target > .folder-row,
-.nav-item-wrap.is-drop-target {
+.nav-item-wrap.is-drop-target,
+.smart-list-drop-target.is-drop-target .nav-row {
     background: #f1edfa;
     box-shadow: inset 3px 0 0 var(--brand);
+}
+
+.ungrouped-drop-zone {
+    min-height: 0;
+    margin: 0 9px;
+    overflow: hidden;
+    border: 0 dashed transparent;
+    border-radius: 6px;
+    color: #7866aa;
+    font-size: 0;
+    font-weight: 700;
+    line-height: 0;
+    text-align: center;
+    opacity: 0;
+    transition: min-height 130ms ease, margin 130ms ease, padding 130ms ease, opacity 130ms ease, background-color 130ms ease;
+}
+
+.ungrouped-drop-zone.is-visible {
+    min-height: 38px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 9px 8px;
+    border-width: 1px;
+    border-color: rgba(139, 111, 214, 0.48);
+    font-size: 0.72rem;
+    line-height: 1.2;
+    opacity: 1;
+}
+
+.ungrouped-drop-zone.is-drop-target {
+    border-color: var(--brand);
+    background: #f1edfa;
+    box-shadow: 0 0 0 2px rgba(139, 111, 214, 0.14);
 }
 
 .folder-toggle span {

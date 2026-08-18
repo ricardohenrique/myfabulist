@@ -369,6 +369,34 @@
           ]
         },
         {
+          "name": "Move List",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"folder_id\": {{folder_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/api/v1/lists/{{list_id}}/move",
+            "description": "Moves only the acting user's placement and appends it in the destination. Set folder_id to null to leave a folder. The shared list name is not written."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "List Tasks in List",
           "request": {
             "method": "GET",

@@ -378,6 +378,7 @@ Task
 /api/v1/folders/{folder}
 /api/v1/lists
 /api/v1/lists/{list}
+/api/v1/lists/{list}/move
 /api/v1/lists/{list}/tasks
 /api/v1/tasks/{task}
 /api/v1/tasks/{task}/complete

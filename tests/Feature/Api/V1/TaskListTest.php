@@ -88,6 +88,56 @@ class TaskListTest extends TestCase
         $this->assertSame(3, $list->tasks()->count());
     }
 
+    public function test_move_endpoint_changes_only_the_acting_members_placement(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $ownersFolder = Folder::factory()->for($owner)->create();
+        $membersFolder = Folder::factory()->for($member)->create();
+        $list = TaskList::factory()->inFolder($ownersFolder)->create(['name' => 'Shared name']);
+        TaskListMember::factory()->forTaskList($list, $member)->create([
+            'folder_id' => null,
+            'position' => 0,
+        ]);
+
+        $response = $this->actingAs($member)->postJson("/api/v1/lists/{$list->id}/move", [
+            'folder_id' => $membersFolder->id,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.name', 'Shared name')
+            ->assertJsonPath('data.folder_id', $membersFolder->id);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $owner->id,
+            'folder_id' => $ownersFolder->id,
+        ]);
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $member->id,
+            'folder_id' => $membersFolder->id,
+        ]);
+        $this->assertSame('Shared name', $list->fresh()->name);
+    }
+
+    public function test_move_endpoint_rejects_another_users_folder(): void
+    {
+        $user = User::factory()->create();
+        $foreignFolder = Folder::factory()->create();
+        $list = TaskList::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/lists/{$list->id}/move", ['folder_id' => $foreignFolder->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('folder_id');
+
+        $this->assertDatabaseHas('task_list_members', [
+            'task_list_id' => $list->id,
+            'user_id' => $user->id,
+            'folder_id' => null,
+        ]);
+    }
+
     public function test_moving_a_list_out_of_a_folder_keeps_its_tasks(): void
     {
         $user = User::factory()->create();

@@ -97,6 +97,13 @@ interface TaskListRepositoryInterface
      */
     public function update(TaskList $taskList, User $user, string $name, ?Folder $folder, int $position): TaskList;
 
+    /**
+     * Move only the acting user's placement of a list. Unlike update(), this
+     * deliberately does not write the shared list name, so a drag operation
+     * cannot overwrite a concurrent rename with stale client data.
+     */
+    public function move(TaskList $taskList, User $user, ?Folder $folder, int $position): TaskList;
+
     public function delete(TaskList $taskList): void;
 
     /**

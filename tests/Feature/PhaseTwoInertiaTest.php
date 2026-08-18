@@ -269,6 +269,25 @@ it('renames moves and soft deletes lists while protecting the inbox', function (
     $this->assertDatabaseHas('task_lists', ['id' => $inbox->id, 'deleted_at' => null]);
 });
 
+it('moves a list placement without requiring or changing its name', function () {
+    $user = User::factory()->create();
+    $folder = Folder::factory()->for($user)->create();
+    $list = TaskList::factory()->create(['user_id' => $user->id, 'name' => 'Keep this name']);
+
+    $this->actingAs($user)
+        ->post(route('lists.move', $list), ['folder_id' => $folder->id])
+        ->assertSessionHasNoErrors();
+
+    expect($list->fresh()->name)->toBe('Keep this name');
+    expect(memberPlacement($list, $user)->folder_id)->toBe($folder->id);
+
+    $this->actingAs($user)
+        ->post(route('lists.move', $list), ['folder_id' => null])
+        ->assertSessionHasNoErrors();
+
+    expect(memberPlacement($list, $user)->folder_id)->toBeNull();
+});
+
 it('requires an explicit strategy when deleting a non-empty folder', function () {
     $user = User::factory()->create();
     $folder = Folder::factory()->for($user)->create();
