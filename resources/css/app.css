@@ -1610,6 +1610,10 @@ button:disabled {
     box-shadow: 0 0 0 2px rgba(139, 111, 214, 0.18), var(--shadow-sm);
 }
 
+.task-row.has-open-menu {
+    z-index: 70;
+}
+
 .task-check {
     width: 20px;
     height: 20px;

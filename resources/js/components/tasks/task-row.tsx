@@ -61,7 +61,7 @@ export function TaskRow({
         <article
             aria-label={!completed && !sortableDisabled ? `Reorder or move task ${task.title}` : undefined}
             aria-roledescription={!completed && !sortableDisabled ? 'sortable task' : undefined}
-            className={`task-row ${completed ? 'is-completed' : ''} ${!completed && !sortableDisabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''}`}
+            className={`task-row ${completed ? 'is-completed' : ''} ${!completed && !sortableDisabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''} ${menuOpen ? 'has-open-menu' : ''}`}
             data-workspace-drop-id={`task-${task.id}`}
             ref={!completed && !sortableDisabled ? sortable.ref : undefined}
             role={!completed && !sortableDisabled ? 'group' : undefined}
