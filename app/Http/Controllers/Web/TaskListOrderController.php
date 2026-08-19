@@ -19,6 +19,6 @@ class TaskListOrderController extends Controller
     {
         $this->taskLists->reorder($request->user(), $request->folderId(), $request->taskListIds());
 
-        return back()->with('success', 'List order updated.');
+        return back();
     }
 }

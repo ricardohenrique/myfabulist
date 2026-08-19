@@ -19,6 +19,6 @@ class FolderOrderController extends Controller
     {
         $this->folders->reorder($request->user(), $request->folderIds());
 
-        return back()->with('success', 'Folder order updated.');
+        return back();
     }
 }

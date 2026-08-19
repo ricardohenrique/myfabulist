@@ -276,14 +276,16 @@ it('moves a list placement without requiring or changing its name', function () 
 
     $this->actingAs($user)
         ->post(route('lists.move', $list), ['folder_id' => $folder->id])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasNoErrors()
+        ->assertSessionMissing('success');
 
     expect($list->fresh()->name)->toBe('Keep this name');
     expect(memberPlacement($list, $user)->folder_id)->toBe($folder->id);
 
     $this->actingAs($user)
         ->post(route('lists.move', $list), ['folder_id' => null])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasNoErrors()
+        ->assertSessionMissing('success');
 
     expect(memberPlacement($list, $user)->folder_id)->toBeNull();
 });
@@ -322,11 +324,13 @@ it('persists drag-and-drop task list and folder orders', function () {
     $taskB = Task::factory()->forTaskList($listA)->create(['position' => 1]);
 
     $this->actingAs($user)->put(route('folders.order'), ['folder_ids' => [$folderB->id, $folderA->id]])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasNoErrors()
+        ->assertSessionMissing('success');
     $this->actingAs($user)->put(route('lists.order'), [
         'folder_id' => $folderA->id,
         'task_list_ids' => [$listB->id, $listA->id],
-    ])->assertSessionHasNoErrors();
+    ])->assertSessionHasNoErrors()
+        ->assertSessionMissing('success');
     $this->actingAs($user)->put(route('lists.task-order', $listA), [
         'task_ids' => [$taskB->id, $taskA->id],
     ])->assertSessionHasNoErrors();

@@ -717,18 +717,9 @@ export function AppShell({ workspace, user }: AppShellProps) {
     };
 
     const moveList = (list: NavigationList, folderId: number | null, onRejected: () => void) => {
-        const originalFolderId = list.folderId;
-        const destinationName = folderId === null
-            ? 'Ungrouped lists'
-            : workspace.folders.find((folder) => folder.id === folderId)?.name ?? 'that folder';
-
         setReorderPending(true);
         router.post(listRoutes.move(list.id), { folder_id: folderId }, {
             preserveScroll: true,
-            onSuccess: () => setUndo({
-                message: `“${list.name}” moved to ${destinationName}.`,
-                execute: () => router.post(listRoutes.move(list.id), { folder_id: originalFolderId }, { preserveScroll: true }),
-            }),
             onError: (errors) => {
                 onRejected();
                 setNotice(Object.values(errors)[0] ?? 'The list could not be moved.');

@@ -18,6 +18,6 @@ class MoveTaskListController extends Controller
     {
         $this->taskLists->move($list, $request->user(), $request->folderId());
 
-        return back()->with('success', 'List moved.');
+        return back();
     }
 }
