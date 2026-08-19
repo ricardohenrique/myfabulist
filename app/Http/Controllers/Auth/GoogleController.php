@@ -10,6 +10,7 @@ use App\Services\GoogleAccountService;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\AbstractUser;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Throwable;
 
@@ -61,6 +62,12 @@ class GoogleController extends Controller
             return redirect()
                 ->route('login')
                 ->with('error', 'This Purplelist account is already linked to another Google account.');
+        } catch (InvalidStateException) {
+            // Expected when a crawler/bot requests this URL cold (no session state),
+            // or a user's OAuth session simply expired — not worth reporting to Sentry.
+            return redirect()
+                ->route('login')
+                ->with('error', 'Your sign-in session expired. Please try again.');
         } catch (Throwable $e) {
             report($e);
 

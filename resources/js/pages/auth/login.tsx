@@ -105,7 +105,7 @@ export default function Login({ status }: LoginProps) {
 
             <div className="auth-divider"><span>or</span></div>
 
-            <a className="auth-google-button" href={google.url()}>
+            <a className="auth-google-button" href={google.url()} rel="nofollow">
                 <GoogleLogo />
                 <span>Continue with Google</span>
             </a>
