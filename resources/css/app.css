@@ -1882,8 +1882,8 @@ button:disabled {
 }
 
 .task-check:hover {
-    border-color: #6dac8d;
-    background: #edf7f1;
+    border-color: var(--brand);
+    background: var(--selection);
 }
 
 .is-completed .task-check {

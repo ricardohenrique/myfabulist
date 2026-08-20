@@ -212,9 +212,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 trackAnalyticsEvent('task_created');
                 quickAdd.reset('title');
                 quickAdd.clearErrors();
-                inputRef.current?.focus();
             },
-            onError: () => inputRef.current?.focus(),
+            onFinish: () => {
+                window.requestAnimationFrame(() => inputRef.current?.focus());
+            },
         });
     };
 
