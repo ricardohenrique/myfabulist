@@ -99,6 +99,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [shareInviteProcessing, setShareInviteProcessing] = useState(false);
     const [revokingMemberIds, setRevokingMemberIds] = useState<number[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
+    const restoreQuickAddFocusRef = useRef(false);
     const dragSourceId = useRef<string | null>(null);
     const lastCollisionTargetId = useRef<string | null>(null);
     const taskOrderRef = useRef(taskOrder);
@@ -161,6 +162,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
     }, [page.props.errors, page.props.flash]);
 
     useEffect(() => {
+        if (!quickAdd.processing && restoreQuickAddFocusRef.current) {
+            restoreQuickAddFocusRef.current = false;
+            inputRef.current?.focus();
+        }
+    }, [quickAdd.processing]);
+
+    useEffect(() => {
         const analyticsEvent = page.props.flash?.analyticsEvent;
 
         if (analyticsEvent) {
@@ -205,6 +213,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
         if (!workspace.currentList) return;
 
+        restoreQuickAddFocusRef.current = true;
         quickAdd.transform(() => ({ title }));
         quickAdd.post(storeTask.url(workspace.currentList.id), {
             preserveScroll: true,
@@ -212,9 +221,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 trackAnalyticsEvent('task_created');
                 quickAdd.reset('title');
                 quickAdd.clearErrors();
-            },
-            onFinish: () => {
-                window.requestAnimationFrame(() => inputRef.current?.focus());
             },
         });
     };
