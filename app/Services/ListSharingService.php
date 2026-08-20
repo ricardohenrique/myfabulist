@@ -16,6 +16,7 @@ use App\Exceptions\UserNotFoundForInvitationException;
 use App\Models\TaskList;
 use App\Models\TaskListMember;
 use App\Models\User;
+use App\Notifications\ListInvitationNotification;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Str;
@@ -41,6 +42,7 @@ class ListSharingService
     public function __construct(
         private readonly TaskListMemberRepositoryInterface $members,
         private readonly UserRepositoryInterface $users,
+        private readonly NotificationCenterService $notifications,
     ) {}
 
     /**
@@ -76,9 +78,19 @@ class ListSharingService
             throw TaskListMemberLimitReachedException::for($taskList);
         }
 
-        // A single upsert write — no transaction needed here, `create()` is
-        // already atomic as one statement.
-        return $this->members->create($taskList, $invitee, $inviter);
+        // A duplicate pending invite is a genuine no-op, including for the
+        // notification center. A fresh invite or re-invite creates a new,
+        // durable history item so the earlier response never disappears.
+        $shouldNotify = $existing === null || $existing->status === 'declined';
+        $membership = $this->members->create($taskList, $invitee, $inviter);
+
+        if ($shouldNotify) {
+            $membership->setRelation('taskList', $taskList);
+            $membership->setRelation('invitedBy', $inviter);
+            $invitee->notify(new ListInvitationNotification($membership));
+        }
+
+        return $membership;
     }
 
     /**
@@ -133,7 +145,10 @@ class ListSharingService
 
         $position = $this->members->nextPositionFor($user, null);
 
-        return $this->members->acceptInvitation($membership, $position, (int) config('sharing.max_members_per_list'));
+        $membership = $this->members->acceptInvitation($membership, $position, (int) config('sharing.max_members_per_list'));
+        $this->notifications->recordInvitationResponse($membership, $user, 'accepted');
+
+        return $membership;
     }
 
     /**
@@ -160,7 +175,10 @@ class ListSharingService
             throw InvitationNoLongerPendingException::for($taskList, $user);
         }
 
-        return $this->members->updateStatus($membership, 'declined');
+        $membership = $this->members->updateStatus($membership, 'declined');
+        $this->notifications->recordInvitationResponse($membership, $user, 'declined');
+
+        return $membership;
     }
 
     /**
@@ -184,6 +202,7 @@ class ListSharingService
             throw OwnerMembershipCannotBeRemovedException::becauseTheyAreBeingRevoked($taskList);
         }
 
+        $this->notifications->recordInvitationRevoked($membership);
         $this->members->delete($membership);
     }
 

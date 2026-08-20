@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InboxController;
+use App\Http\Controllers\NotificationCenterController;
 use App\Http\Controllers\StarredController;
 use App\Http\Controllers\TaskListController;
 use App\Http\Controllers\Web\CompleteSubtaskController;
@@ -12,6 +13,8 @@ use App\Http\Controllers\Web\FolderOrderController;
 use App\Http\Controllers\Web\ListInvitationController;
 use App\Http\Controllers\Web\MoveTaskController;
 use App\Http\Controllers\Web\MoveTaskListController;
+use App\Http\Controllers\Web\NotificationOpenController;
+use App\Http\Controllers\Web\NotificationStatusController;
 use App\Http\Controllers\Web\OnboardingController;
 use App\Http\Controllers\Web\PasswordController;
 use App\Http\Controllers\Web\ProfileController;
@@ -103,6 +106,9 @@ Route::middleware('auth')->group(function () {
     Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password.update');
     Route::get('inbox', InboxController::class)->name('inbox');
     Route::get('starred', StarredController::class)->name('starred');
+    Route::get('notifications', NotificationCenterController::class)->name('notifications.index');
+    Route::post('notifications/{notification}/open', NotificationOpenController::class)->name('notifications.open');
+    Route::patch('notifications/{notification}', NotificationStatusController::class)->name('notifications.update');
     Route::get('lists/{list}', TaskListController::class)->whereNumber('list')->name('lists.show');
 
     Route::put('folders/order', FolderOrderController::class)->name('folders.order');

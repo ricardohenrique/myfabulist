@@ -4,6 +4,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ShareDialog } from '@/components/lists/share-dialog';
 import { Sidebar } from '@/components/navigation/sidebar';
+import { NotificationCenterView } from '@/components/notifications/notification-center-view';
 import { UseCaseDialog } from '@/components/onboarding/use-case-dialog';
 import { TaskDetails } from '@/components/tasks/task-details';
 import { TaskRow } from '@/components/tasks/task-row';
@@ -21,6 +22,7 @@ import * as listRoutes from '@/routes/lists';
 import * as listMemberRoutes from '@/routes/lists/members';
 import * as listMembershipRoutes from '@/routes/lists/membership';
 import { store as storeTask } from '@/routes/lists/tasks';
+import * as notificationRoutes from '@/routes/notifications';
 import { update as updatePassword } from '@/routes/profile/password';
 import { update as updateProfile } from '@/routes/profile';
 import * as taskRoutes from '@/routes/tasks';
@@ -31,7 +33,7 @@ import type {
     CurrentListDetails,
     NavigationFolder,
     NavigationList,
-    PendingInvitationSummary,
+    NotificationItem,
     SharedPageProps,
     SubtaskSummary,
     TaskSummary,
@@ -88,7 +90,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [entityProcessing, setEntityProcessing] = useState(false);
     const [notice, setNotice] = useState('');
     const [undo, setUndo] = useState<UndoState | null>(null);
-    const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [respondingInvitationIds, setRespondingInvitationIds] = useState<number[]>([]);
     const [shareDialogOpen, setShareDialogOpen] = useState(false);
     const [backgroundShareList, setBackgroundShareList] = useState<CurrentListDetails | null>(null);
@@ -97,10 +98,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [shareInviteError, setShareInviteError] = useState('');
     const [shareInviteProcessing, setShareInviteProcessing] = useState(false);
     const [revokingMemberIds, setRevokingMemberIds] = useState<number[]>([]);
-    // Always starts `undefined` — `notifications.invitations` is `Inertia::optional()`
-    // and is never present on the initial page load, only after the partial
-    // reload `openNotifications` triggers below.
-    const [invitations, setInvitations] = useState<PendingInvitationSummary[] | undefined>(undefined);
     const inputRef = useRef<HTMLInputElement>(null);
     const dragSourceId = useRef<string | null>(null);
     const lastCollisionTargetId = useRef<string | null>(null);
@@ -144,6 +141,16 @@ export function AppShell({ workspace, user }: AppShellProps) {
     }, [selectedTaskId, tasks]);
 
     useEffect(() => {
+        const taskId = Number(new URLSearchParams(page.url.split('?')[1] ?? '').get('task'));
+
+        if (Number.isInteger(taskId) && tasks.some((task) => task.id === taskId)) {
+            setTaskErrors({});
+            setCommentError('');
+            setSelectedTaskId(taskId);
+        }
+    }, [page.url, tasks]);
+
+    useEffect(() => {
         if (page.props.flash?.success) {
             setNotice(page.props.flash.success);
         } else if (page.props.flash?.error) {
@@ -171,19 +178,6 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
         return () => window.clearTimeout(timeoutId);
     }, [notice, undo]);
-
-    // `notifications.invitations` is `Inertia::optional()` on the server, so
-    // it is only present on the response that follows a partial reload
-    // naming `notifications` (see `openNotifications` below). Every other
-    // visit — including the plain `back()` redirect after accept/decline —
-    // omits the key entirely, so this only re-seeds local state when a fresh
-    // list actually arrives; it never resets `invitations` back to
-    // `undefined` on an unrelated navigation.
-    useEffect(() => {
-        if (page.props.notifications.invitations !== undefined) {
-            setInvitations(page.props.notifications.invitations);
-        }
-    }, [page.props.notifications.invitations]);
 
     const setTaskPending = (taskId: number, pending: boolean) => {
         setPendingTaskIds((current) => pending
@@ -734,52 +728,12 @@ export function AppShell({ workspace, user }: AppShellProps) {
             : current.filter((id) => id !== invitationId));
     };
 
-    const openNotifications = () => {
-        setNotificationsOpen(true);
-
-        // Nothing pending — skip the round trip and the "Loading…" flash for
-        // what's the overwhelmingly common case.
-        if (page.props.notifications.pendingInvitationCount === 0) {
-            setInvitations([]);
-            return;
-        }
-
-        router.reload({
-            only: ['notifications'],
-            onError: () => setNotice('Notifications could not be loaded.'),
-            // If the reload never resolves into a fresh `invitations` array
-            // (a network error, not a validation error `onError` already
-            // handles), fall back to the empty state instead of leaving the
-            // panel stuck on "Loading…" forever. A no-op once the prop-sync
-            // effect above has already populated a real list.
-            onFinish: () => setInvitations((current) => current ?? []),
-        });
-    };
-
-    const closeNotifications = () => {
-        setNotificationsOpen(false);
-        // Every open should be a genuinely fresh load — otherwise a stale
-        // row (e.g. one the owner already revoked) could sit in the panel
-        // and surface as a raw Inertia error on Accept/Decline instead of
-        // the normal notice/flash path.
-        setInvitations(undefined);
-    };
-
-    const toggleNotifications = () => {
-        if (notificationsOpen) {
-            closeNotifications();
-        } else {
-            openNotifications();
-        }
-    };
-
     const respondToInvitation = (invitationId: number, accepting: boolean) => {
         setInvitationResponding(invitationId, true);
         const route = accepting ? invitationRoutes.accept(invitationId) : invitationRoutes.decline(invitationId);
 
         router.post(route, {}, {
             preserveScroll: true,
-            onSuccess: () => setInvitations((current) => current?.filter((invitation) => invitation.id !== invitationId)),
             onError: (errors) => setNotice(Object.values(errors)[0] ?? 'That invitation could not be updated.'),
             onFinish: () => setInvitationResponding(invitationId, false),
         });
@@ -788,6 +742,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const acceptInvitation = (invitationId: number) => respondToInvitation(invitationId, true);
 
     const declineInvitation = (invitationId: number) => respondToInvitation(invitationId, false);
+
+    const openNotification = (notificationId: string) => {
+        router.post(notificationRoutes.open(notificationId), {}, {
+            onError: () => setNotice('That notification could not be opened.'),
+        });
+    };
+
+    const toggleNotificationRead = (notification: NotificationItem) => {
+        router.patch(notificationRoutes.update(notification.id), { read: notification.readAt === null }, {
+            preserveScroll: true,
+            onError: () => setNotice('That notification status could not be updated.'),
+        });
+    };
 
     const openShareDialog = () => {
         shareDetailsRequestId.current += 1;
@@ -940,14 +907,9 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 currentListId={workspace.currentList?.id ?? null}
                 folders={workspace.folders}
                 inbox={workspace.inbox}
-                invitations={invitations}
                 lastCollisionTargetId={lastCollisionTargetId}
                 mobileOpen={mobileNavOpen}
-                notificationsOpen={notificationsOpen}
-                onAcceptInvitation={acceptInvitation}
                 onCloseMobile={() => setMobileNavOpen(false)}
-                onCloseNotifications={closeNotifications}
-                onDeclineInvitation={declineInvitation}
                 onDeleteFolder={(folder) => { setEntityError(''); setDeleteDialog({ kind: 'folder', item: folder }); }}
                 onDeleteList={(list) => { setEntityError(''); setDeleteDialog({ kind: 'list', item: list }); }}
                 onEditFolder={openEditFolder}
@@ -960,12 +922,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onShareList={openListShareDialog}
                 onReorderFolder={reorderFolder}
                 onReorderList={reorderList}
-                onToggleNotifications={toggleNotifications}
-                pendingInvitationCount={page.props.notifications.pendingInvitationCount}
                 reorderPending={reorderPending}
-                respondingInvitationIds={respondingInvitationIds}
                 starredCount={workspace.starredCount}
                 ungroupedLists={workspace.ungroupedLists}
+                unreadNotificationCount={page.props.notifications.unreadCount}
                 user={user}
             />
 
@@ -990,7 +950,16 @@ export function AppShell({ workspace, user }: AppShellProps) {
                     </div>
                 </header>
 
-                <div className="task-canvas">
+                {workspace.view === 'notifications' ? (
+                    <NotificationCenterView
+                        items={workspace.notificationItems}
+                        onAccept={acceptInvitation}
+                        onDecline={declineInvitation}
+                        onOpen={openNotification}
+                        onToggleRead={toggleNotificationRead}
+                        respondingInvitationIds={respondingInvitationIds}
+                    />
+                ) : <div className="task-canvas">
                     <div className="task-column">
                         {workspace.canAddTask && (
                             <form className="task-composer" onSubmit={addTask}>
@@ -1069,7 +1038,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                             </section>
                         )}
                     </div>
-                </div>
+                </div>}
             </main>
 
             {selectedTask && (

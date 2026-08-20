@@ -142,10 +142,12 @@ users can:
 - create, rename, move, reorder, and delete folders/lists within their rules;
 - quickly add, edit, complete/restore, star, move, reorder, and delete tasks;
 - edit task title, note, due date, starred state, and destination list;
-- add plain-text comments with author attribution from task details;
+- add plain-text comments with author attribution from task details and notify
+  the other accepted members of a shared list;
 - share a list by inviting a registered user's email, and accept, decline,
-  revoke, or leave a share, with a notification center for pending
-  invitations and a share dialog for managing a list's members; and
+  revoke, or leave a share, with a persistent notification center for
+  invitation history and shared-list comments and a share dialog for managing
+  a list's members; and
 - update the signed-in user's name, email address, and password from the
   account menu; and
 - undo the latest completion, star change, or task move.

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\InboxController;
 use App\Http\Controllers\Api\V1\ListInvitationController;
 use App\Http\Controllers\Api\V1\MoveTaskController;
 use App\Http\Controllers\Api\V1\MoveTaskListController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RestoreSubtaskController;
 use App\Http\Controllers\Api\V1\RestoreTaskController;
@@ -48,6 +49,9 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     })->name('user');
 
     Route::patch('profile/background', [ProfileController::class, 'updateBackground'])->name('profile.background.update');
+
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/{notification}', [NotificationController::class, 'update'])->name('notifications.update');
 
     Route::get('inbox', InboxController::class)->name('inbox');
 

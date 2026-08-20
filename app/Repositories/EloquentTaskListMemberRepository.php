@@ -10,6 +10,7 @@ use App\Models\TaskListMember;
 use App\Models\User;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 
 class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterface
@@ -93,6 +94,32 @@ class EloquentTaskListMemberRepository implements TaskListMemberRepositoryInterf
             ->where('status', 'pending')
             ->whereHas('taskList')
             ->count();
+    }
+
+    /**
+     * @param  array<int, int>  $listIds
+     * @return SupportCollection<int, int>
+     */
+    public function acceptedListIdsFor(User $user, array $listIds): SupportCollection
+    {
+        return TaskListMember::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'accepted')
+            ->whereIn('task_list_id', $listIds)
+            ->whereHas('taskList')
+            ->pluck('task_list_id');
+    }
+
+    /**
+     * @param  array<int, int>  $membershipIds
+     * @return Collection<int, TaskListMember>
+     */
+    public function forUserByIds(User $user, array $membershipIds): Collection
+    {
+        return TaskListMember::query()
+            ->where('user_id', $user->id)
+            ->whereIn('id', $membershipIds)
+            ->get();
     }
 
     public function createOwnerMembership(TaskList $taskList, ?int $folderId, int $position): TaskListMember

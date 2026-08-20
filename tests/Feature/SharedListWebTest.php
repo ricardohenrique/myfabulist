@@ -82,16 +82,11 @@ it('denies the owner from leaving their own list over the web route', function (
     ]);
 });
 
-it('accepts and declines invitations through web routes with flash and disappears from the shared prop', function () {
+it('accepts invitations through web routes with flash', function () {
     $owner = User::factory()->create();
     $invitee = User::factory()->create();
     $list = TaskList::factory()->create(['user_id' => $owner->id]);
     $invitation = TaskListMember::factory()->forTaskList($list, $invitee)->pending()->create();
-
-    $this->actingAs($invitee)->get(route('inbox'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('notifications.pendingInvitationCount', 1));
 
     $this->actingAs($invitee)->post(route('invitations.accept', $invitation))
         ->assertRedirect()
@@ -99,10 +94,6 @@ it('accepts and declines invitations through web routes with flash and disappear
 
     $this->assertDatabaseHas('task_list_members', ['id' => $invitation->id, 'status' => 'accepted']);
 
-    $this->actingAs($invitee)->get(route('inbox'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('notifications.pendingInvitationCount', 0));
 });
 
 it('shows the newly accepted list ungrouped in the navigation tree on the next page load', function () {
@@ -385,30 +376,18 @@ it('still returns a plain 429 for a non inertia request once the invite limit tr
 
 // -- Shared notifications props -----------------------------------------------
 
-it('shares the pending invitation count on every request but only the full list on a partial reload', function () {
+it('shares the unread notification count on every request', function () {
     $owner = User::factory()->create();
     $invitee = User::factory()->create();
     $list = TaskList::factory()->create(['user_id' => $owner->id, 'name' => 'Website launch']);
-    TaskListMember::factory()->forTaskList($list, $invitee)
-        ->pending()
-        ->create(['invited_by_user_id' => $owner->id]);
+    $this->actingAs($owner)->post(route('lists.members.store', $list), [
+        'email' => $invitee->email,
+    ])->assertRedirect();
 
     $this->actingAs($invitee)->get(route('inbox'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('notifications.pendingInvitationCount', 1)
-            ->missing('notifications.invitations'));
-
-    // 'notifications' (the parent key), matching what the frontend actually
-    // sends (Architecture Decision 5, Step 9) — not the leaf
-    // 'notifications.invitations' path, though that also happens to work
-    // (PropsResolver::leadsToOnly() walks down from an "only" ancestor).
-    $this->actingAs($invitee)->get(route('inbox'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->reloadOnly('notifications', fn (Assert $page) => $page
-            ->where('notifications.invitations.0.list.id', $list->id)
-            ->where('notifications.invitations.0.list.name', 'Website launch')
-            ->where('notifications.invitations.0.invitedBy.id', $owner->id)));
+            ->where('notifications.unreadCount', 1));
 });
 
 // -- currentList: roster, sharing flags, F18 email visibility ----------------
@@ -600,9 +579,8 @@ it('renders a shared lists workspace page in a bounded number of queries', funct
     DB::disableQueryLog();
 
     // Guards against the member roster (sharingDetails()'s acceptedMembersFor())
-    // or the notification count/deferred-prop closures turning into a
-    // per-member or per-invitation query. Measured at 15 with 2 members and
-    // 3 tasks (auth, session, notifications.pendingInvitationCount, the
+    // or the unread notification count turning into a per-member query.
+    // Measured with 2 members and 3 tasks (auth, session, unread count, the
     // workspace tree, the roster + its eager-loaded user, tasks + their
     // subtasks/comments); headroom to 20 so unrelated, legitimate query
     // additions elsewhere on this page don't make this test flaky — it

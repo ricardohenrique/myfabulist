@@ -9,6 +9,7 @@ use App\Models\TaskList;
 use App\Models\TaskListMember;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 
 interface TaskListMemberRepositoryInterface
 {
@@ -72,6 +73,20 @@ interface TaskListMemberRepositoryInterface
      * disagree with `pendingFor()`'s own list.
      */
     public function pendingCountFor(User $user): int;
+
+    /**
+     * The accepted, non-deleted list ids from the supplied candidate set.
+     *
+     * @param  array<int, int>  $listIds
+     * @return SupportCollection<int, int>
+     */
+    public function acceptedListIdsFor(User $user, array $listIds): SupportCollection;
+
+    /**
+     * @param  array<int, int>  $membershipIds
+     * @return Collection<int, TaskListMember>
+     */
+    public function forUserByIds(User $user, array $membershipIds): Collection;
 
     /**
      * Create the single accepted-owner membership row for a newly created
