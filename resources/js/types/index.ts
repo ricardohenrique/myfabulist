@@ -1,4 +1,4 @@
-export type WorkspaceView = 'inbox' | 'list' | 'starred';
+export type WorkspaceView = 'inbox' | 'list' | 'notifications' | 'starred';
 
 export type OnboardingUseCase =
     | 'personal_tasks'
@@ -70,10 +70,8 @@ export type ListMemberSummary = {
     isOwner: boolean;
 };
 
-// Distinct from `PendingInvitationSummary` below, which is shaped for the
-// invitee's own notification-center view ("what have I been invited to").
-// This is the owner-facing shape used by the share dialog's roster
-// ("who have I invited to this list").
+// Owner-facing shape used by the share dialog's roster ("who have I invited
+// to this list"). Invitee-facing history uses `NotificationItem` below.
 export type PendingListInvitationSummary = {
     id: number;
     userId: number;
@@ -90,11 +88,31 @@ export type CurrentListDetails = NavigationList & {
     canManageSharing: boolean;
 };
 
-export type PendingInvitationSummary = {
-    id: number;
-    list: { id: number; name: string };
-    invitedBy: { id: number; name: string; avatarUrl: string | null } | null;
-    invitedAt: string | null;
+export type NotificationItem = {
+    id: string;
+    type: 'list_invitation' | 'task_comment';
+    readAt: string | null;
+    createdAt: string;
+    actor: {
+        id: number | null;
+        name: string;
+        avatarUrl: string | null;
+    };
+    list: {
+        id: number | null;
+        name: string;
+    };
+    task: {
+        id: number | null;
+        title: string;
+    } | null;
+    body: string | null;
+    invitation: {
+        id: number | null;
+        status: 'accepted' | 'declined' | 'pending' | 'revoked' | 'unavailable';
+        canRespond: boolean;
+    } | null;
+    targetUrl: string | null;
 };
 
 export type DueDateStatus = 'overdue' | 'today' | 'upcoming' | null;
@@ -145,6 +163,7 @@ export type WorkspaceData = {
     canAddTask: boolean;
     tasks: TaskSummary[];
     completedCount: number;
+    notificationItems: NotificationItem[];
 };
 
 export type SharedPageProps = {
@@ -166,12 +185,7 @@ export type SharedPageProps = {
     };
     errors: Record<string, string>;
     notifications: {
-        pendingInvitationCount: number;
-        // Absent unless explicitly requested via Inertia::optional() — a
-        // partial reload naming 'notifications' (the parent prop key, not
-        // the leaf 'notifications.invitations' path) — see
-        // `app-shell.tsx`'s `openNotifications` (Step 9).
-        invitations?: PendingInvitationSummary[];
+        unreadCount: number;
     };
     sharingDialog?: CurrentListDetails | null;
     workspaceBackgroundOptions: WorkspaceBackgroundOptionSummary[];

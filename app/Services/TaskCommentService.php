@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\TaskCommentCreated;
 use App\Exceptions\InvalidTaskCommentException;
 use App\Models\Task;
 use App\Models\TaskComment;
@@ -38,6 +39,10 @@ class TaskCommentService
             throw InvalidTaskCommentException::becauseTooLong();
         }
 
-        return $this->comments->create($task, $author, $body);
+        $comment = $this->comments->create($task, $author, $body);
+
+        TaskCommentCreated::dispatch($comment);
+
+        return $comment;
     }
 }

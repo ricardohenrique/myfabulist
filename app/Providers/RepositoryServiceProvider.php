@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Repositories\Contracts\FolderRepositoryInterface;
+use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Contracts\SubtaskRepositoryInterface;
 use App\Repositories\Contracts\TaskCommentRepositoryInterface;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
@@ -13,6 +14,7 @@ use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Contracts\WorkspaceBackgroundOptionRepositoryInterface;
 use App\Repositories\EloquentFolderRepository;
+use App\Repositories\EloquentNotificationRepository;
 use App\Repositories\EloquentSubtaskRepository;
 use App\Repositories\EloquentTaskCommentRepository;
 use App\Repositories\EloquentTaskListMemberRepository;
@@ -30,6 +32,7 @@ class RepositoryServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(FolderRepositoryInterface::class, EloquentFolderRepository::class);
+        $this->app->bind(NotificationRepositoryInterface::class, EloquentNotificationRepository::class);
         $this->app->bind(TaskListRepositoryInterface::class, EloquentTaskListRepository::class);
         $this->app->bind(TaskCommentRepositoryInterface::class, EloquentTaskCommentRepository::class);
         $this->app->bind(TaskRepositoryInterface::class, EloquentTaskRepository::class);

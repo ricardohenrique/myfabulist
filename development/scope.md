@@ -100,8 +100,10 @@ field. Lists may also remain ungrouped.
   scoped to one list and rejects stale, incomplete, duplicate, or foreign ID
   sets. Tasks never move into or out of shared lists in the current release.
 - Users can add chronological plain-text comments to their tasks. Each comment
-  records its author for the future shared-list model; comments cannot be blank
-  and use the same `TEXT` storage boundary as notes.
+  records its author; comments cannot be blank and use the same `TEXT` storage
+  boundary as notes. A comment on a shared list creates a persistent in-app
+  notification for every other accepted member, but not for its author or a
+  still-pending invitee.
 
 ### Completed tasks
 
@@ -192,8 +194,11 @@ The current product slice includes:
   starring, moving, reordering, soft deletion, and attributed comments;
 - folder/list creation, rename, move, reorder, and guarded deletion;
 - list sharing and collaboration: inviting a registered user by email,
-  accepting/declining/revoking, and leaving voluntarily, with a notification
-  center for pending invitations and a share dialog on the list itself. Task,
+  accepting/declining/revoking, and leaving voluntarily, with a dedicated,
+  persistent notification center for invitations and shared-list comments and
+  a share dialog on the list itself. Notification items remain in history;
+  read/unread is per recipient, and invitation responses are final until the
+  owner sends a new invitation. Task,
   subtask, and comment content — title, notes, due dates, completion, and
   chronological comments — is identical for every accepted member, since a
   shared list stays exactly one canonical row with one set of child records.

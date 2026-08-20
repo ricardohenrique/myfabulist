@@ -12,7 +12,7 @@ import { moveItem, orderByIds } from '@/lib/sortable';
 import { workspaceDragData } from '@/lib/workspace-drag';
 import { inbox as inboxRoute, logout, starred } from '@/routes';
 import { show as showList } from '@/routes/lists';
-import type { NavigationFolder, NavigationList, PendingInvitationSummary, UserSummary, WorkspaceView } from '@/types';
+import type { NavigationFolder, NavigationList, UserSummary, WorkspaceView } from '@/types';
 
 type SidebarProps = {
     user: UserSummary;
@@ -24,10 +24,7 @@ type SidebarProps = {
     currentListId: number | null;
     mobileOpen: boolean;
     reorderPending?: boolean;
-    pendingInvitationCount: number;
-    invitations: PendingInvitationSummary[] | undefined;
-    respondingInvitationIds: number[];
-    notificationsOpen: boolean;
+    unreadNotificationCount: number;
     onCloseMobile: () => void;
     onNavigate: () => void;
     onOpenProfile: () => void;
@@ -41,10 +38,6 @@ type SidebarProps = {
     onLeaveList: (list: NavigationList) => void;
     onReorderList: (folderId: number | null, taskListIds: number[]) => void;
     onMoveList: (list: NavigationList, folderId: number | null, onRejected: () => void) => void;
-    onToggleNotifications: () => void;
-    onCloseNotifications: () => void;
-    onAcceptInvitation: (invitationId: number) => void;
-    onDeclineInvitation: (invitationId: number) => void;
     lastCollisionTargetId: RefObject<string | null>;
 };
 
@@ -421,10 +414,7 @@ export function Sidebar({
     currentListId,
     mobileOpen,
     reorderPending = false,
-    pendingInvitationCount,
-    invitations,
-    respondingInvitationIds,
-    notificationsOpen,
+    unreadNotificationCount,
     onCloseMobile,
     onNavigate,
     onOpenProfile,
@@ -438,10 +428,6 @@ export function Sidebar({
     onLeaveList,
     onReorderList,
     onMoveList,
-    onToggleNotifications,
-    onCloseNotifications,
-    onAcceptInvitation,
-    onDeclineInvitation,
     lastCollisionTargetId,
 }: SidebarProps) {
     const [orderedFolders, setOrderedFolders] = useState(folders);
@@ -699,14 +685,9 @@ export function Sidebar({
                     </button>
                     <div className="account-actions">
                         <NotificationCenter
-                            invitations={invitations}
-                            onAccept={onAcceptInvitation}
-                            onClose={onCloseNotifications}
-                            onDecline={onDeclineInvitation}
-                            onToggle={onToggleNotifications}
-                            open={notificationsOpen}
-                            pendingCount={pendingInvitationCount}
-                            respondingIds={respondingInvitationIds}
+                            active={activeView === 'notifications'}
+                            onNavigate={navigate}
+                            unreadCount={unreadNotificationCount}
                         />
                         <button aria-label="Search tasks (not available yet)" className="icon-button" disabled type="button"><Icon name="search" size={18} /></button>
                     </div>

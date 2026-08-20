@@ -107,6 +107,14 @@ class EloquentTaskRepository implements TaskRepositoryInterface
             ->find($taskId);
     }
 
+    public function findWithTaskList(int $taskId): ?Task
+    {
+        return Task::query()
+            ->whereHas('taskList')
+            ->with('taskList')
+            ->find($taskId);
+    }
+
     /**
      * See `findForUser()` above for the membership scoping this method
      * mirrors for trashed tasks.
@@ -405,6 +413,19 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         return Task::query()
             ->where('task_list_id', $taskList->id)
             ->where('is_completed', false)
+            ->pluck('id');
+    }
+
+    /**
+     * @param  array<int, int>  $taskIds
+     * @param  array<int, int>  $listIds
+     * @return SupportCollection<int, int>
+     */
+    public function existingIdsInLists(array $taskIds, array $listIds): SupportCollection
+    {
+        return Task::query()
+            ->whereIn('id', $taskIds)
+            ->whereIn('task_list_id', $listIds)
             ->pluck('id');
     }
 }

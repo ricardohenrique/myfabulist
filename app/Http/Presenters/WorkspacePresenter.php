@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
 use App\Services\Data\NavigationFolder;
 use App\Services\NavigationService;
+use App\Services\NotificationCenterService;
 use App\Services\TaskService;
 
 class WorkspacePresenter
@@ -21,6 +22,7 @@ class WorkspacePresenter
         private readonly NavigationService $navigation,
         private readonly TaskService $tasks,
         private readonly TaskListMemberRepositoryInterface $members,
+        private readonly NotificationCenterService $notifications,
     ) {}
 
     /**
@@ -69,6 +71,23 @@ class WorkspacePresenter
     /**
      * @return array<string, mixed>
      */
+    public function forNotifications(User $user): array
+    {
+        return [
+            ...$this->base($user, 'notifications'),
+            'currentList' => null,
+            'heading' => 'Notifications',
+            'eyebrow' => 'Updates and collaboration',
+            'canAddTask' => false,
+            'tasks' => [],
+            'completedCount' => 0,
+            'notificationItems' => $this->notifications->forUser($user)->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function base(User $user, string $view): array
     {
         $navigation = $this->navigation->treeFor($user);
@@ -90,6 +109,7 @@ class WorkspacePresenter
             'ungroupedLists' => $navigation->ungroupedLists
                 ->map(fn (TaskList $list): array => $this->list($list, $user))
                 ->all(),
+            'notificationItems' => [],
         ];
     }
 

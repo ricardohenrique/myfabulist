@@ -67,6 +67,12 @@ interface TaskRepositoryInterface
     public function findForUser(int $taskId, User $user): ?Task;
 
     /**
+     * Find a non-deleted task with its non-deleted list for queued internal
+     * workflows that already carry their own recipient authorization.
+     */
+    public function findWithTaskList(int $taskId): ?Task;
+
+    /**
      * Find a *soft-deleted* task by id, scoped to the given user's accepted
      * membership on its list (D3/Plan 4; Plan 1, Step 4 widened this from
      * `tasks.user_id` to membership, consistent with `TaskPolicy`'s fully
@@ -158,4 +164,13 @@ interface TaskRepositoryInterface
      * @return SupportCollection<int, int>
      */
     public function idsForList(TaskList $taskList): SupportCollection;
+
+    /**
+     * Existing, non-deleted task ids scoped to the supplied list ids.
+     *
+     * @param  array<int, int>  $taskIds
+     * @param  array<int, int>  $listIds
+     * @return SupportCollection<int, int>
+     */
+    public function existingIdsInLists(array $taskIds, array $listIds): SupportCollection;
 }

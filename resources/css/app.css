@@ -931,8 +931,14 @@ button:disabled {
  * the bell happens to sit inside it. That is what keeps the panel from
  * overflowing the viewport on narrow/mobile widths.
  */
-.notification-center .icon-button {
+.notification-center .icon-button,
+.notification-trigger {
     position: relative;
+}
+
+.notification-trigger.is-active {
+    color: var(--brand-dark);
+    background: var(--selection);
 }
 
 .notification-badge {
@@ -1488,6 +1494,254 @@ button:disabled {
     width: min(100%, 970px);
     margin: 0 auto;
     padding: 20px 24px 105px;
+}
+
+.notification-canvas {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 24px 90px;
+    background:
+        radial-gradient(circle at 92% 7%, rgba(139, 111, 214, 0.12), transparent 30%),
+        linear-gradient(145deg, #f7f4fc 0%, #f2f0f7 100%);
+    overscroll-behavior: contain;
+}
+
+.notification-view {
+    width: min(100%, 900px);
+    margin: 0 auto;
+    overflow: hidden;
+    border: 1px solid rgba(117, 99, 157, 0.16);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 18px 50px rgba(61, 49, 86, 0.12);
+}
+
+.notification-view__heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid #e9e5ef;
+}
+
+.notification-view__heading span {
+    display: block;
+    margin-bottom: 5px;
+    color: #8a7da5;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.notification-view__heading h2 {
+    margin: 0;
+    color: #302a3d;
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+.notification-filter {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid #ded8e9;
+    border-radius: 999px;
+    background: #f1edf7;
+}
+
+.notification-filter button {
+    min-height: 32px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    color: #756b87;
+    background: transparent;
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.notification-filter button[aria-pressed="true"] {
+    color: #fff;
+    background: var(--brand);
+    box-shadow: 0 2px 7px rgba(87, 64, 148, 0.23);
+}
+
+.notification-items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.notification-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 100px;
+    padding: 17px 24px 38px;
+    border-bottom: 1px solid #ece8f1;
+    background: #fff;
+    cursor: pointer;
+    transition: background 140ms ease;
+}
+
+.notification-item:last-child {
+    border-bottom: 0;
+}
+
+.notification-item.is-unread {
+    background: #fcfaff;
+}
+
+.notification-item:hover {
+    background: #f8f5fc;
+}
+
+.notification-item__open-surface {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.notification-item__open-surface:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: -3px;
+}
+
+.notification-item__main {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+}
+
+.notification-item__avatar {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 12px;
+    color: #fff;
+    background: var(--brand);
+}
+
+.notification-item__avatar--task_comment {
+    background: #6f9f8a;
+}
+
+.notification-item__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.notification-item__copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 1px;
+}
+
+.notification-item__message {
+    color: #423b4f;
+    font-size: 0.87rem;
+    line-height: 1.42;
+}
+
+.notification-item__body {
+    max-width: 640px;
+    overflow: hidden;
+    color: #6f667b;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-item__copy small {
+    color: #958ba1;
+    font-size: 0.72rem;
+}
+
+.notification-item__actions {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.notification-item__actions .ui-button {
+    min-height: 34px;
+}
+
+.notification-item__expired {
+    color: #8d8498;
+    font-size: 0.74rem;
+}
+
+.notification-read-toggle {
+    position: absolute;
+    z-index: 2;
+    bottom: 15px;
+    right: 24px;
+    width: 13px;
+    height: 13px;
+    padding: 0;
+    border: 1.5px solid #9a90a5;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+}
+
+.notification-read-toggle.is-unread {
+    border-color: var(--brand);
+    background: var(--brand);
+    box-shadow: 0 0 0 3px rgba(139, 111, 214, 0.12);
+}
+
+.notification-view__empty {
+    padding: 74px 28px;
+    color: #7e748b;
+    text-align: center;
+}
+
+.notification-view__empty > div {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 16px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    color: var(--brand);
+    background: var(--selection);
+}
+
+.notification-view__empty h3 {
+    margin: 0 0 7px;
+    color: #443b52;
+    font-size: 1rem;
+}
+
+.notification-view__empty p {
+    margin: 0;
+    font-size: 0.82rem;
 }
 
 .task-composer {
@@ -2952,6 +3206,31 @@ button:disabled {
 
     .task-column {
         padding: 12px 10px 100px;
+    }
+
+    .notification-canvas {
+        padding: 12px 10px 72px;
+    }
+
+    .notification-view__heading {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 19px 18px 16px;
+    }
+
+    .notification-item {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        padding: 16px 15px 38px;
+    }
+
+    .notification-item__actions {
+        padding-left: 54px;
+    }
+
+    .notification-read-toggle {
+        bottom: 14px;
+        right: 15px;
     }
 
     .task-composer {

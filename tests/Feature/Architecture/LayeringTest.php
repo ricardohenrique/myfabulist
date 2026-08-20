@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Architecture;
 
 use App\Repositories\Contracts\FolderRepositoryInterface;
+use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Contracts\SubtaskRepositoryInterface;
 use App\Repositories\Contracts\TaskCommentRepositoryInterface;
 use App\Repositories\Contracts\TaskListMemberRepositoryInterface;
@@ -83,6 +84,7 @@ class LayeringTest extends TestCase
     {
         $contracts = [
             FolderRepositoryInterface::class,
+            NotificationRepositoryInterface::class,
             TaskListRepositoryInterface::class,
             TaskCommentRepositoryInterface::class,
             TaskRepositoryInterface::class,
