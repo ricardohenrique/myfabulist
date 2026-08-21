@@ -8,6 +8,7 @@ import type { TaskSummary } from '@/types';
 type TaskRowProps = {
     task: TaskSummary;
     completed?: boolean;
+    transitionState?: 'completing' | 'completed-arrival';
     onSelect: (task: TaskSummary) => void;
     onToggleComplete: (taskId: number) => void;
     onToggleStar: (taskId: number) => void;
@@ -21,6 +22,7 @@ type TaskRowProps = {
 export function TaskRow({
     task,
     completed = false,
+    transitionState,
     onSelect,
     onToggleComplete,
     onToggleStar,
@@ -61,7 +63,7 @@ export function TaskRow({
         <article
             aria-label={!completed && !sortableDisabled ? `Reorder or move task ${task.title}` : undefined}
             aria-roledescription={!completed && !sortableDisabled ? 'sortable task' : undefined}
-            className={`task-row ${completed ? 'is-completed' : ''} ${!completed && !sortableDisabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''} ${menuOpen ? 'has-open-menu' : ''}`}
+            className={`task-row ${completed ? 'is-completed' : ''} ${transitionState === 'completing' ? 'is-completing' : ''} ${transitionState === 'completed-arrival' ? 'is-completed-arrival' : ''} ${!completed && !sortableDisabled ? 'is-sortable' : ''} ${sortable.isDragging ? 'is-dragging' : ''} ${sortable.isDropTarget ? 'is-drop-target' : ''} ${menuOpen ? 'has-open-menu' : ''}`}
             data-workspace-drop-id={`task-${task.id}`}
             ref={!completed && !sortableDisabled ? sortable.ref : undefined}
             role={!completed && !sortableDisabled ? 'group' : undefined}
@@ -74,7 +76,7 @@ export function TaskRow({
                 onClick={() => onToggleComplete(task.id)}
                 type="button"
             >
-                {completed && <Icon name="check" size={14} />}
+                {(completed || transitionState === 'completing') && <Icon name="check" size={14} />}
             </button>
             <button className="task-body" onClick={() => onSelect(task)} type="button">
                 <span className="task-title">{task.title}</span>

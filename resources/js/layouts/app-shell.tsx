@@ -56,6 +56,8 @@ type UndoState = {
 };
 
 const NOTIFICATION_TIMEOUT_MS = 5_000;
+const TASK_COMPLETION_EXIT_MS = 280;
+const TASK_COMPLETION_ARRIVAL_MS = 260;
 
 type AppShellProps = {
     workspace: WorkspaceData;
@@ -82,6 +84,8 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [subtaskCreating, setSubtaskCreating] = useState(false);
     const [pendingSubtaskIds, setPendingSubtaskIds] = useState<number[]>([]);
     const [pendingTaskIds, setPendingTaskIds] = useState<number[]>([]);
+    const [completingTasks, setCompletingTasks] = useState<TaskSummary[]>([]);
+    const [completedArrivalTaskIds, setCompletedArrivalTaskIds] = useState<number[]>([]);
     const [optimisticallyMovedTaskIds, setOptimisticallyMovedTaskIds] = useState<number[]>([]);
     const [taskOrder, setTaskOrder] = useState<number[]>(() => workspace.tasks
         .filter((task) => !task.completedAt)
@@ -100,6 +104,8 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [revokingMemberIds, setRevokingMemberIds] = useState<number[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
     const restoreQuickAddFocusRef = useRef(false);
+    const animationTimeoutIdsRef = useRef<Set<number>>(new Set());
+    const completionStartedAtRef = useRef<Map<number, number>>(new Map());
     const dragSourceId = useRef<string | null>(null);
     const lastCollisionTargetId = useRef<string | null>(null);
     const taskOrderRef = useRef(taskOrder);
@@ -115,11 +121,15 @@ export function AppShell({ workspace, user }: AppShellProps) {
     });
 
     const tasks = workspace.tasks;
+    const completingTaskIds = useMemo(() => completingTasks.map((task) => task.id), [completingTasks]);
     const activeTasks = orderByIds(
-        tasks.filter((task) => !task.completedAt && !optimisticallyMovedTaskIds.includes(task.id)),
+        [
+            ...tasks.filter((task) => !task.completedAt && !optimisticallyMovedTaskIds.includes(task.id)),
+            ...completingTasks.filter((task) => tasks.some((item) => item.id === task.id && item.completedAt)),
+        ],
         taskOrder,
     );
-    const completedTasks = tasks.filter((task) => task.completedAt);
+    const completedTasks = tasks.filter((task) => task.completedAt && !completingTaskIds.includes(task.id));
     const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
     const shareDialogList = backgroundShareList ?? workspace.currentList;
     const destinationLists = useMemo(
@@ -128,12 +138,17 @@ export function AppShell({ workspace, user }: AppShellProps) {
     );
 
     useEffect(() => {
-        const nextTaskOrder = tasks.filter((task) => !task.completedAt).map((task) => task.id);
+        const canonicalActiveIds = tasks.filter((task) => !task.completedAt).map((task) => task.id);
+        const visibleTaskIds = new Set([...canonicalActiveIds, ...completingTaskIds]);
+        const nextTaskOrder = [
+            ...taskOrderRef.current.filter((taskId) => visibleTaskIds.has(taskId)),
+            ...canonicalActiveIds.filter((taskId) => !taskOrderRef.current.includes(taskId)),
+        ];
 
         taskOrderRef.current = nextTaskOrder;
         setTaskOrder(nextTaskOrder);
         setOptimisticallyMovedTaskIds((current) => current.filter((taskId) => tasks.some((task) => task.id === taskId)));
-    }, [tasks]);
+    }, [completingTaskIds, tasks]);
 
     useEffect(() => {
         if (selectedTaskId !== null && !tasks.some((task) => task.id === selectedTaskId)) {
@@ -187,6 +202,19 @@ export function AppShell({ workspace, user }: AppShellProps) {
         return () => window.clearTimeout(timeoutId);
     }, [notice, undo]);
 
+    useEffect(() => () => {
+        animationTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    }, []);
+
+    const queueAnimationTimeout = (callback: () => void, delay: number) => {
+        const timeoutId = window.setTimeout(() => {
+            animationTimeoutIdsRef.current.delete(timeoutId);
+            callback();
+        }, delay);
+
+        animationTimeoutIdsRef.current.add(timeoutId);
+    };
+
     const setTaskPending = (taskId: number, pending: boolean) => {
         setPendingTaskIds((current) => pending
             ? [...new Set([...current, taskId])]
@@ -232,20 +260,50 @@ export function AppShell({ workspace, user }: AppShellProps) {
         setTaskPending(taskId, true);
         const completing = task.completedAt === null;
         const route = completing ? taskRoutes.complete(taskId) : taskRoutes.restore(taskId);
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        router.post(route, {}, {
-            ...mutationOptions(taskId),
-            onSuccess: () => {
-                if (completing) {
-                    trackAnalyticsEvent('task_completed');
-                }
+        if (completing) {
+            completionStartedAtRef.current.set(taskId, window.performance.now());
+            setCompletingTasks((current) => current.some((item) => item.id === taskId) ? current : [...current, task]);
+        }
 
-                setUndo({
-                    message: completing ? `“${task.title}” completed.` : `“${task.title}” restored.`,
-                    execute: () => router.post(completing ? taskRoutes.restore(taskId) : taskRoutes.complete(taskId), {}, { preserveScroll: true }),
-                });
-            },
-        });
+        const persistCompletion = () => {
+            router.post(route, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (completing) {
+                        trackAnalyticsEvent('task_completed');
+                        const startedAt = completionStartedAtRef.current.get(taskId) ?? window.performance.now();
+                        const elapsed = window.performance.now() - startedAt;
+                        const remainingExitTime = reducedMotion ? 0 : Math.max(0, TASK_COMPLETION_EXIT_MS - elapsed);
+
+                        queueAnimationTimeout(() => {
+                            completionStartedAtRef.current.delete(taskId);
+                            setCompletingTasks((current) => current.filter((item) => item.id !== taskId));
+                            setCompletedArrivalTaskIds((current) => [...new Set([...current, taskId])]);
+                            queueAnimationTimeout(() => {
+                                setCompletedArrivalTaskIds((current) => current.filter((id) => id !== taskId));
+                            }, reducedMotion ? 0 : TASK_COMPLETION_ARRIVAL_MS);
+                        }, remainingExitTime);
+                    }
+
+                    setUndo({
+                        message: completing ? `“${task.title}” completed.` : `“${task.title}” restored.`,
+                        execute: () => router.post(completing ? taskRoutes.restore(taskId) : taskRoutes.complete(taskId), {}, { preserveScroll: true }),
+                    });
+                },
+                onError: (errors) => {
+                    completionStartedAtRef.current.delete(taskId);
+                    setCompletingTasks((current) => current.filter((item) => item.id !== taskId));
+                    setNotice(Object.values(errors)[0] ?? 'That change could not be saved.');
+                },
+                onFinish: () => {
+                    setTaskPending(taskId, false);
+                },
+            });
+        };
+
+        persistCompletion();
     };
 
     const toggleCompleteFromDetails = (taskId: number) => {
@@ -1008,6 +1066,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                                                 sortableDisabled={!workspace.currentList || reorderPending}
                                                 sortableIndex={index}
                                                 task={task}
+                                                transitionState={completingTaskIds.includes(task.id) ? 'completing' : undefined}
                                             />
                                         ))}
                                     </div>
@@ -1038,6 +1097,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                                                 onToggleStar={toggleStar}
                                                 pending={pendingTaskIds.includes(task.id)}
                                                 task={task}
+                                                transitionState={completedArrivalTaskIds.includes(task.id) ? 'completed-arrival' : undefined}
                                             />
                                         ))}
                                     </div>
