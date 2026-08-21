@@ -35,6 +35,16 @@ export type WorkspaceBackgroundOptionSummary = {
     isDefault: boolean;
 };
 
+export type CompletionSound = {
+    key: string;
+    label: string;
+    url: string;
+};
+
+export type CompletionSoundOptionSummary = CompletionSound & {
+    isDefault: boolean;
+};
+
 export type UserSummary = {
     id: number;
     name: string;
@@ -43,6 +53,7 @@ export type UserSummary = {
     hasPassword: boolean;
     emailVerified: boolean;
     workspaceBackground: WorkspaceBackground | null;
+    completionSound: CompletionSound | null;
 };
 
 export type NavigationList = {
@@ -189,6 +200,7 @@ export type SharedPageProps = {
     };
     sharingDialog?: CurrentListDetails | null;
     workspaceBackgroundOptions: WorkspaceBackgroundOptionSummary[];
+    completionSoundOptions: CompletionSoundOptionSummary[];
 };
 
 export type IconName =
@@ -207,8 +219,12 @@ export type IconName =
     | 'menu'
     | 'more'
     | 'note'
+    | 'pause'
+    | 'play'
     | 'plus'
     | 'search'
     | 'star'
     | 'trash'
-    | 'user';
+    | 'user'
+    | 'volume'
+    | 'volume-off';

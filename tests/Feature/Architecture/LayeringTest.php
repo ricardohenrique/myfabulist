@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Architecture;
 
+use App\Repositories\Contracts\CompletionSoundRepositoryInterface;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use App\Repositories\Contracts\NotificationRepositoryInterface;
 use App\Repositories\Contracts\SubtaskRepositoryInterface;
@@ -83,6 +84,7 @@ class LayeringTest extends TestCase
     public function test_every_eloquent_repository_implements_a_contract(): void
     {
         $contracts = [
+            CompletionSoundRepositoryInterface::class,
             FolderRepositoryInterface::class,
             NotificationRepositoryInterface::class,
             TaskListRepositoryInterface::class,

@@ -22,8 +22,10 @@ The account menu opens a large profile settings modal over the current
 workspace, preserving the user's list and task context behind it. The initial
 profile surface stays deliberately small: users can update their name and
 email, change or set their password, see their email-confirmation state, and
-resend a confirmation email. Password recovery starts from the public login
-page. It does not include avatar uploads, account deletion, 2FA, or passkeys.
+resend a confirmation email. Separate customization tabs let them choose a
+workspace background and preview/select a task-completion sound, including a
+silent option. Password recovery starts from the public login page. It does
+not include avatar uploads, account deletion, 2FA, or passkeys.
 
 ## Organization structure
 

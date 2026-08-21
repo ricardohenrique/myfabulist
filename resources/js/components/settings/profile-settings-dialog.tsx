@@ -1,10 +1,11 @@
 import { router, type InertiaForm } from '@inertiajs/react';
 import { useEffect, useState, type FormEvent } from 'react';
+import { CompletionSoundSection } from '@/components/settings/completion-sound-section';
 import { WorkspaceBackgroundSection } from '@/components/settings/workspace-background-section';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { send as sendEmailVerification } from '@/routes/verification';
-import type { UserSummary, WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/types';
+import type { CompletionSound, CompletionSoundOptionSummary, UserSummary, WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/types';
 
 export type ProfileFormData = {
     name: string;
@@ -17,7 +18,7 @@ export type PasswordFormData = {
     password_confirmation: string;
 };
 
-type ProfileTabId = 'profile' | 'background';
+type ProfileTabId = 'profile' | 'background' | 'sound';
 
 type ProfileTab = {
     id: ProfileTabId;
@@ -30,6 +31,7 @@ type ProfileTab = {
 const PROFILE_TABS: readonly ProfileTab[] = [
     { id: 'profile', label: 'Profile' },
     { id: 'background', label: 'Workspace background' },
+    { id: 'sound', label: 'Completion sound' },
 ];
 
 type ProfileSettingsDialogProps = {
@@ -42,6 +44,8 @@ type ProfileSettingsDialogProps = {
     onSavePassword: (event: FormEvent<HTMLFormElement>) => void;
     currentBackground: WorkspaceBackground | null;
     backgroundOptions: WorkspaceBackgroundOptionSummary[];
+    currentCompletionSound: CompletionSound | null;
+    completionSoundOptions: CompletionSoundOptionSummary[];
     hasPassword: UserSummary['hasPassword'];
     email: UserSummary['email'];
     emailVerified: UserSummary['emailVerified'];
@@ -57,6 +61,8 @@ export function ProfileSettingsDialog({
     onSavePassword,
     currentBackground,
     backgroundOptions,
+    currentCompletionSound,
+    completionSoundOptions,
     hasPassword,
     email,
     emailVerified,
@@ -246,6 +252,20 @@ export function ProfileSettingsDialog({
                             currentBackground={currentBackground}
                             onSaved={onClose}
                             options={backgroundOptions}
+                        />
+                    </div>
+
+                    <div
+                        aria-labelledby="profile-tab-sound"
+                        className="profile-modal__panel"
+                        hidden={activeTab !== 'sound'}
+                        id="profile-tabpanel-sound"
+                        role="tabpanel"
+                    >
+                        <CompletionSoundSection
+                            currentSound={currentCompletionSound}
+                            onSaved={onClose}
+                            options={completionSoundOptions}
                         />
                     </div>
                 </div>

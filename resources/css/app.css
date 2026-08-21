@@ -3026,6 +3026,116 @@ button:disabled {
     text-transform: uppercase;
 }
 
+.completion-sound-form {
+    margin-top: 18px;
+    display: grid;
+    gap: 14px;
+}
+
+.completion-sound-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    gap: 14px;
+}
+
+.completion-sound-option {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+}
+
+.completion-sound-option__select {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+
+.completion-sound-option__visual {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: #7762b5;
+    background:
+        radial-gradient(circle at 50% 45%, rgba(139, 111, 214, 0.2), transparent 46%),
+        #f4f1fb;
+    box-shadow: inset 0 0 0 1px rgba(24, 32, 39, 0.08);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.completion-sound-option__select:hover .completion-sound-option__visual {
+    transform: translateY(-1px);
+}
+
+.completion-sound-option.is-selected .completion-sound-option__visual {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(139, 111, 214, 0.28);
+}
+
+.completion-sound-option__label {
+    min-height: 31px;
+    color: var(--ink);
+    font-size: 0.75rem;
+    font-weight: 620;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.completion-sound-option.is-selected .completion-sound-option__label {
+    color: var(--brand);
+}
+
+.completion-sound-option__badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(24, 32, 39, 0.68);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.completion-sound-option__preview,
+.completion-sound-option__preview-placeholder {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-radius: 7px;
+    font-size: 0.68rem;
+    font-weight: 680;
+}
+
+.completion-sound-option__preview {
+    border: 1px solid #ddd7ec;
+    color: #665399;
+    background: #fff;
+}
+
+.completion-sound-option__preview:hover {
+    border-color: var(--brand);
+    background: var(--selection);
+}
+
+.completion-sound-option__preview-placeholder {
+    color: #98a1a7;
+    background: #f1f2f2;
+}
+
 .share-section {
     margin-bottom: 18px;
 }

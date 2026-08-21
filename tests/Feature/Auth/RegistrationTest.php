@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\CompletionSound;
 use App\Models\User;
 use App\Models\WorkspaceBackgroundOption;
 use App\Notifications\WelcomeVerifyEmailNotification;
@@ -97,5 +98,22 @@ class RegistrationTest extends TestCase
         $user = User::query()->where('email', 'test@example.com')->firstOrFail();
         $this->assertSame($twilight->id, $user->workspace_background_option_id);
         $this->assertNull($user->workspace_background_config);
+    }
+
+    public function test_new_users_start_with_the_default_completion_sound(): void
+    {
+        $this->post(route('register.store'), [
+            'name' => 'John Doe',
+            'email' => 'test@example.com',
+            'password' => 'ValidPass1!',
+            'password_confirmation' => 'ValidPass1!',
+        ])->assertSessionHasNoErrors();
+
+        $user = User::query()->where('email', 'test@example.com')->firstOrFail();
+
+        $this->assertSame(
+            CompletionSound::query()->where('is_default', true)->value('id'),
+            $user->completion_sound_id,
+        );
     }
 }

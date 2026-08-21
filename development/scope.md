@@ -35,9 +35,10 @@ field. Lists may also remain ungrouped.
 
 - Authentication is required for product data.
 - Users may register, sign in with email/password or a verified Google account,
-  sign out, and update their name, email, and password from a basic in-app
-  profile modal. A Google-only user may set their first password after signing
-  in. Password recovery is available by email. New password-based accounts
+  sign out, and update their name, email, password, workspace background, and
+  task-completion sound from an in-app profile modal. A Google-only user may
+  set their first password after signing in. Password recovery is available by
+  email. New password-based accounts
   receive a branded welcome email with an optional confirmation link; email
   confirmation is recorded but never gates sign-in or product access.
   New accounts receive a lightweight, optional first-Inbox question about
@@ -128,6 +129,9 @@ field. Lists may also remain ungrouped.
   subtle motion, and muted completed work.
 - Pressing Enter in quick-add creates the task, clears the field, and keeps it
   focused after success. Failed saves retain enough context to recover.
+- A successful task completion uses restrained motion and plays the user's
+  selected catalog sound. New accounts start with `sound-effect-01.mp3`; users
+  may preview any available sound or explicitly choose no sound.
 - Reordering should feel immediate. If persistence rejects stale state, the UI
   refreshes from canonical data and explains the failure.
 - The full task, list, and folder item surfaces must support pointer, touch, and
@@ -187,7 +191,8 @@ field. Lists may also remain ungrouped.
 The current product slice includes:
 
 - authenticated, user-isolated folders, lists, and tasks;
-- basic profile management for name, email, and password;
+- profile management for name, email, password, workspace background, and
+  completion sound;
 - permanent Inbox creation and navigation;
 - Starred smart view;
 - quick task creation, rename, completion/restoration, notes, due dates,

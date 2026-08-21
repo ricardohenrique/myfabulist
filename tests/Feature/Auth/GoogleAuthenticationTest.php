@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\CompletionSound;
 use App\Models\User;
 use App\Models\WorkspaceBackgroundOption;
 use Database\Seeders\WorkspaceBackgroundOptionSeeder;
@@ -53,6 +54,10 @@ class GoogleAuthenticationTest extends TestCase
         $this->assertSame(
             WorkspaceBackgroundOption::query()->where('is_default', true)->value('id'),
             $user->workspace_background_option_id,
+        );
+        $this->assertSame(
+            CompletionSound::query()->where('is_default', true)->value('id'),
+            $user->completion_sound_id,
         );
     }
 

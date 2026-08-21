@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\CompletionSound;
 use App\Models\User;
 use App\Models\WorkspaceBackgroundOption;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -39,6 +40,8 @@ class UserFactory extends Factory
             // colors (Plan: "Workspace Background Personalization", Step 1).
             'workspace_background_option_id' => null,
             'workspace_background_config' => null,
+            // Factory users opt out unless a test explicitly selects a sound.
+            'completion_sound_id' => null,
             // Factory and seeded users represent established accounts.
             // Real registrations omit these fields and receive the prompt.
             'onboarding_use_case' => null,
@@ -102,6 +105,13 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'workspace_background_option_id' => $option->id,
             'workspace_background_config' => $config,
+        ]);
+    }
+
+    public function withCompletionSound(CompletionSound $sound): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'completion_sound_id' => $sound->id,
         ]);
     }
 }

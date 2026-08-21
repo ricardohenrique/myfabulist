@@ -103,6 +103,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
     const [shareInviteProcessing, setShareInviteProcessing] = useState(false);
     const [revokingMemberIds, setRevokingMemberIds] = useState<number[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
+    const completionSoundAudioRef = useRef<HTMLAudioElement>(null);
     const restoreQuickAddFocusRef = useRef(false);
     const animationTimeoutIdsRef = useRef<Set<number>>(new Set());
     const completionStartedAtRef = useRef<Map<number, number>>(new Map());
@@ -273,6 +274,13 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onSuccess: () => {
                     if (completing) {
                         trackAnalyticsEvent('task_completed');
+                        const completionAudio = completionSoundAudioRef.current;
+
+                        if (user.completionSound && completionAudio) {
+                            completionAudio.currentTime = 0;
+                            void completionAudio.play().catch(() => undefined);
+                        }
+
                         const startedAt = completionStartedAtRef.current.get(taskId) ?? window.performance.now();
                         const elapsed = window.performance.now() - startedAt;
                         const remainingExitTime = reducedMotion ? 0 : Math.max(0, TASK_COMPLETION_EXIT_MS - elapsed);
@@ -1142,7 +1150,9 @@ export function AppShell({ workspace, user }: AppShellProps) {
 
             <ProfileSettingsDialog
                 backgroundOptions={page.props.workspaceBackgroundOptions}
+                completionSoundOptions={page.props.completionSoundOptions}
                 currentBackground={user.workspaceBackground}
+                currentCompletionSound={user.completionSound}
                 email={user.email}
                 emailVerified={user.emailVerified}
                 hasPassword={user.hasPassword}
@@ -1154,6 +1164,10 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 profileForm={profileForm}
                 successMessage={profileSuccess}
             />
+
+            {user.completionSound && (
+                <audio aria-hidden="true" preload="auto" ref={completionSoundAudioRef} src={user.completionSound.url} />
+            )}
 
             <UseCaseDialog
                 open={workspace.view === 'inbox' && page.props.onboarding.pending}

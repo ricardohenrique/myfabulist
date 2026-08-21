@@ -148,8 +148,9 @@ users can:
   revoke, or leave a share, with a persistent notification center for
   invitation history and shared-list comments and a share dialog for managing
   a list's members; and
-- update the signed-in user's name, email address, and password from the
-  account menu; and
+- update the signed-in user's name, email address, password, workspace
+  background, and task-completion sound from the account menu, including
+  previewing sounds or choosing silence; and
 - undo the latest completion, star change, or task move.
 
 New password and Google registrations begin with two simple tasks in Inbox.

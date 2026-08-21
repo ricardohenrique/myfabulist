@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\User;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Services\CompletionSoundService;
 use App\Services\ListSharingService;
 use App\Services\WorkspaceBackgroundService;
 use Carbon\CarbonInterface;
@@ -119,9 +120,11 @@ class DemoSeeder extends Seeder
         // without this call, the workspace-background catalog would never
         // exist on a freshly reset demo database.
         $this->call(WorkspaceBackgroundOptionSeeder::class);
+        $this->call(CompletionSoundSeeder::class);
 
         $users = $this->createUsers($userCount);
         $this->assignDefaultBackgrounds($users);
+        $this->assignDefaultCompletionSounds($users);
 
         $totals = ['folders' => 0, 'lists' => 0, 'tasks' => 0, 'subtasks' => 0];
 
@@ -182,6 +185,16 @@ class DemoSeeder extends Seeder
 
         foreach ($users as $user) {
             $backgrounds->assignDefaultTo($user);
+        }
+    }
+
+    /** @param Collection<int, User> $users */
+    private function assignDefaultCompletionSounds(Collection $users): void
+    {
+        $sounds = app(CompletionSoundService::class);
+
+        foreach ($users as $user) {
+            $sounds->assignDefaultTo($user);
         }
     }
 

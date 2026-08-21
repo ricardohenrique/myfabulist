@@ -103,6 +103,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('onboarding', OnboardingController::class)->name('onboarding.complete');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('profile/background', [ProfileController::class, 'updateBackground'])->name('profile.background.update');
+    Route::patch('profile/completion-sound', [ProfileController::class, 'updateCompletionSound'])->name('profile.completion-sound.update');
     Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password.update');
     Route::get('inbox', InboxController::class)->name('inbox');
     Route::get('starred', StarredController::class)->name('starred');

@@ -6,9 +6,11 @@ namespace App\Http\Middleware;
 
 use App\Enums\OnboardingUseCase;
 use App\Http\Presenters\WorkspacePresenter;
+use App\Models\CompletionSound;
 use App\Models\User;
 use App\Models\WorkspaceBackgroundOption;
 use App\Repositories\Contracts\TaskListRepositoryInterface;
+use App\Services\CompletionSoundService;
 use App\Services\NotificationCenterService;
 use App\Services\WorkspaceBackgroundService;
 use Illuminate\Http\Request;
@@ -24,6 +26,7 @@ class HandleInertiaRequests extends Middleware
         private readonly TaskListRepositoryInterface $taskLists,
         private readonly WorkspacePresenter $workspace,
         private readonly WorkspaceBackgroundService $backgrounds,
+        private readonly CompletionSoundService $sounds,
         private readonly NotificationCenterService $notificationCenter,
     ) {}
 
@@ -52,6 +55,7 @@ class HandleInertiaRequests extends Middleware
                     // here) so the workspace shell can apply it on first
                     // paint with no flash of unstyled background.
                     'workspaceBackground' => $this->resolvedWorkspaceBackground($request->user()),
+                    'completionSound' => $this->resolvedCompletionSound($request->user()),
                 ],
             ],
             'onboarding' => fn (): array => [
@@ -72,6 +76,17 @@ class HandleInertiaRequests extends Middleware
                         'label' => $option->label,
                         'defaultConfig' => $option->default_config,
                         'isDefault' => $option->is_default,
+                    ])
+                    ->values()
+                    ->all(),
+            'completionSoundOptions' => fn (): array => $request->user() === null
+                ? []
+                : $this->sounds->availableOptionsFor($request->user())
+                    ->map(fn (CompletionSound $sound): array => [
+                        'key' => $sound->key,
+                        'label' => $sound->label,
+                        'url' => $sound->publicUrl(),
+                        'isDefault' => $sound->is_default,
                     ])
                     ->values()
                     ->all(),
@@ -119,6 +134,22 @@ class HandleInertiaRequests extends Middleware
             'type' => $background->type,
             'config' => $background->config,
             'isCustomized' => $background->isCustomized,
+        ];
+    }
+
+    /** @return array{key: string, label: string, url: string}|null */
+    private function resolvedCompletionSound(User $user): ?array
+    {
+        $sound = $this->sounds->resolvedSoundFor($user);
+
+        if ($sound === null) {
+            return null;
+        }
+
+        return [
+            'key' => $sound->key,
+            'label' => $sound->label,
+            'url' => $sound->url,
         ];
     }
 }

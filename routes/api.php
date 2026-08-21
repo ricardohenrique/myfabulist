@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     })->name('user');
 
     Route::patch('profile/background', [ProfileController::class, 'updateBackground'])->name('profile.background.update');
+    Route::patch('profile/completion-sound', [ProfileController::class, 'updateCompletionSound'])->name('profile.completion-sound.update');
 
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('notifications/{notification}', [NotificationController::class, 'update'])->name('notifications.update');

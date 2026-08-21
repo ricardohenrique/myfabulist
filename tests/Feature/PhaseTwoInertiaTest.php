@@ -51,6 +51,9 @@ it('renders an unverified users inbox from canonical services', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('workspace/show')
             ->where('auth.user.name', 'Ada Lovelace')
+            ->where('auth.user.completionSound', null)
+            ->where('completionSoundOptions.0.key', 'sound_effect_01')
+            ->where('completionSoundOptions.0.isDefault', true)
             ->where('workspace.view', 'inbox')
             ->where('workspace.currentList.id', $inbox->id)
             ->where('workspace.tasks.0.id', $active->id)

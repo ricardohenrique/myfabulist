@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\UpdateCompletionSoundRequest;
 use App\Http\Requests\Web\UpdateProfileRequest;
 use App\Http\Requests\Web\UpdateWorkspaceBackgroundRequest;
 use App\Services\AccountService;
+use App\Services\CompletionSoundService;
 use App\Services\WorkspaceBackgroundService;
 use Illuminate\Http\RedirectResponse;
 
@@ -16,6 +18,7 @@ class ProfileController extends Controller
     public function __construct(
         private readonly AccountService $accounts,
         private readonly WorkspaceBackgroundService $backgrounds,
+        private readonly CompletionSoundService $sounds,
     ) {}
 
     public function update(UpdateProfileRequest $request): RedirectResponse
@@ -40,5 +43,12 @@ class ProfileController extends Controller
         }
 
         return back()->with('success', 'Workspace background updated.');
+    }
+
+    public function updateCompletionSound(UpdateCompletionSoundRequest $request): RedirectResponse
+    {
+        $this->sounds->updateSelection($request->user(), $request->completionSoundKey());
+
+        return back()->with('success', 'Completion sound updated.');
     }
 }

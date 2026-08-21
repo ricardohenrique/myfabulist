@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(CompletionSoundSeeder::class);
         $this->call(WorkspaceBackgroundOptionSeeder::class);
 
         $user = User::factory()->create([

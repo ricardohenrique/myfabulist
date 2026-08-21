@@ -33,6 +33,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $profile_photo_path
  * @property int|null $workspace_background_option_id
  * @property array<string, mixed>|null $workspace_background_config
+ * @property int|null $completion_sound_id
  * @property OnboardingUseCase|null $onboarding_use_case
  * @property Carbon|null $onboarding_completed_at
  * @property string|null $two_factor_secret
@@ -43,6 +44,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $updated_at
  * @property-read string|null $profile_photo_url
  * @property-read WorkspaceBackgroundOption|null $workspaceBackgroundOption
+ * @property-read CompletionSound|null $completionSound
  * @property-read Collection<int, Folder> $folders
  * @property-read Collection<int, TaskList> $taskLists
  * @property-read Collection<int, Task> $tasks
@@ -124,6 +126,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function workspaceBackgroundOption(): BelongsTo
     {
         return $this->belongsTo(WorkspaceBackgroundOption::class);
+    }
+
+    /** @return BelongsTo<CompletionSound, $this> */
+    public function completionSound(): BelongsTo
+    {
+        return $this->belongsTo(CompletionSound::class);
     }
 
     /**

@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Web\ProfileController::update
-* @see app/Http/Controllers/Web/ProfileController.php:32
+* @see app/Http/Controllers/Web/ProfileController.php:35
 * @route '/profile/background'
 */
 export const update = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -16,7 +16,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\Web\ProfileController::update
-* @see app/Http/Controllers/Web/ProfileController.php:32
+* @see app/Http/Controllers/Web/ProfileController.php:35
 * @route '/profile/background'
 */
 update.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ update.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Web\ProfileController::update
-* @see app/Http/Controllers/Web/ProfileController.php:32
+* @see app/Http/Controllers/Web/ProfileController.php:35
 * @route '/profile/background'
 */
 update.patch = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({

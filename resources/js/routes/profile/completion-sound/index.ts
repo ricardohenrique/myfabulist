@@ -1,11 +1,8 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../wayfinder'
-import background from './background'
-import completionSound from './completion-sound'
-import password from './password'
+import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Web\ProfileController::update
-* @see app/Http/Controllers/Web/ProfileController.php:24
-* @route '/profile'
+* @see app/Http/Controllers/Web/ProfileController.php:48
+* @route '/profile/completion-sound'
 */
 export const update = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
     url: update.url(options),
@@ -14,13 +11,13 @@ export const update = (options?: RouteQueryOptions): RouteDefinition<'patch'> =>
 
 update.definition = {
     methods: ["patch"],
-    url: '/profile',
+    url: '/profile/completion-sound',
 } satisfies RouteDefinition<["patch"]>
 
 /**
 * @see \App\Http\Controllers\Web\ProfileController::update
-* @see app/Http/Controllers/Web/ProfileController.php:24
-* @route '/profile'
+* @see app/Http/Controllers/Web/ProfileController.php:48
+* @route '/profile/completion-sound'
 */
 update.url = (options?: RouteQueryOptions) => {
     return update.definition.url + queryParams(options)
@@ -28,19 +25,16 @@ update.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\Web\ProfileController::update
-* @see app/Http/Controllers/Web/ProfileController.php:24
-* @route '/profile'
+* @see app/Http/Controllers/Web/ProfileController.php:48
+* @route '/profile/completion-sound'
 */
 update.patch = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
     url: update.url(options),
     method: 'patch',
 })
 
-const profile = {
+const completionSound = {
     update: Object.assign(update, update),
-    background: Object.assign(background, background),
-    completionSound: Object.assign(completionSound, completionSound),
-    password: Object.assign(password, password),
 }
 
-export default profile
+export default completionSound
