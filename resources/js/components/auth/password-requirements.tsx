@@ -1,10 +1,4 @@
-export type PasswordRequirementsConfig = {
-    min: number;
-    mixedCase: boolean;
-    letters: boolean;
-    numbers: boolean;
-    symbols: boolean;
-};
+import type { PasswordRequirementsConfig } from '@/types';
 
 type PasswordRequirement = {
     key: string;
@@ -25,29 +19,14 @@ type PasswordMatchProps = {
 };
 
 export function PasswordRequirements({ id, password, requirements }: PasswordRequirementsProps) {
-    const checks: PasswordRequirement[] = [
-        {
-            key: 'length',
-            label: `At least ${requirements.min} characters`,
-            met: Array.from(password).length >= requirements.min,
-        },
-    ];
+    const checks: PasswordRequirement[] = [];
 
-    if (requirements.mixedCase) {
-        checks.push(
-            { key: 'lowercase', label: 'One lowercase letter', met: /\p{Ll}/u.test(password) },
-            { key: 'uppercase', label: 'One uppercase letter', met: /\p{Lu}/u.test(password) },
-        );
-    } else if (requirements.letters) {
-        checks.push({ key: 'letter', label: 'One letter', met: /\p{L}/u.test(password) });
+    if (requirements.letters) {
+        checks.push({ key: 'letter', label: 'One letter', met: /[a-zA-Z]/.test(password) });
     }
 
     if (requirements.numbers) {
-        checks.push({ key: 'number', label: 'One number', met: /\p{N}/u.test(password) });
-    }
-
-    if (requirements.symbols) {
-        checks.push({ key: 'symbol', label: 'One symbol or space', met: /[\p{Z}\p{S}\p{P}]/u.test(password) });
+        checks.push({ key: 'number', label: 'One number', met: /[0-9]/.test(password) });
     }
 
     return (

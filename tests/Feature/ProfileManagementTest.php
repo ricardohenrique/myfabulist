@@ -62,13 +62,13 @@ class ProfileManagementTest extends TestCase
         $this->actingAs($user)
             ->put(route('profile.password.update'), [
                 'current_password' => 'password',
-                'password' => 'ValidPass1!',
-                'password_confirmation' => 'ValidPass1!',
+                'password' => 'p1',
+                'password_confirmation' => 'p1',
             ])
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $this->assertTrue(Hash::check('ValidPass1!', $user->fresh()->password));
+        $this->assertTrue(Hash::check('p1', $user->fresh()->password));
     }
 
     public function test_current_password_is_required_to_update_password(): void
@@ -88,6 +88,25 @@ class ProfileManagementTest extends TestCase
         $this->assertTrue(Hash::check('password', $user->fresh()->password));
     }
 
+    public function test_password_updates_require_a_letter_and_a_number(): void
+    {
+        $user = User::factory()->create(['password' => 'password']);
+
+        foreach (['letters', '1234'] as $invalidPassword) {
+            $this->actingAs($user)
+                ->from(route('inbox'))
+                ->put(route('profile.password.update'), [
+                    'current_password' => 'password',
+                    'password' => $invalidPassword,
+                    'password_confirmation' => $invalidPassword,
+                ])
+                ->assertSessionHasErrors('password')
+                ->assertRedirect(route('inbox'));
+        }
+
+        $this->assertTrue(Hash::check('password', $user->fresh()->password));
+    }
+
     public function test_google_only_user_can_set_their_first_password(): void
     {
         $user = User::factory()->create([
@@ -98,12 +117,12 @@ class ProfileManagementTest extends TestCase
         $this->actingAs($user)
             ->put(route('profile.password.update'), [
                 'current_password' => '',
-                'password' => 'ValidPass1!',
-                'password_confirmation' => 'ValidPass1!',
+                'password' => 'g1',
+                'password_confirmation' => 'g1',
             ])
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $this->assertTrue(Hash::check('ValidPass1!', $user->fresh()->password));
+        $this->assertTrue(Hash::check('g1', $user->fresh()->password));
     }
 }

@@ -1172,6 +1172,7 @@ export function AppShell({ workspace, user }: AppShellProps) {
                 onSavePassword={savePassword}
                 open={profileDialogOpen}
                 passwordForm={passwordForm}
+                passwordRequirements={page.props.passwordRequirements}
                 profileForm={profileForm}
                 successMessage={profileSuccess}
             />

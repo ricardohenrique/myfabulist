@@ -38,7 +38,8 @@ field. Lists may also remain ungrouped.
   sign out, and update their name, email, password, workspace background, and
   task-completion sound from an in-app profile modal. A Google-only user may
   set their first password after signing in. Password recovery is available by
-  email. New password-based accounts
+  email. New passwords require one letter and one number; uppercase letters,
+  symbols, and additional length requirements are not required. New password-based accounts
   receive a branded welcome email with an optional confirmation link; email
   confirmation is recorded but never gates sign-in or product access.
   New accounts receive a lightweight, optional first-Inbox question about

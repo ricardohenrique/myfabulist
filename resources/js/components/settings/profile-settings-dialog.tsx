@@ -1,11 +1,12 @@
 import { router, type InertiaForm } from '@inertiajs/react';
 import { useEffect, useState, type FormEvent } from 'react';
+import { PasswordMatch, PasswordRequirements } from '@/components/auth/password-requirements';
 import { CompletionSoundSection } from '@/components/settings/completion-sound-section';
 import { WorkspaceBackgroundSection } from '@/components/settings/workspace-background-section';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { send as sendEmailVerification } from '@/routes/verification';
-import type { CompletionSound, CompletionSoundOptionSummary, UserSummary, WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/types';
+import type { CompletionSound, CompletionSoundOptionSummary, PasswordRequirementsConfig, UserSummary, WorkspaceBackground, WorkspaceBackgroundOptionSummary } from '@/types';
 
 export type ProfileFormData = {
     name: string;
@@ -40,6 +41,7 @@ type ProfileSettingsDialogProps = {
     successMessage: string;
     profileForm: InertiaForm<ProfileFormData>;
     passwordForm: InertiaForm<PasswordFormData>;
+    passwordRequirements: PasswordRequirementsConfig;
     onSaveProfile: (event: FormEvent<HTMLFormElement>) => void;
     onSavePassword: (event: FormEvent<HTMLFormElement>) => void;
     currentBackground: WorkspaceBackground | null;
@@ -57,6 +59,7 @@ export function ProfileSettingsDialog({
     successMessage,
     profileForm,
     passwordForm,
+    passwordRequirements,
     onSaveProfile,
     onSavePassword,
     currentBackground,
@@ -211,25 +214,47 @@ export function ProfileSettingsDialog({
 
                                 <label className="field-label" htmlFor="new-password">New password</label>
                                 <input
+                                    aria-describedby={`profile-password-requirements${passwordForm.errors.password ? ' profile-password-error' : ''}`}
                                     aria-invalid={Boolean(passwordForm.errors.password)}
                                     autoComplete="new-password"
                                     className="text-field"
                                     id="new-password"
-                                    onChange={(event) => passwordForm.setData('password', event.target.value)}
-                                    placeholder="At least 8 characters"
+                                    onChange={(event) => {
+                                        passwordForm.setData('password', event.target.value);
+                                        passwordForm.clearErrors('password');
+                                    }}
+                                    placeholder="One letter and one number"
                                     type="password"
                                     value={passwordForm.data.password}
                                 />
-                                {passwordForm.errors.password && <p className="field-error">{passwordForm.errors.password}</p>}
+                                {passwordForm.errors.password && (
+                                    <p className="field-error" id="profile-password-error" role="alert">
+                                        {passwordForm.errors.password}
+                                    </p>
+                                )}
+                                <PasswordRequirements
+                                    id="profile-password-requirements"
+                                    password={passwordForm.data.password}
+                                    requirements={passwordRequirements}
+                                />
 
                                 <label className="field-label" htmlFor="new-password-confirmation">Confirm new password</label>
                                 <input
+                                    aria-describedby="profile-password-match"
                                     autoComplete="new-password"
                                     className="text-field"
                                     id="new-password-confirmation"
-                                    onChange={(event) => passwordForm.setData('password_confirmation', event.target.value)}
+                                    onChange={(event) => {
+                                        passwordForm.setData('password_confirmation', event.target.value);
+                                        passwordForm.clearErrors('password_confirmation', 'password');
+                                    }}
                                     type="password"
                                     value={passwordForm.data.password_confirmation}
+                                />
+                                <PasswordMatch
+                                    confirmation={passwordForm.data.password_confirmation}
+                                    id="profile-password-match"
+                                    password={passwordForm.data.password}
                                 />
 
                                 <div className="profile-modal__actions">

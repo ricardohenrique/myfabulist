@@ -163,7 +163,8 @@ with links in the login-page footer. Their highlighted operator, processor,
 retention, and consumer-dispute details must be completed with the production
 business and infrastructure information before launch.
 
-Password recovery is available from the login page. Password-based registrations
+Registration, password recovery, and profile password changes require one
+letter and one number. Password recovery is available from the login page. Password-based registrations
 receive a branded welcome email with an optional confirmation link; unverified
 accounts can still sign in and use the application. 2FA, passkeys, expanded
 account settings, search, reminders, and NativePHP screens remain outside the

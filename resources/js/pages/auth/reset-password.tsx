@@ -4,11 +4,11 @@ import { AuthLayout } from '@/components/auth/auth-layout';
 import {
     PasswordMatch,
     PasswordRequirements,
-    type PasswordRequirementsConfig,
 } from '@/components/auth/password-requirements';
 import { Button } from '@/components/ui/button';
 import { login } from '@/routes';
 import { update } from '@/routes/password';
+import type { PasswordRequirementsConfig } from '@/types';
 
 type ResetPasswordProps = {
     email: string;
@@ -62,7 +62,7 @@ export default function ResetPassword({ email, passwordRequirements, token }: Re
                         form.setData('password', event.target.value);
                         form.clearErrors('password');
                     }}
-                    placeholder={`At least ${passwordRequirements.min} characters`}
+                    placeholder="One letter and one number"
                     type="password"
                     value={form.data.password}
                 />

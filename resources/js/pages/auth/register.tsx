@@ -4,12 +4,12 @@ import { AuthLayout } from '@/components/auth/auth-layout';
 import {
     PasswordMatch,
     PasswordRequirements,
-    type PasswordRequirementsConfig,
 } from '@/components/auth/password-requirements';
 import { Button } from '@/components/ui/button';
 import { trackAnalyticsEvent } from '@/lib/analytics';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
+import type { PasswordRequirementsConfig } from '@/types';
 
 type RegisterProps = {
     passwordRequirements: PasswordRequirementsConfig;
@@ -75,7 +75,7 @@ export default function Register({ passwordRequirements }: RegisterProps) {
                         form.setData('password', event.target.value);
                         form.clearErrors('password');
                     }}
-                    placeholder={`At least ${passwordRequirements.min} characters`}
+                    placeholder="One letter and one number"
                     type="password"
                     value={form.data.password}
                 />

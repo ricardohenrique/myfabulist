@@ -31,11 +31,9 @@ class RegistrationTest extends TestCase
         $response->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('auth/register')
-                ->where('passwordRequirements.min', 8)
-                ->where('passwordRequirements.mixedCase', true)
+                ->has('passwordRequirements', 2)
                 ->where('passwordRequirements.letters', true)
-                ->where('passwordRequirements.numbers', true)
-                ->where('passwordRequirements.symbols', true));
+                ->where('passwordRequirements.numbers', true));
     }
 
     public function test_new_users_can_register(): void
@@ -45,8 +43,8 @@ class RegistrationTest extends TestCase
         $response = $this->post(route('register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
-            'password' => 'ValidPass1!',
-            'password_confirmation' => 'ValidPass1!',
+            'password' => 'a1',
+            'password_confirmation' => 'a1',
         ]);
 
         $response->assertSessionHasNoErrors()
@@ -71,13 +69,25 @@ class RegistrationTest extends TestCase
         $this->assertFalse($user->hasVerifiedEmail());
     }
 
-    public function test_registration_rejects_passwords_missing_the_required_character_types(): void
+    public function test_registration_rejects_a_password_without_a_number(): void
     {
         $this->post(route('register.store'), [
             'name' => 'John Doe',
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
+        ])->assertSessionHasErrors('password');
+
+        $this->assertGuest();
+    }
+
+    public function test_registration_rejects_a_password_without_a_letter(): void
+    {
+        $this->post(route('register.store'), [
+            'name' => 'John Doe',
+            'email' => 'test@example.com',
+            'password' => '1234',
+            'password_confirmation' => '1234',
         ])->assertSessionHasErrors('password');
 
         $this->assertGuest();

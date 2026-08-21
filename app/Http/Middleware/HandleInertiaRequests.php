@@ -14,6 +14,7 @@ use App\Services\CompletionSoundService;
 use App\Services\NotificationCenterService;
 use App\Services\WorkspaceBackgroundService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Middleware;
 
@@ -43,6 +44,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'appName' => config('app.name', 'Purplelist'),
+            'passwordRequirements' => collect(Password::default()->appliedRules())
+                ->only(['letters', 'numbers'])
+                ->all(),
             'auth' => [
                 'user' => fn (): ?array => $request->user() === null ? null : [
                     'id' => $request->user()->id,

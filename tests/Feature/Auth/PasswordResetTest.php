@@ -56,27 +56,25 @@ class PasswordResetTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('auth/reset-password')
                 ->where('email', $user->email)
-                ->where('passwordRequirements.min', 8)
-                ->where('passwordRequirements.mixedCase', true)
+                ->has('passwordRequirements', 2)
                 ->where('passwordRequirements.letters', true)
                 ->where('passwordRequirements.numbers', true)
-                ->where('passwordRequirements.symbols', true)
                 ->where('token', $token));
 
         $this->post(route('password.update'), [
             'token' => $token,
             'email' => $user->email,
-            'password' => 'ValidPass1!',
-            'password_confirmation' => 'ValidPass1!',
+            'password' => 'r2',
+            'password_confirmation' => 'r2',
         ])->assertSessionHasNoErrors()
             ->assertRedirect(route('login'));
 
         $this->assertGuest();
-        $this->assertTrue(Hash::check('ValidPass1!', $user->fresh()->password));
+        $this->assertTrue(Hash::check('r2', $user->fresh()->password));
 
         $this->post(route('login.store'), [
             'email' => $user->email,
-            'password' => 'ValidPass1!',
+            'password' => 'r2',
         ])->assertRedirect(route('inbox', absolute: false));
 
         $this->assertAuthenticatedAs($user);

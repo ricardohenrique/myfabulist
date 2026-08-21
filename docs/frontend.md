@@ -24,7 +24,9 @@ profile surface stays deliberately small: users can update their name and
 email, change or set their password, see their email-confirmation state, and
 resend a confirmation email. Separate customization tabs let them choose a
 workspace background and preview/select a task-completion sound, including a
-silent option. Password recovery starts from the public login page. It does
+silent option. Registration, password recovery, and profile password changes
+share the same lightweight requirement checklist: one letter and one number.
+Password recovery starts from the public login page. It does
 not include avatar uploads, account deletion, 2FA, or passkeys.
 
 ## Organization structure

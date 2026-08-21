@@ -63,11 +63,9 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): Password => Password::min(8)
-            ->mixedCase()
+        Password::defaults(fn (): Password => Password::min(1)
             ->letters()
-            ->numbers()
-            ->symbols());
+            ->numbers());
 
         Model::preventLazyLoading(! app()->isProduction());
 

@@ -45,6 +45,11 @@ export type CompletionSoundOptionSummary = CompletionSound & {
     isDefault: boolean;
 };
 
+export type PasswordRequirementsConfig = {
+    letters: boolean;
+    numbers: boolean;
+};
+
 export type UserSummary = {
     id: number;
     name: string;
@@ -179,6 +184,7 @@ export type WorkspaceData = {
 
 export type SharedPageProps = {
     appName: string;
+    passwordRequirements: PasswordRequirementsConfig;
     auth: {
         user: UserSummary | null;
     };
