@@ -141,10 +141,21 @@ export function AppShell({ workspace, user }: AppShellProps) {
     useEffect(() => {
         const canonicalActiveIds = tasks.filter((task) => !task.completedAt).map((task) => task.id);
         const visibleTaskIds = new Set([...canonicalActiveIds, ...completingTaskIds]);
-        const nextTaskOrder = [
-            ...taskOrderRef.current.filter((taskId) => visibleTaskIds.has(taskId)),
-            ...canonicalActiveIds.filter((taskId) => !taskOrderRef.current.includes(taskId)),
-        ];
+        const previousTaskIds = new Set(taskOrderRef.current);
+        const nextTaskOrder = taskOrderRef.current.filter((taskId) => visibleTaskIds.has(taskId));
+
+        canonicalActiveIds.forEach((taskId, canonicalIndex) => {
+            if (previousTaskIds.has(taskId)) return;
+
+            const nextCanonicalSiblingId = canonicalActiveIds
+                .slice(canonicalIndex + 1)
+                .find((candidateId) => nextTaskOrder.includes(candidateId));
+            const insertionIndex = nextCanonicalSiblingId === undefined
+                ? nextTaskOrder.length
+                : nextTaskOrder.indexOf(nextCanonicalSiblingId);
+
+            nextTaskOrder.splice(insertionIndex, 0, taskId);
+        });
 
         taskOrderRef.current = nextTaskOrder;
         setTaskOrder(nextTaskOrder);
