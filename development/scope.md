@@ -135,6 +135,9 @@ field. Lists may also remain ungrouped.
   may preview any available sound or explicitly choose no sound.
 - Reordering should feel immediate. If persistence rejects stale state, the UI
   refreshes from canonical data and explains the failure.
+- Task, list, and folder overflow menus close when the user clicks or taps
+  elsewhere, and Escape closes the active menu while returning focus to its
+  trigger.
 - The full task, list, and folder item surfaces must support pointer, touch, and
   keyboard dragging without separate grip icons. Ordinary clicks on their
   nested controls remain unchanged. Dedicated move-up/move-down menu actions

@@ -2,13 +2,14 @@ import { useDragDropMonitor, useDragOperation, useDroppable, type DragEndEvent }
 import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { isSortable, useSortable } from '@dnd-kit/react/sortable';
 import { Link } from '@inertiajs/react';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { NotificationCenter } from '@/components/navigation/notification-center';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Logo } from '@/components/ui/logo';
 import { moveItem, orderByIds } from '@/lib/sortable';
+import { useDismissibleMenu } from '@/lib/use-dismissible-menu';
 import { workspaceDragData } from '@/lib/workspace-drag';
 import { inbox as inboxRoute, logout, starred } from '@/routes';
 import { show as showList } from '@/routes/lists';
@@ -53,6 +54,7 @@ type SortableListRowProps = {
     onEdit: (list: NavigationList) => void;
     onShare: (list: NavigationList) => void;
     onLeave: (list: NavigationList) => void;
+    onCloseMenu: () => void;
     onToggleMenu: () => void;
 };
 
@@ -63,11 +65,14 @@ function Count({ value }: { value: number }) {
 type NavigationMenuProps = {
     anchorRef: RefObject<HTMLButtonElement | null>;
     children: ReactNode;
+    onDismiss: () => void;
 };
 
-function NavigationMenu({ anchorRef, children }: NavigationMenuProps) {
+function NavigationMenu({ anchorRef, children, onDismiss }: NavigationMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+
+    useDismissibleMenu(true, anchorRef, menuRef, onDismiss);
 
     useLayoutEffect(() => {
         const updatePosition = () => {
@@ -126,6 +131,7 @@ function SortableListRow({
     onEdit,
     onShare,
     onLeave,
+    onCloseMenu,
     onToggleMenu,
 }: SortableListRowProps) {
     const menuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -213,7 +219,7 @@ function SortableListRow({
                 <Icon name="more" size={17} />
             </button>
             {menuOpen && (
-                <NavigationMenu anchorRef={menuTriggerRef}>
+                <NavigationMenu anchorRef={menuTriggerRef} onDismiss={onCloseMenu}>
                     <button onClick={() => onShare(list)} type="button">Share…</button>
                     <button onClick={() => onEdit(list)} type="button">Rename or move…</button>
                     {list.isOwner ? (
@@ -239,6 +245,7 @@ type SortableListCollectionProps = {
     onEdit: (list: NavigationList) => void;
     onShare: (list: NavigationList) => void;
     onLeave: (list: NavigationList) => void;
+    onCloseMenu: () => void;
     onToggleMenu: (menuKey: string) => void;
 };
 
@@ -254,6 +261,7 @@ function SortableListCollection({
     onEdit,
     onShare,
     onLeave,
+    onCloseMenu,
     onToggleMenu,
 }: SortableListCollectionProps) {
     return (
@@ -270,6 +278,7 @@ function SortableListCollection({
                         menuOpen={openMenu === menuKey}
                         nested={nested}
                         onCloseMobile={onCloseMobile}
+                        onCloseMenu={onCloseMenu}
                         onDelete={onDelete}
                         onEdit={onEdit}
                         onShare={onShare}
@@ -300,6 +309,7 @@ type SortableFolderProps = {
     onEditList: (list: NavigationList) => void;
     onShareList: (list: NavigationList) => void;
     onLeaveList: (list: NavigationList) => void;
+    onCloseMenu: () => void;
     onToggle: () => void;
     onToggleMenu: (menuKey: string) => void;
 };
@@ -321,6 +331,7 @@ function SortableFolder({
     onEditList,
     onShareList,
     onLeaveList,
+    onCloseMenu,
     onToggle,
     onToggleMenu,
 }: SortableFolderProps) {
@@ -375,7 +386,7 @@ function SortableFolder({
                     <Icon name="more" size={17} />
                 </button>
                 {openMenu === menuKey && (
-                    <NavigationMenu anchorRef={menuTriggerRef}>
+                    <NavigationMenu anchorRef={menuTriggerRef} onDismiss={onCloseMenu}>
                         <button onClick={() => onCreateList(folder)} type="button">Add list…</button>
                         <button onClick={() => onEditFolder(folder)} type="button">Rename folder…</button>
                         <button className="is-danger" onClick={() => onDeleteFolder(folder)} type="button">Delete folder</button>
@@ -390,6 +401,7 @@ function SortableFolder({
                         lists={folder.lists}
                         nested
                         onCloseMobile={onCloseMobile}
+                        onCloseMenu={onCloseMenu}
                         onDelete={onDeleteList}
                         onEdit={onEditList}
                         onShare={onShareList}
@@ -493,6 +505,8 @@ export function Sidebar({
     const toggleMenu = (menuKey: string) => {
         setOpenMenu((current) => current === menuKey ? null : menuKey);
     };
+
+    const closeMenu = useCallback(() => setOpenMenu(null), []);
 
     const navigate = () => {
         onNavigate();
@@ -728,6 +742,7 @@ export function Sidebar({
                                     itemCount={orderedFolders.length}
                                     key={folder.id}
                                     onCloseMobile={navigate}
+                                    onCloseMenu={closeMenu}
                                     onCreateList={createListInFolder}
                                     onDeleteFolder={deleteFolder}
                                     onDeleteList={deleteList}
@@ -756,6 +771,7 @@ export function Sidebar({
                             currentListId={currentListId}
                             lists={orderedUngroupedLists}
                             onCloseMobile={navigate}
+                            onCloseMenu={closeMenu}
                             onDelete={deleteList}
                             onEdit={editList}
                             onShare={shareList}

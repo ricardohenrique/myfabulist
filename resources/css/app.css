@@ -1824,12 +1824,17 @@ button:disabled {
 }
 
 .task-list {
+    min-width: 0;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 5px;
 }
 
 .task-row {
     position: relative;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     min-height: 54px;
     display: flex;
     align-items: center;

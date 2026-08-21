@@ -1,8 +1,9 @@
 import { useDragOperation } from '@dnd-kit/react';
 import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { useSortable } from '@dnd-kit/react/sortable';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
+import { useDismissibleMenu } from '@/lib/use-dismissible-menu';
 import type { TaskSummary } from '@/types';
 
 type TaskRowProps = {
@@ -33,6 +34,9 @@ export function TaskRow({
     pending = false,
 }: TaskRowProps) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const menuTriggerRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const closeMenu = useCallback(() => setMenuOpen(false), []);
     const hasMetadata = Boolean(task.dueDateLabel || task.note || task.taskListName !== 'Inbox');
     const dragOperation = useDragOperation();
     const isDragSource = dragOperation.source?.id === `task-${task.id}`;
@@ -58,6 +62,8 @@ export function TaskRow({
             droppable: completed || sortableDisabled || isDragSource,
         },
     });
+
+    useDismissibleMenu(menuOpen, menuTriggerRef, menuRef, closeMenu);
 
     return (
         <article
@@ -102,11 +108,11 @@ export function TaskRow({
                 <Icon fill={task.isStarred} name="star" size={19} />
             </button>
             <div className="task-more-wrap">
-                <button aria-expanded={menuOpen} aria-label={`More options for ${task.title}`} className="task-more" onClick={() => setMenuOpen((open) => !open)} type="button">
+                <button aria-expanded={menuOpen} aria-label={`More options for ${task.title}`} className="task-more" onClick={() => setMenuOpen((open) => !open)} ref={menuTriggerRef} type="button">
                     <Icon name="more" size={18} />
                 </button>
                 {menuOpen && (
-                    <div className="task-menu">
+                    <div className="task-menu" ref={menuRef}>
                         <button onClick={() => { onSelect(task); setMenuOpen(false); }} type="button">Open details</button>
                         <button onClick={() => { onSelect(task); setMenuOpen(false); }} type="button">Move to another list…</button>
                         <button className="is-danger" onClick={() => { onDelete(task); setMenuOpen(false); }} type="button">Delete</button>
