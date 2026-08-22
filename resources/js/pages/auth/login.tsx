@@ -39,7 +39,7 @@ export default function Login({ status }: LoginProps) {
     const form = useForm({
         email: '',
         password: '',
-        remember: false,
+        remember: true,
     });
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
