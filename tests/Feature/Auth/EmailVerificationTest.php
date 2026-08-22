@@ -63,6 +63,20 @@ class EmailVerificationTest extends TestCase
         Notification::assertSentTo($user, VerifyEmailNotification::class);
     }
 
+    public function test_confirmation_email_links_request_a_new_browser_tab(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $welcomeHtml = (string) (new WelcomeVerifyEmailNotification)->toMail($user)->render();
+        $confirmationHtml = (string) (new VerifyEmailNotification)->toMail($user)->render();
+        $resetHtml = (string) (new ResetPasswordNotification('token'))->toMail($user)->render();
+
+        $this->assertSame(2, substr_count($welcomeHtml, 'target="_blank"'));
+        $this->assertSame(2, substr_count($confirmationHtml, 'target="_blank"'));
+        $this->assertStringContainsString('rel="noopener noreferrer"', $welcomeHtml);
+        $this->assertStringContainsString('rel="noopener noreferrer"', $confirmationHtml);
+        $this->assertStringNotContainsString('target="_blank"', $resetHtml);
+    }
+
     public function test_branded_email_templates_render_the_product_identity(): void
     {
         $user = User::factory()->unverified()->create(['name' => 'Ada']);

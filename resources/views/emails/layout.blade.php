@@ -31,14 +31,14 @@
                                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:30px 0 26px;">
                                     <tr>
                                         <td align="center" style="border-radius:9px;background:#8b6fd6;">
-                                            <a href="@yield('actionUrl')" style="display:inline-block;padding:14px 22px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">@yield('actionLabel')</a>
+                                            <a href="@yield('actionUrl')" @hasSection('actionTarget') target="@yield('actionTarget')" rel="noopener noreferrer" @endif style="display:inline-block;padding:14px 22px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">@yield('actionLabel')</a>
                                         </td>
                                     </tr>
                                 </table>
                                 @yield('afterAction')
                                 <p style="margin:28px 0 0;padding-top:24px;border-top:1px solid #ece9f0;color:#8a949d;font-size:12px;line-height:1.6;">
                                     If the button does not work, copy and paste this link into your browser:<br>
-                                    <a href="@yield('actionUrl')" style="color:#7659c4;word-break:break-all;">@yield('actionUrl')</a>
+                                    <a href="@yield('actionUrl')" @hasSection('actionTarget') target="@yield('actionTarget')" rel="noopener noreferrer" @endif style="color:#7659c4;word-break:break-all;">@yield('actionUrl')</a>
                                 </p>
                             </div>
                         </td>

@@ -22,7 +22,9 @@ The account menu opens a large profile settings modal over the current
 workspace, preserving the user's list and task context behind it. The initial
 profile surface stays deliberately small: users can update their name and
 email, change or set their password, see their email-confirmation state, and
-resend a confirmation email. Separate customization tabs let them choose a
+resend a confirmation email. Confirmation links in both the welcome and resend
+emails request a new browser tab so the open mail context is preserved.
+Separate customization tabs let them choose a
 workspace background and preview/select a task-completion sound, including a
 silent option. Registration, password recovery, and profile password changes
 share the same lightweight requirement checklist: one letter and one number.

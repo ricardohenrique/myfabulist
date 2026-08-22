@@ -14,6 +14,7 @@
 
 @section('actionUrl', $verificationUrl)
 @section('actionLabel', 'Confirm email address')
+@section('actionTarget', '_blank')
 
 @section('afterAction')
     <p style="margin:0;color:#7b8791;font-size:13px;line-height:1.65;">
